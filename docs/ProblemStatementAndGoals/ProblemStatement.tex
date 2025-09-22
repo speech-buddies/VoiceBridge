@@ -22,8 +22,8 @@
 \toprule
 \textbf{Date} & \textbf{Developer(s)} & \textbf{Change}\\
 \midrule
-Date1 & Name(s) & Description of changes\\
-Date2 & Name(s) & Description of changes\\
+Sept 18 & Mazen & Drafted \& Reviewed the Problem Statement/Goals\\
+Sept 22 & Mazen & Made Changes based on team's Feedback and filled Appendix\\
 ... & ... & ...\\
 \bottomrule
 \end{tabularx}
@@ -39,21 +39,71 @@ Date2 & Name(s) & Description of changes\\
 information.}
 
 \subsection{Problem}
+Individuals with speech impairments, such as those caused by neurological conditions (e.g., Parkinson's disease, stroke, or cerebral palsy), often struggle to interact with modern digital devices. Current speech-to-text systems are optimized for typical speech patterns and perform poorly when processing slurred or impaired speech, resulting in frustration and exclusion from digital communication and device control. The lack of accurate tools for this population limits their independence, restricts accessibility, and creates barriers to everyday tasks such as sending messages, browsing the internet, or operating applications. A solution is needed that can reliably interpret impaired speech and seamlessly integrate with existing devices to empower users with greater autonomy.
 
 \subsection{Inputs and Outputs}
-
-\wss{Characterize the problem in terms of ``high level'' inputs and outputs.  
-Use abstraction so that you can avoid details.}
+At a high level, the system will take speech audio input from users with impaired or slurred speech, captured through a microphone. The input is then processed by a custom-trained machine learning model designed to handle atypical speech patterns. The system will generate text output representing the user's intended words. This text is further mapped into commands or actions that can be executed on a phone or computer interface, allowing the user to control applications, send messages, or perform other digital tasks without requiring standard speech clarity. By bridging the gap between impaired speech and device interaction, the system transforms inaccessible voice commands into actionable outcomes.
 
 \subsection{Stakeholders}
+The primary stakeholders are individuals with speech impairments, such as those with Parkinson's disease, stroke-related conditions, cerebral palsy, or other disorders that affect articulation. These users directly benefit from improved accessibility and independence in controlling digital devices.
+
+Secondary stakeholders include:
+\begin{itemize}
+  \item Caregivers and family members, who gain relief knowing their loved ones can communicate and operate devices more independently.
+  \item Healthcare professionals and speech therapists, who can recommend or integrate this technology into treatment plans to support rehabilitation and daily functioning.
+  \item Accessibility advocates and organizations, who seek inclusive technology solutions to close the digital accessibility gap.
+  \item Software developers and device manufacturers, who may integrate this system into their platforms to expand accessibility features.
+\end{itemize}
 
 \subsection{Environment}
+The system is expected to operate on consumer-grade devices such as smartphones, tablets, or personal computers, equipped with a standard microphone for capturing speech input. It must function in everyday environments where background noise may be present, such as at home, in clinics, or in public settings.
+
+The software environment will include:
+\begin{itemize}
+  \item A machine learning backend trained on impaired speech datasets, capable of running locally or through cloud-based services.
+  \item A user interface layer on the device to display the transcribed text and execute mapped commands.
+  \item Integration with existing operating system accessibility frameworks to enable device-level control (e.g., opening apps, sending messages, browsing).
+\end{itemize}
+
+The solution must be designed to be lightweight and user-friendly, requiring minimal setup, so that individuals of varying technical ability can use it independently.
 
 \wss{Hardware and Software Environment}
 
 \section{Goals}
+The following are goals that VoiceBridge must achieve in order to be considered acceptable and complete.
+
+\begin{table}[hp]
+\caption{Minimum Viable Product Goals}
+\begin{tabularx}{\textwidth}{lXX}
+\toprule
+\textbf{Goal} & \textbf{Explanation} & \textbf{Reasoning}\\
+\midrule
+Accurate Transcription & The system must reliably convert impaired or atypical speech audio into text output with measurable accuracy. & Without accurate transcription, the product fails its core purpose of enabling users to communicate.\\
+Usability of Input & The product must accept speech input through a standard microphone without requiring specialized equipment. & Keeps the solution accessible and cost-effective, lowering barriers for adoption.\\
+Non-Disruptive Feedback & The transcribed text should be displayed clearly to the user for verification. & Transparency builds user trust and allows them to correct errors if necessary.\\
+\bottomrule
+\end{tabularx}
+\end{table}
 
 \section{Stretch Goals}
+The following are goals that are not necessary for the product to be viable, but will provide added benefits should they be achieved.
+
+\begin{table}[hp]
+\caption{Stretch Goals}
+\begin{tabularx}{\textwidth}{lXX}
+\toprule
+\textbf{Goal} & \textbf{Explanation} & \textbf{Reasoning}\\
+\midrule
+Device Control Integration & Transcribed text should be mapped to commands that can interact with applications on a phone or computer. & Extends the system from communication-only to full device control, empowering users with independence.\\
+Real-Time Processing & The system should process speech input and generate text/commands with minimal delay. & Enables natural interaction with devices, making the system practical for everyday use.\\
+Personalization & Allow users to customize command mappings (e.g., ``open browser'' or ``send text''). & Personalization increases usability and adapts the system to individual needs and preferences.\\
+Robustness to Noise & System should handle moderate background noise in typical environments (home, clinic, public). & Ensures reliability in real-world conditions, not just in quiet test settings.\\
+Autonomy & Once activated, the system should run with minimal user intervention. & Reduces reliance on caregivers and maximizes independence for the user.\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\newpage
 
 \section{Extras}
 
@@ -68,6 +118,10 @@ Lecture 02.) Normally the number of extras will be two.  Approval of the extras
 will be part of the discussion with the instructor for approving the project.
 The extras, with the approval (or request) of the instructor, can be modified
 over the course of the term.}
+\begin{itemize}
+    \item Literature Review Report
+    \item Performance Report
+\end{itemize}
 
 \newpage{}
 
@@ -78,12 +132,15 @@ over the course of the term.}
 \input{../Reflection.tex}
 
 \begin{enumerate}
-    \item What went well while writing this deliverable? 
+    \item What went well while writing this deliverable? \\ \\
+    We quickly aligned on the core idea and broke it down into a clear, consolidated problem statement with agreed-upon goals. Using the template kept us focused on abstraction (inputs/outputs, stakeholders, environment) and made it easy to divide.
     \item What pain points did you experience during this deliverable, and how
-    did you resolve them?
+    did you resolve them? \\ \\
+    No major pain-points as this deliverable had a small scope.
     \item How did you and your team adjust the scope of your goals to ensure
     they are suitable for a Capstone project (not overly ambitious but also of
-    appropriate complexity for a senior design project)?
+    appropriate complexity for a senior design project)? \\ \\
+    We narrowed the scope by defining a concrete MVP and separating stretch features. The MVP focuses on reliable transcription for impaired speech with basic command mapping and clear feedback, while stretch goals (e.g., broader device control, real-time latency targets, personalization, noise robustness) are aspirational, not required for success.
 \end{enumerate}  
 
 \end{document}
