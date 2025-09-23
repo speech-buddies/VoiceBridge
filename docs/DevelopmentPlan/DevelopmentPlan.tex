@@ -85,10 +85,43 @@ in-person.}
 
 \section{Team Member Roles}
 
-\wss{You should identify the types of roles you anticipate, like notetaker,
-leader, meeting chair, reviewer.  Assigning specific people to those roles is
-not necessary at this stage.  In a student team the role of the individuals will
-likely change throughout the year.}
+% \wss{You should identify the types of roles you anticipate, like notetaker,
+% leader, meeting chair, reviewer.  Assigning specific people to those roles is
+% not necessary at this stage.  In a student team the role of the individuals will
+% likely change throughout the year.}
+
+All team members will be responsible for creating issues, developing, testing, documenting, and reviewing code. Development work will be partitioned based on project feature. Administrative tasks will be broken down by the following roles, which will be cycled on a regular basis.
+
+\subsection{Project Lead}
+
+\begin{itemize}
+  \item chair meetings with team and supervisors by preparing agenda and guiding discussions
+  \item liaison with supervisors
+  \item ensures team is progressing towards project goals each week
+\end{itemize}
+
+\subsection{Content Manager}
+
+\begin{itemize}
+  \item collects materials needed for proposals for data usage, ethics agreements, etc
+  \item documents papers, datasets, and all other resources referenced by the team throughout the project
+  \item updates Kanban board each week
+\end{itemize}
+
+\subsection{Book Keeper}
+
+\begin{itemize}
+  \item takes notes during team meetings and supervisor meetings
+  \item highlights upcoming deliverables and deadlines
+  \item submits deliverables if needed
+\end{itemize}
+
+\subsection{Hardware Resource Manager }
+
+\begin{itemize}
+  \item tracks and documents expenses related to hardware usage
+\end{itemize}
+
 
 \section{Workflow Plan}
 
@@ -156,9 +189,20 @@ Link to GitHub project: \url{https://github.com/speech-buddies/VoiceBridge}
 
 \section{Proof of Concept Demonstration Plan}
 
-What is the main risk, or risks, for the success of your project?  What will you
-demonstrate during your proof of concept demonstration to convince yourself that
-you will be able to overcome this risk?
+% What is the main risk, or risks, for the success of your project?  What will you
+% demonstrate during your proof of concept demonstration to convince yourself that
+% you will be able to overcome this risk?
+
+The main risk is the difficulty of tuning a machine learning model to accurately transform dysarthric speech into text. The success of our project requires adapting an existing model to transcribe the atypical and inconsistent speech patterns. To overcome this risk, we will orient our proof of concept around testing the transcription accuracy of various architectural components. The prototype will be successful if it produces text that translates the speech content with 70% accuracy. This will provide us with the assurance that our tuning and feature extraction methods can improve atypical speech recognition.
+
+We will attempt to generate this model using the following techniques, and compare and contrast the results to build the final architecture of our model:
+\begin{enumerate}
+    \item Fine-tune selected layers (input/output) of an open weight Speech-to-Text (STT) model, such as Whisper ASR, DeepSpeech, or Wav2Vec using the open Torgo dataset
+    \item Perform preprocessing steps on the speech wave forms to amplify features in the dysarthric speech that improve ASR accuracy 
+\end{enumerate}
+
+
+We plan to continue to research the problem space, and with the help of our supervisor, Dr.Brodbeck, identify more techniques and architectural components that can help us reach our goal.
 
 \section{Expected Technology}
 \begin{comment}
@@ -237,6 +281,9 @@ We will follow the \href{https://peps.python.org/pep-0008/}{PEP 8} coding standa
 CI/CD simplifies the integration of changes by automating the repetitive tasks of building and testing code, reducing the manual effort needed. It provides insights on the project’s health, making it easier to track and resolve conflicts early. 
 
 However, using CI/CD is ineffective without maintaining an up-to-date testing suite (~95%+ coverage). Configuring the pipeline and resolving issues could be time consuming and might slow development progress.
+
+Rawan: The use of CI/CD enforces development standards from the very start of its implementation, if used correctly. It needs to be scaled with the project (e.g. creating a workflow to push artifacts to cloud once a new version is ready) to prevent too much development overhead. 
+
     \item What disagreements did your group have in this deliverable, if any,
     and how did you resolve them?
 
