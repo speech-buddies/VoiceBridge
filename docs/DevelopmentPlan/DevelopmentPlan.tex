@@ -2,10 +2,12 @@
 
 \usepackage{booktabs}
 \usepackage{tabularx}
+\usepackage{comment}
 
-\title{Development Plan\\\progname}
 
-\author{\authname}
+\title{Development Plan\\\Voice Bridge}
+
+\author{\Speech Buddies}
 
 \date{}
 
@@ -31,13 +33,16 @@ Date2 & Name(s) & Description of changes\\
 
 \newpage{}
 
-\wss{Put your introductory blurb here.  Often the blurb is a brief roadmap of
+\begin{comment}\wss{Put your introductory blurb here.  Often the blurb is a brief roadmap of
 what is contained in the report.}
+\end{comment}
 
-\wss{Additional information on the development plan can be found in the
+This report outlines VoiceBridge’s project details, including an overview of the licensing, team norms, proof of concept plan, and the expected technology that’ll be utilized throughout the development phase.
+
+\begin{comment}\wss{Additional information on the development plan can be found in the
 \href{https://gitlab.cas.mcmaster.ca/courses/capstone/-/blob/main/Lectures/L02b_POCAndDevPlan/POCAndDevPlan.pdf?ref_type=heads}
 {lecture slides}.}
-
+\end{comment}
 \section{Confidential Information?}
 
 \wss{State whether your project has confidential information from industry, or
@@ -85,10 +90,38 @@ likely change throughout the year.}
 \section{Workflow Plan}
 
 \begin{itemize}
+  \begin{comment}
 	\item How will you be using git, including branches, pull request, etc.?
 	\item How will you be managing issues, including template issues, issue
 	classification, etc.?
   \item Use of CI/CD
+  \item 
+\end{comment}
+  
+  The team will use Git and GitHub for version control, to manage issues, and to handle pull requests. During the weekly meetings, the team will create a list of issues to complete. This will follow an issue template with a description that includes the Definition of Done (DoD), an assignee, a reviewer, as well as the source/purpose of the issue and any related dependencies or issues. Issues will follow a naming convention which will be included in the associated development branch. Commits will also include the issue number for traceability purposes.
+
+
+ \noindent To keep an organized project, PRs will be merged to main after a reviewer approves that the DoD has been met, tests will be required where applicable in the DoD. The issue will be linked in the PR description.
+
+Issues will be used to track all tasks, such as:
+
+- Development
+- Tests
+- Team meetings
+- Deliverable Submissions
+- Infrastructure Setup
+- Resolving Bugs
+- Addressing Supervisor Feedback
+
+The branch names will include a prefix to include the type of issue worked on, including:  feature/*, bug/*, infra/*, docs/*. 
+
+Once the assignee is confident with their completed issue, they will notify the reviewer and address potential feedback/concerns the reviewer may raise. After the assignee and reviewer agree on the issue completion, the issue owner will notify the team that it is complete.
+
+Use of CI/CD:
+
+Our team will use GitHub Actions to automate testing and maintain code quality standards. The CI pipeline will run unit tests on core functionality, to ensure that bugs aren’t introduced, and existing components are working as expected. A linting tool will be added to  maintain consistent styling and to review code for potential errors. 
+
+PRs must pass all tests and lint checks before developers request review. Branch protection rules will prevent merging until a minimum of 1 PR approval is added.
 \end{itemize}
 
 \section{Project Decomposition and Scheduling}
