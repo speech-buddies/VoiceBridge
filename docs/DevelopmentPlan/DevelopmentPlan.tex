@@ -6,9 +6,9 @@
 \usepackage{hyperref}
 
 
-\title{Development Plan\\\Voice Bridge}
+\title{Development Plan\\ Voice Bridge}
 
-\author{\Speech Buddies}
+\author{\\ Team 13, Speech Buddies}
 
 \date{}
 
@@ -28,8 +28,9 @@
 \toprule
 \textbf{Date} & \textbf{Developer(s)} & \textbf{Change}\\
 \midrule
-September 22, 2025 & Kelvin Yu & Outlined Sections 1-5\\
+September 22, 2025 & Kelvin Yu & Outlined Sections 1-5 and updated team charter\\
 September 22, 2025 & Rawan Mahdi & Added sections 6 and 9, and parts of charter \\
+September 22, 2025 & Luna Aljammal & Added sections 7,8,10,11 and parts of charter \\
 ... & ... & ...\\
 \bottomrule
 \end{tabularx}
@@ -283,6 +284,9 @@ We will follow the \href{https://peps.python.org/pep-0008/}{PEP 8} coding standa
 \begin{enumerate}
     \item Why is it important to create a development plan prior to starting the
     project?
+
+    It encourages the team to establish collaboration practices, align expectations, and identify potential risks early. A development plan sets clear guidelines for communication, workflows, coding standards, and scheduling, which helps reduce misunderstandings later in the project. It also gives the team a shared reference document, ensuring that every member knows their responsibilities, how decisions will be made, and what tools will be used. By agreeing on these practices upfront, the team saves time, avoids unnecessary conflict, and can focus on solving the technical challenges of the project.
+
     \item In your opinion, what are the advantages and disadvantages of using
     CI/CD?
     
@@ -294,6 +298,16 @@ However, using CI/CD is ineffective without maintaining an up-to-date testing su
 
 Rawan: The use of CI/CD enforces development standards from the very start of its implementation, if used correctly. It needs to be scaled with the project (e.g. creating a workflow to push artifacts to cloud once a new version is ready) to prevent too much development overhead. 
 
+Kelvin: 
+
+CI/CD makes development smoother by catching problems early through automated builds and tests. It helps keep the codebase stable, reduces integration issues, and allows new features to be delivered more quickly. However, setting up pipelines can take a lot of time and effort, and they require ongoing maintenance as the project evolves. Tests may be flaky or slow, which can block progress and frustrate developers. Pipelines also consume computing resources and can become slower as the project grows.
+
+Mazen:
+
+CI/CD helps you ship with confidence because builds, tests, and deploys run the same way every time. You get fast feedback, smaller changes are easier to review, and you can roll back if something slips through. With the right gates in placetests, linting, and basic security checks, the codebase stays healthier and environments stay consistent.
+
+The catch is that CI/CD only works well if the team commits the additional effor to creating good tests and keeping the pipeline tidy. Pipelines can get slow or flaky, secrets need careful handling, costs can creep up as jobs and artifacts grow, and it’s easy to lean on a green check instead of doing thoughtful reviews and exploratory testing.
+
     \item What disagreements did your group have in this deliverable, if any,
     and how did you resolve them?
 
@@ -304,9 +318,7 @@ Rawan: The use of CI/CD enforces development standards from the very start of it
 
 \section*{Appendix --- Team Charter}
 
-\wss{borrows from
-\href{https://engineering.up.edu/industry_partnerships/files/team-charter.pdf}
-{University of Portland Team Charter}}
+
 
 \subsection*{External Goals}
 
@@ -357,6 +369,7 @@ deliverables that members bring to the team?}
 
 The quality of work should adhere to level 4 of rubrics. It should be completed to the best of the team's abilities. If the team is inexperienced in a domain, they should use online resources to learn about it and complete high quality work. Tasks should be completed ahead of meetings, to allow for feedback and discussions during meetings.
 \subsubsection*{Attitude}
+Team members are expected to maintain a respectful and supportive attitude. Feedback should be constructive, and disagreements should be handled professionally.
 
 \begin{comment}
 \wss{What are your team's expectations regarding team members' ideas,
@@ -366,6 +379,7 @@ want a conflict resolution plan?  Can adopt existing codes of conduct.}
 \end{comment}
 
 \subsubsection*{Stay on Track}
+Each member is responsible for completing their assigned tasks by the agreed deadlines. If someone anticipates delays, they must communicate early so adjustments can be made. Meetings will be used to review progress and ensure alignment with project goals, helping the team avoid falling behind.
 
 \begin{comment}
 \wss{What methods will be used to keep the team on track? How will your team
@@ -390,6 +404,7 @@ their TA, or the instructor?  Are there incentives for reaching targets early?}
 \end{comment}
 
 \subsubsection*{Team Building}
+The team will actively work to build a collaborative environment through open communication, mutual support, and recognition of contributions.
 
 \begin{comment}
 \wss{How will you build team cohesion (fun time, group rituals, etc.)? }
