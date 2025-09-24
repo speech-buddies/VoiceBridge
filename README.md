@@ -1,10 +1,10 @@
-# Project Name
+# VoiceBridge
 
-Developer Names:
+Developer Names: Kelvin Yu, Luna Aljammal, Mazen Youssef Rawan Mahdi
 
-Date of project start:
+Date of project start: September 2nd, 2025
 
-This project is ...
+VoiceBridge is an accessibility interface for individuals with dysarthric speech to easily interact with technology via ASR.
 
 The folders and files for this project are as follows:
 
