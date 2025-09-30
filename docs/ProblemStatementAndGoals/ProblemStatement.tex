@@ -24,7 +24,7 @@
 \midrule
 Sept 18 & Mazen & Drafted \& Reviewed the Problem Statement/Goals\\
 Sept 22 & Mazen & Made Changes based on team's Feedback and filled Appendix\\
-... & ... & ...\\
+Sept 28 & Rawan & Added Citations to problem statement based on peer review\\
 \bottomrule
 \end{tabularx}
 \end{table}
@@ -32,7 +32,7 @@ Sept 22 & Mazen & Made Changes based on team's Feedback and filled Appendix\\
 \section{Problem Statement}
 
 \subsection{Problem}
-Individuals with speech impairments, such as those caused by neurological conditions (e.g., Parkinson's disease, stroke, or cerebral palsy), often struggle to interact with modern digital devices. Current speech-to-text systems are optimized for typical speech patterns and perform poorly when processing slurred or impaired speech, resulting in frustration and exclusion from digital communication and device control. The lack of accurate tools for this population limits their independence, restricts accessibility, and creates barriers to everyday tasks such as sending messages, browsing the internet, or operating applications. A solution is needed that can reliably interpret impaired speech and seamlessly integrate with existing devices to empower users with greater autonomy.
+Individuals with speech impairments, such as those caused by neurological conditions (e.g., Parkinson's disease, stroke, or cerebral palsy), often struggle to interact with modern digital devices \cite{nidcd2024assistive}. Though there have been recent advancements in state-of-the-art Automatic Speech Recognition (ASR) models, widely used models like Whisper and wav2vec show significantly reduced performance on atypical speech \cite{pokel2025variational}. The lack of accurate tools for this population limits their independence, restricts accessibility, and creates barriers to everyday tasks such as sending messages, browsing the internet, or operating applications. A solution is needed that can reliably interpret impaired speech and seamlessly integrate with existing devices to empower users with greater autonomy.
 
 \subsection{Inputs and Outputs}
 At a high level, the system will take speech audio input from users with impaired or slurred speech, captured through a microphone. The input is then processed by a custom-trained machine learning model designed to handle atypical speech patterns. The system will generate text output representing the user's intended words. This text is further mapped into commands or actions that can be executed on a phone or computer interface, allowing the user to control applications, send messages, or perform other digital tasks without requiring standard speech clarity. By bridging the gap between impaired speech and device interaction, the system transforms inaccessible voice commands into actionable outcomes.
@@ -99,7 +99,6 @@ Autonomy & Once activated, the system should run with minimal user intervention.
 
 \section{Extras}
 
-
 \begin{itemize}
     \item Literature Review Report
     \item Performance Report
@@ -122,6 +121,9 @@ Autonomy & Once activated, the system should run with minimal user intervention.
     they are suitable for a Capstone project (not overly ambitious but also of
     appropriate complexity for a senior design project)? \\ \\
     We narrowed the scope by defining a concrete MVP and separating stretch features. The MVP focuses on reliable transcription for impaired speech with basic command mapping and clear feedback, while stretch goals (e.g., broader device control, real-time latency targets, personalization, noise robustness) are aspirational, not required for success.
-\end{enumerate}  
+\end{enumerate} 
 
+\section*{References}
+\bibliographystyle{IEEEtran}
+\bibliography{../../refs/References}
 \end{document}
