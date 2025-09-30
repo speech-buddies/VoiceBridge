@@ -32,6 +32,8 @@ September 22, 2025 & Kelvin Yu & Added Sections 1-5 and updated team charter\\
 September 22, 2025 & Rawan Mahdi & Added sections 6 and 9, and parts of charter \\
 September 22, 2025 & Luna Aljammal & Added sections 7,8,10,11 and parts of charter \\
 September 29, 2025 & Rawan Madhi & Updated PoC plan with new roadmap discussed with supervisor\\
+September 30, 2025 & Luna Aljammal & Updated deadlines, naming conventions, and team charter to address peer feedback \\
+
 \bottomrule
 \end{tabularx}
 \end{table}
@@ -144,29 +146,43 @@ All team members will be responsible for creating issues, developing, testing, d
   \item Use of CI/CD
   \item 
 \end{comment}
-  
-The team will use Git and GitHub for version control, to manage issues, and to handle pull requests. During the weekly meetings, the team will create a list of issues to complete. This will follow an issue template with a description that includes the Definition of Done (DoD), an assignee, a reviewer, as well as the source/purpose of the issue and any related dependencies or issues. Issues will follow a naming convention which will be included in the associated development branch. Commits will also include the issue number for traceability purposes.
+
+The team will use Git and GitHub for version control, to manage issues, and to handle pull requests. During the weekly meetings, the team will create a list of issues to complete. This will follow an issue template with a description that includes the Definition of Done (DoD), an assignee, a reviewer, as well as the source/purpose of the issue and any related dependencies or issues. Commits will include a descriptive message outline the changes. To maintain a traceable Git history, all branches must be prefixed with the corresponding Issue Label.
 
 \noindent To keep an organized project, PRs will be merged to main after a reviewer approves that the DoD has been met. Tests will be required where applicable in the DoD. The issue will be linked in the PR description.
 
-Issues will be used to track all tasks, such as:
+Issues will be used to track all tasks, including work resulting from feedback. Tasks could include:
 \begin{itemize}
     \item Development
     \item Tests
-    \item Team meetings
+    \item Team Meetings
     \item Deliverable Submissions
     \item Infrastructure Setup
     \item Resolving Bugs
     \item Addressing Supervisor Feedback
+    \item Feature Enhancements
 \end{itemize}
 
-The branch names will include a prefix to specify the type of issue worked on, including:
-\begin{itemize}
-    \item feature/*
-    \item bug/*
-    \item infra/*
-    \item docs/*
-\end{itemize}
+Any issue resulting in a code or documentation change will be classified using one of the following labels. The corresponding branch will use the label as its prefix.
+
+\begin{table}[hp]
+\caption{Issue - Branch Naming} \label{TblIssueBranchNaming}
+\begin{tabularx}{\textwidth}{llX}
+\toprule
+\textbf{Label} & \textbf{Branch Prefix} & \textbf{Description}\\
+\midrule
+Docs & docs/* & Updates to guides, READMEs, general documentation\\
+Feat & feat/* & Adding a new feature or functionality\\
+Bug & bug/* & Correcting any defect, broken functionality, or unexpected behavior\\
+Enhancement & enhance/* & Refactoring, code cleanup, performance optimization, implementing general feedback\\
+Infra & infra/* & Changes related to deployment, environment setup, or configuration\\
+
+
+\bottomrule
+\end{tabularx}
+\end{table}
+
+In the end, the branch name will follow this format: Prefix/brief-task-title.
 
 Once the assignee is confident with their completed issue, they will notify the reviewer and address potential feedback/concerns the reviewer may raise. After the assignee and reviewer agree on the issue completion, the issue owner will notify the team that it is complete.
 
