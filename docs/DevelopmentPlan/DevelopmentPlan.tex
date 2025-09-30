@@ -31,7 +31,7 @@
 September 22, 2025 & Kelvin Yu & Added Sections 1-5 and updated team charter\\
 September 22, 2025 & Rawan Mahdi & Added sections 6 and 9, and parts of charter \\
 September 22, 2025 & Luna Aljammal & Added sections 7,8,10,11 and parts of charter \\
-... & ... & ...\\
+September 29, 2025 & Rawan Madhi & Updated PoC plan with new roadmap discussed with supervisor\\
 \bottomrule
 \end{tabularx}
 \end{table}
@@ -205,16 +205,100 @@ Link to GitHub project: \url{https://github.com/speech-buddies/VoiceBridge}
 % demonstrate during your proof of concept demonstration to convince yourself that
 % you will be able to overcome this risk?
 
-The main risk is the difficulty of tuning a machine learning model to accurately transform dysarthric speech into text. The success of our project requires adapting an existing model to transcribe the atypical and inconsistent speech patterns. To overcome this risk, we will orient our proof of concept around testing the transcription accuracy of various architectural components. The prototype will be successful if it produces text that translates the speech content with 70\% accuracy. This will provide us with the assurance that our tuning and feature extraction methods can improve atypical speech recognition.
+\subsection{Objective}
 
-We will attempt to generate this model using the following techniques, and compare and contrast the results to build the final architecture of our model:
-\begin{enumerate}
-    \item Fine-tune selected layers (input/output) of an open weight Speech-to-Text (STT) model, such as Whisper ASR, DeepSpeech, or Wav2Vec using the open Torgo dataset
-    \item Perform preprocessing steps on the speech wave forms to amplify features in the dysarthric speech that improve ASR accuracy 
-\end{enumerate}
+The objective of our proof of concept (PoC) is to demonstrate the feasibility of using machine learning to reliably transcribe impaired speech into text, even at a limited scale. The PoC does not need to encompass the end-to-end application; rather, it should validate whether available ASR architectures and datasets can achieve accuracy sufficient to justify further development.
+
+\subsection{Scope of PoC}
+
+\begin{itemize}
+    \item \textbf{Core Deliverable:} A working prototype that:
+    \begin{itemize}
+        \item Accepts impaired/slurred speech input (from held out testing data).
+        \item Produces transcribed text output in near-real time (does not need to be fully optimized).
+    \end{itemize}
+    
+    \item \textbf{Exploratory Nature:} Compare at least two ASR approaches:
+    \begin{enumerate}
+        \item Fine-tuned pre-trained ASR model to baseline.
+        \item Atypical speech data augmentation strategy for improving accuracy.
+    \end{enumerate}
+    
+    \item \textbf{Not Included:} Full device control integration, UI, or environment development/deployment.
+\end{itemize}
+
+\section{Timeline (1.5 months / $\sim$7 weeks)}
+
+\begin{tabularx}{\textwidth}{@{}lX@{}}
+\toprule
+Week & Activities \\
+\midrule
+1 & \textbf{Systematic Review:} Perform a systematic review of current state-of-the-art models and methods relating to ASR for atypical speech. Summarize in Literature Review document under Extras. \\
+\hline
+2 & \textbf{Setup:} Select frameworks (PyTorch, Hugging Face, SpeechBrain, or OpenSeq2Seq). Collect small impaired-speech dataset (e.g., TORGO, UASpeech, or synthetic augmentations). Define evaluation \textbf{metrics} (WER, CER). \\
+\hline
+3 & \textbf{Baseline System:} Run selected pre-trained ASR (e.g., Whisper small, wav2vec2.0, or SpeechBrain pretrained) directly on impaired speech samples. Measure baseline error rates. \\
+\hline
+4 & \textbf{Adaptation Phase 1:} Fine-tune a small model (ideally the model selected in previous step) on subset of impaired speech data using transfer learning. Track overfitting and improvements. \\
+\hline
+5 & \textbf{Adaptation Phase 2:} Experiment with data augmentation (speed perturbation, SpecAugment, simulated slurred speech) to test robustness. Evaluate again. \\
+\hline
+6 & \textbf{Comparison \& Refinement:} Compare baseline vs. fine-tuned performance. Select best performing model/hybrid architectures. Integrate simple demo app (held out test data $\rightarrow$ ASR $\rightarrow$ text box). \\
+\hline
+7 & \textbf{Wrap-Up:} Define limitations and constraints through performance \& boundary testing. Document findings (strengths, limitations, next steps). Prepare demo for capstone evaluation. \\
+\bottomrule
+\end{tabularx}
 
 
-We plan to continue to research the problem space, and with the help of our supervisor, Dr.Brodbeck, identify more techniques and architectural components that can help us reach our goal.
+\subsection{Technical Details}
+
+\subsubsection{Datasets}
+
+\begin{itemize}
+    \item \textbf{Primary:} Public impaired speech datasets:
+    \begin{itemize}
+        \item TORGO (Parkinson's, ALS patients)
+        \item UASpeech (dysarthric speakers)
+        \item Mozilla CommonVoice (healthy-speech baseline)
+    \end{itemize}
+    \item \textbf{Fallback:} If data access is limited:
+    \begin{itemize}
+        \item Generate synthetic impaired speech (TTS + perturbation)
+    \end{itemize}
+\end{itemize}
+
+\subsubsection{Evaluation Metrics}
+
+\begin{itemize}
+    \item Word Error Rate (WER)
+    \item Character Error Rate (CER)
+    \item Latency (rough measure in seconds)
+\end{itemize}
+
+\subsection{Risks \& Alternative Paths}
+
+\begin{tabularx}{\textwidth}{@{}p{0.40\textwidth} X@{}}
+\toprule
+Risk & Mitigation \\
+\midrule
+Pre-trained ASR models fail badly on impaired speech & Focus on \textbf{keyword/digit recognition task} as smaller feasibility demo (proving specialized ASR can work). \\
+\hline
+Limited impaired speech dataset availability & Use \textbf{synthetic augmentations} (slowing, slurring, pitch warping) on normal speech to simulate impairments. \\
+\hline
+Compute constraints for fine-tuning & Use smaller models (Whisper Tiny, Wav2Vec2-Base) and freeze most layers (fine-tune only final layers). \\
+\hline
+Noisy environments degrade performance & Restrict PoC to quiet indoor recordings, while logging this as a \textbf{stretch requirement}. \\
+\bottomrule
+\end{tabularx}
+
+
+\subsection{Success Criteria for PoC}
+
+\begin{itemize}
+    \item Demonstrated improvement of $\geq$15--20\% relative WER reduction on impaired speech when using fine-tuning vs. baseline.
+    \item Functional demo on held-out testing data.
+    \item Documentation of limitations + path to MVP (e.g., dataset expansion, personalization, integration into accessibility interface).
+\end{itemize}
 
 \section{Expected Technology}
 \begin{comment}
