@@ -36,7 +36,7 @@
 \toprule
 \textbf{Date} & \textbf{Developer(s)} & \textbf{Change}\\
 \midrule
-Date1 & Name(s) & Description of changes\\
+October 7, 2025 & Kelvin Yu & Added Sections 1-4\\
 Date2 & Name(s) & Description of changes\\
 ... & ... & ...\\
 \bottomrule
@@ -51,31 +51,62 @@ Date2 & Name(s) & Description of changes\\
 
 \pagenumbering{arabic}
 
-\wss{You are free to modify this template.}
 
 \section{Introduction}
 
-\wss{You can include your definition of what a hazard is here.}
+In the context of VoiceBridge, a hazard is any condition or event that could lead to harm, system failure, or loss of functionality during the collection, processing, and communication of speech data. 
+The purpose of this analysis is to identify, evaluate, and propose mitigations for potential hazards before and during the system’s lifecycle.
+
 
 \section{Scope and Purpose of Hazard Analysis}
 
-\wss{You should say what \textbf{loss} could be incurred because of the
-hazards.}
+Our hazard analysis identifies potential risks that could compromise the VoiceBridge system throughout its development lifecycle and operational use.
+
+\vspace{3mm}
+\noindent Potential losses that could result from identified hazards include:
+\begin{itemize}
+    \item Loss of user trust due to poor accuracy, delayed feedback, or confusing interactions. 
+    \item Loss of confidentiality if sensitive voice data, transcripts, or credentials are leaked.
+    \item Loss of availability caused by hardware, software, or network failures that make the system unusable.
+    \item Loss of integrity if documents or transcripts are modified, duplicated, or misinterpreted.
+\end{itemize}
+
+\noindent This scope ensures that both technical and human-interaction factors are considered when evaluating safety and usability risks.
 
 \section{System Boundaries and Components}
 
-\wss{Dividing the system into components will help you brainstorm the hazards.
-You shouldn't do a full design of the components, just get a feel for the major
-ones.  For projects that involve hardware, the components will typically include
-each individual piece of hardware.  If your software will have a database, or an
-important library, these are also potential components.}
+VoiceBridge is a multi-component software system designed to convert and interpret speech reliably while protecting user data. 
+
+\vspace{3mm}
+\noindent The main components analyzed for hazards are:
+
+\begin{itemize}
+    \item Input Devices: Microphones and recording interfaces used to capture audio.
+    \item ML Model Pipeline: The models responsible for phoneme recognition, intent detection, and command processing.
+    \item Database/Storage: Secure repositories for user data, transcriptions, and system logs.
+    \item Communication Layer: Real-time streaming, API connections, and message handling.
+    \item User Interface: The front-end application where users interact and receive feedback.
+    \item Third-Party Libraries and Services: External dependencies for authentication, hosting, and model frameworks.
+\end{itemize}
+
+\noindent Each of these components forms a boundary for potential hazards and has been evaluated for risks such as data loss, model inaccuracy, or accessibility failures.
 
 \section{Critical Assumptions}
 
-\wss{These assumptions that are made about the software or system.  You should
-minimize the number of assumptions that remove potential hazards.  For instance,
-you could assume a part will never fail, but it is generally better to include
-this potential failure mode.}
+The following assumptions define the environment in which VoiceBridge operates and help focus this analysis on realistic and manageable risks:
+
+\begin{itemize}
+    \item User devices and microphones are assumed to function normally, though temporary access loss or permission issues may occur and must be handled gracefully.
+    
+    \item Internet and cloud services are assumed to be available most of the time, but brief outages may happen. VoiceBridge must recover automatically.
+    
+    \item Users may provide imperfect audio (e.g., background noise or unclear pronunciation), and the system must tolerate and adapt to such inputs.
+    
+    \item Data storage systems and APIs are protected by authentication and encryption, reducing but not removing data-breach risks.
+    
+    \item Third-party and open-source libraries are assumed to be maintained and free from critical vulnerabilities, though version control and verification are required.
+\end{itemize}
+
 
 \section{Failure Mode and Effect Analysis}
 
