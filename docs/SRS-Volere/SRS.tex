@@ -146,25 +146,103 @@ Individuals matching the target user profiles will be recruited for prototype te
 
 \section{Mandated Constraints}
 \subsection{Solution Constraints}
-\lips
+
+\begin{tabularx}{\textwidth}{p{1cm}X X X}
+\toprule
+\textbf{ID} & \textbf{Constraint} & \textbf{Rationale} & \textbf{Fit Criterion} \\
+\midrule
+C1 & The product shall run on consumer-grade hardware using a personal computer microphone and support macOS, Windows, and Linux distributions. & Requiring only consumer-grade hardware ensures broad accessibility for end users and avoids dependency on specialized equipment. & The system must successfully be integrated onto browsers and run on laptops or desktops across the supported operating systems, using either built-in or external microphones. \\
+\hline
+C2 & The product shall accept non-deterministic user input in the form of natural language speech. & Individuals with speech impairments may produce varied speech patterns that cannot be handled by rigid or deterministic command structures. & The system must be capable of processing and responding to variable natural language inputs without requiring a fixed set of commands. \\
+\hline
+C3 & The product shall integrate with a browser control application to execute voice-based commands. & Browser interaction is a primary accessibility point for most digital services, and browser control is essential for practical use of the system. & The system must successfully perform browser actions (e.g., opening tabs, navigating to URLs, scrolling) through the integrated control application. \\
+\bottomrule
+\end{tabularx}
+
+
 \subsection{Implementation Environment of the Current System}
-\lips
+
+
+\begin{tabularx}{\textwidth}{p{1cm}X X X}
+\toprule
+\textbf{ID} & \textbf{Constraint} & \textbf{Rationale} & \textbf{Fit Criterion} \\
+\midrule
+C4 & The product will operate within a consumer computing environment consisting of personal computers equipped with microphones. & This setup reflects the most common user hardware configuration, ensuring the solution is accessible without additional devices. & All core functionalities must operate correctly on standard personal computers with a functioning audio input device. \\
+\bottomrule
+\end{tabularx}
+
 \subsection{Partner or Collaborative Applications}
-\lips
+
+
+\begin{tabularx}{\textwidth}{p{1cm}X X X}
+\toprule
+\textbf{ID} & \textbf{Constraint} & \textbf{Rationale} & \textbf{Fit Criterion} \\
+\midrule
+C5 & The initial integration target is Browser Use, an open-source browser control and automation application. & Leveraging existing open-source browser automation tools accelerates development and reduces implementation complexity. & The system must demonstrate the ability to execute at least three browser actions through the integrated partner application during testing. \\
+\hline
+C6 & Future integrations may include API servers, mobile device agents, and home assistants to extend accessibility and functionality. & Ensuring extensibility allows the system to grow and adapt to new platforms or user needs. & The system architecture must allow seamless integration with additional partner applications without major redesign. \\
+\bottomrule
+\end{tabularx}
+
 \subsection{Off-the-Shelf Software}
-\lips
+
+\begin{tabularx}{\textwidth}{p{1cm}X X X}
+\toprule
+\textbf{ID} & \textbf{Constraint} & \textbf{Rationale} & \textbf{Fit Criterion} \\
+\midrule
+C7 & The product will rely on off-the-shelf software components, specifically Browser Use for automation and Project Euphonia for voice recording. & Using established open-source components allows focus on core functionality, improves maintainability, and supports experimentation with real-world data. & These components must be successfully integrated into the development workflow, and collected recordings must be stored and processed for model training without licensing conflicts. \\
+\bottomrule
+\end{tabularx}
+
 \subsection{Anticipated Workplace Environment}
-\lips
+
+
+\begin{tabularx}{\textwidth}{p{1cm}X X X}
+\toprule
+\textbf{ID} & \textbf{Constraint} & \textbf{Rationale} & \textbf{Fit Criterion} \\
+\midrule
+C8 & The product may be used at home, in public spaces, or in clinical settings, each with varying background noise conditions. & The product must function effectively across diverse real-world environments to meet accessibility goals. & The speech recognition system must maintain acceptable accuracy and responsiveness across all three identified environments during testing. \\
+\bottomrule
+\end{tabularx}
+
+
 \subsection{Schedule Constraints}
-\lips
+
+
+\begin{tabularx}{\textwidth}{p{1cm}X X X}
+
+\toprule
+\textbf{ID} & \textbf{Constraint} & \textbf{Rationale} & \textbf{Fit Criterion} \\
+\midrule
+C9 & Proof of concept must be completed by November 17, 2025. MVP must be ready within eight months, by May 2026. & Deadlines align with capstone project milestones and funding timelines, ensuring timely testing and delivery. & All proof of concept requirements must be met by the November deadline, and MVP functionality must be fully operational by May 2026. \\
+\bottomrule
+\end{tabularx}
+
 \subsection{Budget Constraints}
-\lips
+
+\begin{tabularx}{\textwidth}{p{1cm}X X X}
+\toprule
+\textbf{ID} & \textbf{Constraint} & \textbf{Rationale} & \textbf{Fit Criterion} \\
+\midrule
+C10 & The project must operate within the capstone budget allocated for compute infrastructure and development resources. & Budget limitations require prioritizing open-source solutions and efficient resource allocation. & Total cost of infrastructure, hosting, and third-party services must not exceed the allocated capstone budget. \\
+\bottomrule
+\end{tabularx}
+
+
 \subsection{Enterprise Constraints}
-\lips
+
+\begin{tabularx}{\textwidth}{p{1cm}X X X}
+\toprule
+\textbf{ID} & \textbf{Constraint} & \textbf{Rationale} & \textbf{Fit Criterion} \\
+\midrule
+C11 & The product must comply with all relevant accessibility and privacy regulations, including data usage and user privacy agreements. & Compliance protects user rights, upholds institutional standards, and avoids legal or ethical issues. & All data collection and processing workflows must undergo compliance review, and accessibility features must align with recognized standards (e.g., WCAG). \\
+\bottomrule
+\end{tabularx}
 
 \section{Naming Conventions and Terminology}
 \subsection{Glossary of All Terms, Including Acronyms, Used by Stakeholders
 involved in the Project}
+
 \lips
 
 \subsection{Technical Terminology}
