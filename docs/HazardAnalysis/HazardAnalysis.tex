@@ -3,6 +3,8 @@
 \usepackage{booktabs}
 \usepackage{tabularx}
 \usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{graphicx}
 
 \hypersetup{
     colorlinks=true,       % false: boxed links; true: colored links
@@ -37,7 +39,8 @@
 \textbf{Date} & \textbf{Developer(s)} & \textbf{Change}\\
 \midrule
 October 7, 2025 & Kelvin Yu & Added Sections 1-4\\
-Date2 & Name(s) & Description of changes\\
+October 7, 2025 & Mazen Youssef & Added Sections 5-7 (excl. fmea table)\\
+October 8, 2025 & Kelvin Yu & Added FMEA Table\\
 ... & ... & ...\\
 \bottomrule
 \end{tabularx}
@@ -110,30 +113,140 @@ The following assumptions define the environment in which VoiceBridge operates a
 
 \section{Failure Mode and Effect Analysis}
 
-\wss{Include your FMEA table here. This is the most important part of this document.}
-\wss{The safety requirements in the table do not have to have the prefix SR.
-The most important thing is to show traceability to your SRS. You might trace to
-requirements you have already written, or you might need to add new
-requirements.}
-\wss{If no safety requirement can be devised, other mitigation strategies can be
-entered in the table, including strategies involving providing additional
-documentation, and/or test cases.}
+\subsection{Hazards Out of Scope}
+
+The following systems are important for VoiceBridge to work properly, but are not fully under our control. We can reduce their risks but not remove them entirely:
+
+\begin{itemize}
+    \item \textbf{User devices and operating systems}: Microphones, drivers, or the computer's audio stack may fail or limit access. We mitigate via device detection and clear user prompts.
+    \item \textbf{Cloud services and internet connection}: Model or network outages may affect availability. We use retry and queueing to reduce disruption.
+    \item \textbf{Third-party services (e.g., login, hosting)}: External authentication or model-serving infrastructure may go down. The app should rely on cached state and switch to a safe, reduced-functionality mode.
+\end{itemize}
+\subsection{Failure Modes and Effects Table}
+
+\begin{table}[h!]
+\centering
+\renewcommand{\arraystretch}{1.8} % <-- increases box height
+\setlength{\tabcolsep}{3pt}
+\scriptsize \LARGE
+% \resizebox{\textwidth}{!}{ % automatically fits to page width
+% \begin{tabular}{|p{3.5cm}|p{3.0cm}|p{2.8cm}|p{2.8cm}|p{4.5cm}|p{1.4cm}|}
+{\hyphenpenalty=10000\exhyphenpenalty=10000 % no hyphenation in this group
+\scriptsize
+\begin{tabular}{|
+  >{\raggedright\arraybackslash}p{2.0cm}|
+  >{\raggedright\arraybackslash}p{2.0cm}|
+  >{\raggedright\arraybackslash}p{2.0cm}|
+  >{\raggedright\arraybackslash}p{1.8cm}|
+  >{\raggedright\arraybackslash}p{2.5cm}|
+  >{\raggedright\arraybackslash}p{1.8cm}|}
+\hline
+\textbf{Component} & \textbf{What Can Go Wrong} & \textbf{What Happens} & \textbf{Why It Happens} & \textbf{How We Reduce the Risk} & \textbf{Ref.} \\
+\hline
+Input Devices & Wrong mic chosen / permissions removed & No audio; session unusable & OS switched input; user denied access & Auto-detect device changes; show clear error messages & IR1, IMR1 \\
+\hline
+Input Devices & Too much background noise & Poor accuracy / wrong commands & Loud space; gain too high & Noise suppression; confirm low-confidence results; keep use to medium–low background environments & IR2, IMR2 \\
+\hline
+ML Model & Model doesn’t adapt to accent or changes & Accuracy slowly drops; user loses trust & Low-quality datasets; poor fine-tuning & Provide re-training when accuracy drops below a threshold & IR3, ADR1 \\
+\hline
+Communication & Weak or lost network & Delays; partial results & Poor Wi-Fi; server timeout & Show offline message & IR4, IMR3 \\
+\hline
+Storage & Private data leaked & Privacy breach & Wrong permissions & Encrypt data; limit access & PRR1, ACR1 \\
+\hline
+Auth / Access & Unauthorized entry & Data exposure; impersonation & Stolen credentials & MFA for admin; session limits & ACR2, ACR3, PRR2 \\
+\hline
+Front-end Interface & Confirmation not clear or accessible & User acts by mistake & Poor contrast; missing cues & Visual + audio feedback; clear icons & IR5, IMR5, ACR1 \\
+\hline
+\end{tabular}
+}
+\caption{\hyphenpenalty=10000\exhyphenpenalty=10000
+Hazard Identification and Risk Mitigation Table for VoiceBridge System}
+
+\end{table}
+
+
+
+
 
 \section{Safety and Security Requirements}
 
-\wss{Newly discovered requirements.  These should also be added to the SRS.  (A
-rationale design process how and why to fake it.)}
+We group VoiceBridge’s requirements into five categories—\textbf{Access (ACR)}, \textbf{Integrity (IR)}, \textbf{Privacy (PRR)}, \textbf{Audit (ADR)}, and \textbf{Immunity (IMR)}—to match our hazard analysis. Each item connects back to one or more risks in Section~5.
+
+\subsection{Access Requirements}
+
+\begin{description}
+  \item[ACR1:] Important actions (like sending data or external messages) must use a clear, two-step confirmation to prevent mistakes. \emph{(links to IR5/IMR7 — unclear confirmation)}
+  \item[ACR2:] Access to stored audio or transcripts is restricted by role-based permissions so only authorized users can view or edit sensitive data. \emph{(links to Storage — Private data leaked)}
+  \item[ACR3:] Multi-factor authentication (MFA) is required for all administrator or privileged logins to prevent unauthorized entry. \emph{(links to Auth/Access — Unauthorized entry)}
+\end{description}
+
+\subsection{Integrity Requirements}
+
+\begin{description}
+  \item[IR1:] VoiceBridge auto-detects microphone devices and alerts users if permissions are missing, offering a quick way to select a new device. \emph{(links to Input Devices — Wrong mic chosen)}
+  \item[IR2:] Noise suppression must run before recognition; when confidence is low, users must confirm results. \emph{(links to Input Devices — Too much background noise)}
+  \item[IR3:] The system tracks model accuracy and prompts retraining or calibration when accuracy drops below a set level. \emph{(links to ML Model — Doesn’t adapt to accent or changes)}
+  \item[IR4:] If the connection is lost, the app shows an offline message, pauses risky actions, and retries once the network returns. \emph{(links to Communication — Weak or lost network)}
+  \item[IR5:] Confirmation screens and the overall user interface must be clear, accessible, and perceivable by text, audio, and assistive tools. \emph{(links to Front-end Interface — Confirmation not clear)}
+\end{description}
+
+\subsection{Privacy Requirements}
+
+\begin{description}
+  \item[PRR1:] All stored data is encrypted with restricted access to protect privacy. \emph{(links to Storage — Private data leaked)}
+  \item[PRR2:] Logs never store personal or raw speech data; only anonymized and redacted information is kept. \emph{(supports IR2, PRR2)}
+  \item[PRR3:] Sessions expire automatically and are revoked if suspicious activity is detected. \emph{(extends ACR3 — unauthorized access)}
+  \item[PRR4:] Users can request deletion of stored data; the system removes it after a defined time. \emph{(future privacy maintenance)}
+\end{description}
+
+\subsection{Audit Requirements}
+
+\begin{description}
+  \item[ADR1:] The system records recognition accuracy over time and flags when results decline. \emph{(links to ML Model — Accuracy drops)}
+  \item[ADR2:] Keep structured, redacted logs for reviews and debugging. \emph{(links to Storage — Sensitive logging)}
+  \item[ADR3:] Create a Software Bill of Materials (SBOM) and block unsafe dependencies. \emph{(links to library risk, supports IMR6)}
+  \item[ADR4:] Provide regular privacy reports showing data deletion and retention. \emph{(future extension)}
+\end{description}
+
+\subsection{Immunity Requirements}
+
+\begin{description}
+  \item[IMR1:] The app recovers smoothly from device or permission changes without restarting. \emph{(links to Input Devices — Wrong mic chosen)}
+  \item[IMR2:] Maintain good recognition accuracy even with background noise at normal levels. \emph{(links to Input Devices — Too much noise)}
+  \item[IMR3:] The app retries failed network actions and cancels incomplete ones to handle weak connections gracefully. \emph{(links to Communication — Weak or lost network)}
+  \item[IMR4:] Detect and drop repeated or expired requests to avoid replay attacks. \emph{(future enhancement)}
+  \item[IMR5:] Ensure all confirmations can be seen or heard, including through screen readers. \emph{(links to Front-end Interface — not perceivable)}
+\end{description}
 
 \section{Roadmap}
 
-\wss{Which safety requirements will be implemented as part of the capstone timeline?
-Which requirements will be implemented in the future?}
+To show clear scope management, the lists below specify which requirements are included in the current VoiceBridge capstone build and which will be developed later.
+
+\subsection{Included in Current Capstone Delivery}
+
+\noindent \textbf{Included:} ACR1, IR1--IR2, IR4, PRR1--PRR3, ADR2, IMR1, IMR2--IMR3, IMR5
+
+\vspace{2mm}
+\noindent \textbf{Why these:}
+\begin{itemize}
+  \item They target immediate, high-impact risks—audio input issues, background noise, privacy of stored data, and network reliability.
+  \item They are practical within the capstone timeframe and provide clear, measurable improvements in usability, accuracy, and data protection.
+\end{itemize}
+
+\subsection{Deferred to Future Work}
+
+\noindent \textbf{Deferred:} ACR2--ACR3 (role-based data permissions and multi-factor admin logins); IR3, IR5 (model accuracy tracking and full accessibility review); PRR4 (user-initiated data deletion and long-term retention policies); ADR1, ADR3--ADR4 (accuracy trend monitoring, dependency tracking, and privacy reports); IMR4 (replay-attack prevention and enhanced request validation)
+
+\vspace{2mm}
+\noindent \textbf{Why deferred:}
+\begin{itemize}
+  \item These involve advanced monitoring, security infrastructure, and compliance features that require more time and integration than the current scope allows.
+  \item They remain documented for follow-up implementation in future iterations or releases.
+\end{itemize}
 
 \newpage{}
 
 \section*{Appendix --- Reflection}
-
-\wss{Not required for CAS 741}
 
 \input{../Reflection.tex}
 
