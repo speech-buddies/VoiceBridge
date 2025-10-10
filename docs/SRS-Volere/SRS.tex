@@ -9,6 +9,7 @@
 \usepackage{booktabs}
 \usepackage{tabularx}
 \usepackage{hyperref}
+\usepackage{float}
 \hypersetup{
     bookmarks=true,         % show bookmarks bar?
       colorlinks=true,      % false: boxed links; true: colored links
@@ -53,26 +54,95 @@
 ~\newpage
 \section{Purpose of the Project}
 \subsection{User Business}
-\lips
+
+
+Individuals with speech impairments face significant barriers when interacting with digital devices. VoiceBridge addresses this gap by providing an accurate, inclusive, and accessible speech-to-control system that enables users to communicate with their devices using their speech, regardless of clarity of articulation. Building on familiar technology, such as personal computers and mobile devices, may be one of the most cost-effective and easily adoptable approaches for improving an individual with disability’s autonomy and access to the world around them. The rise of ASR technology and Artificial Intelligence (AI) integrations in the industry provides a novel landscape of opportunities to improve accessibility interfaces. VoiceBridge exploits bleeding-edge technology for a practical and impactful application.
+
 \subsection{Goals of the Project}
-\lips
+\begin{table}[H]
+\centering
+\begin{tabularx}{\textwidth}{p{1cm}p{4cm}p{8cm}X}
+\toprule {\textbf{ID}} & {\textbf{Goal}} & {\textbf{Description}}\\
+\midrule
+G1 & \textbf{Accurate Speech Transcription} & Reliably convert impaired or slurred speech into text. \\ \hline
+G2 & \textbf{Command Mapping} & Translate recognized speech into actionable browser commands. \\ \hline
+G3 & \textbf{User Independence} & Enable users with speech impairments to browse autonomously. \\ \hline
+G4 & \textbf{Lightweight \& Accessible Design} & Keep the system simple, fast, and cost-effective. \\ \hline
+G5 & \textbf{Cross-Browser Compatibility} & Support major browsers (e.g., Chrome, Edge, Firefox). \\ \hline
+G6 & \textbf{Robust Error Handling} & Detect and recover gracefully from common failures. \\ \hline
+G7 & \textbf{Data Privacy \& Security} & Protect user data and ensure secure local processing. \\ \hline
+G8 & \textbf{Customizable Interface} & Allow users to adjust sensitivity, shortcuts, and feedback modes. \\ \hline
+G9 & \textbf{Scalable Architecture} & Design the system for future integration beyond browsers. \\ \hline
+\bottomrule
+\end{tabularx}
+\caption{Project Goals for VoiceBridge}
+\label{tab:project-goals}
+\end{table}
+
+
 \section{Stakeholders}
 \subsection{Client}
-\lips
-\subsection{Customer}
-\lips
+The primary client for the VoiceBridge project is the organization or individual funding or commissioning the system. The client is primarily concerned with achieving the following goals: \textbf{\hyperref[tab:project-goals]{G1}}, \textbf{\hyperref[tab:project-goals]{G5}}, and \textbf{\hyperref[tab:project-goals]{G9}}, ensuring accurate speech transcription, cross-browser compatibility, and scalable architecture.
+
+\subsection{Customer \& Hands-On Users of the Project}
+
+The primary customers are also the users of the project, them being individuals with speech impairments, who seek independence and autonomy through technology. Their needs directly relate to: \textbf{\hyperref[tab:project-goals]{G1}}, \textbf{\hyperref[tab:project-goals]{G2}}, \textbf{\hyperref[tab:project-goals]{G3}}, and \textbf{\hyperref[tab:project-goals]{G8}}.
+
 \subsection{Other Stakeholders}
-\lips
-\subsection{Hands-On Users of the Project}
-\lips
+Secondary stakeholders include experts in linguistics, speech processing, and healthcare domains:
+\begin{itemize}
+    \item Speech researchers and linguistics specialists, including the project supervisor, Dr. Christian Brodbeck, who provide insight toward \textbf{\hyperref[tab:project-goals]{G1}} and \textbf{\hyperref[tab:project-goals]{G6}}.
+    \item Healthcare professionals and speech therapists who advise on usability and accessibility, contributing to \textbf{\hyperref[tab:project-goals]{G3}} and \textbf{\hyperref[tab:project-goals]{G8}}.
+    \item Accessibility advocates and organizations interested in promoting the application, aligned with \textbf{\hyperref[tab:project-goals]{G4}} and \textbf{\hyperref[tab:project-goals]{G5}}.
+    \item Software developers who implement and maintain the system, supporting \textbf{\hyperref[tab:project-goals]{G9}} and \textbf{\hyperref[tab:project-goals]{G6}}.
+\end{itemize}
+
+Tertiary stakeholders include caregivers and professionals who interact with end users, supporting \textbf{\hyperref[tab:project-goals]{G3}} and \textbf{\hyperref[tab:project-goals]{G7}}.
+
 \subsection{Personas}
-\lips
+
+Potential end users of VoiceBridge include:
+\begin{itemize}
+    \item \textbf{Amira}, a 45-year-old with Parkinson’s disease, uses the system to log into Gmail and send emails.
+    \item \textbf{David}, a stroke survivor, uses the system to browse the web and make purchases.
+\end{itemize}
+
+
 \subsection{Priorities Assigned to Users}
-\lips
+
+The highest priorities are assigned to end users with speech impairments, as their experience with the system defines its success. Secondary priorities include caregivers and technical experts who support the end users in using and maintaining the system.
+
 \subsection{User Participation}
-\lips
+
+Individuals matching the target user profiles will be recruited for prototype testing and personalization development. Their participation directly supports refining goals \textbf{\hyperref[tab:project-goals]{G1}}, \textbf{\hyperref[tab:project-goals]{G2}}, \textbf{\hyperref[tab:project-goals]{G3}}, and \textbf{\hyperref[tab:project-goals]{G8}}.
+
 \subsection{Maintenance Users and Service Technicians}
-\lips
+\textbf{Maintenance Users:}\\
+\hrule
+\begin{itemize}
+    \item \textbf{Role:} End-users or caregivers performing basic troubleshooting and initiating support requests.
+    \item \textbf{Responsibilities:} 
+        \begin{itemize}
+            \item Reporting errors or unexpected system behavior (\textbf{\hyperref[tab:project-goals]{G6}}).
+            \item Installing application updates (\textbf{\hyperref[tab:project-goals]{G9}}).
+            \item Managing user-specific configurations (\textbf{\hyperref[tab:project-goals]{G8}}).
+        \end{itemize}
+\end{itemize}
+\vspace{1em}
+\textbf{Service Technicians:}\\
+\hrule
+\begin{itemize}
+    \item \textbf{Role:} Trained technical staff with deeper access to system logs and back-end services.
+    \item \textbf{Responsibilities:}
+        \begin{itemize}
+            \item Investigating reported issues (\textbf{\hyperref[tab:project-goals]{G6}}).
+            \item Ensuring transcription accuracy (\textbf{\hyperref[tab:project-goals]{G1}}).
+            \item Deploying updates and patches (\textbf{\hyperref[tab:project-goals]{G9}}).
+            \item Ensuring compatibility with operating systems and accessibility frameworks (\textbf{\hyperref[tab:project-goals]{G5}}).
+            \item Performing preventive maintenance, including performance monitoring and optimization (\textbf{\hyperref[tab:project-goals]{G1}}, \textbf{\hyperref[tab:project-goals]{G6}}).
+        \end{itemize}
+\end{itemize}
+
 
 \section{Mandated Constraints}
 \subsection{Solution Constraints}
