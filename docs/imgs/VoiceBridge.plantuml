@@ -1,0 +1,51 @@
+@startuml
+' Classes with attributes
+class UserProfile {
+  +userID : String
+  +preferences : JSON
+  +speechProfile : String
+}
+
+class SpeechSession {
+  +sessionID : String
+  +timestamp : DateTime
+  +audioInput : PCM/WAV
+  +speechFeatures : Array
+}
+
+class Transcription {
+  +transcriptText : UTF-8 String
+  +confidenceScore : Float
+  +status : String
+  +errorCode : Integer
+}
+
+class UserIntent {
+  +intent : JSON
+  +slots : JSON
+}
+
+class ExecutableCommand {
+  +commandAST : JSON / AST
+  +parameters : JSON
+}
+
+class APIRequest {
+  +requestPayload : REST / GraphQL
+}
+
+class FeedbackMessage {
+  +messageContent : String
+  +messageType : String
+  +timestamp : DateTime
+}
+
+' Relationships
+UserProfile "1" -- "0..*" SpeechSession : initiates >
+SpeechSession "1" -- "1" Transcription : generates >
+Transcription "1" -- "1" UserIntent : parsed to >
+UserIntent "1" -- "1" ExecutableCommand : mapped to >
+ExecutableCommand "1" -- "0..1" APIRequest : produces >
+SpeechSession "1" -- "0..*" FeedbackMessage : logs >
+ExecutableCommand "1" -- "0..*" FeedbackMessage : feedback to user >
+@enduml
