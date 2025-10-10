@@ -3,6 +3,8 @@
 \usepackage{booktabs}
 \usepackage{tabularx}
 \usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{graphicx}
 
 \hypersetup{
     colorlinks=true,       % false: boxed links; true: colored links
@@ -38,7 +40,7 @@
 \midrule
 October 7, 2025 & Kelvin Yu & Added Sections 1-4\\
 October 7, 2025 & Mazen Youssef & Added Sections 5-7 (excl. fmea table)\\
-Date2 & Name(s) & Description of changes\\
+October 8, 2025 & Kelvin Yu & Added FMEA Table\\
 ... & ... & ...\\
 \bottomrule
 \end{tabularx}
@@ -111,14 +113,6 @@ The following assumptions define the environment in which VoiceBridge operates a
 
 \section{Failure Mode and Effect Analysis}
 
-\wss{Include your FMEA table here. This is the most important part of this document.}
-\wss{The safety requirements in the table do not have to have the prefix SR.
-The most important thing is to show traceability to your SRS. You might trace to
-requirements you have already written, or you might need to add new
-requirements.}
-\wss{If no safety requirement can be devised, other mitigation strategies can be
-entered in the table, including strategies involving providing additional
-documentation, and/or test cases.}
 \subsection{Hazards Out of Scope}
 
 The following systems are important for VoiceBridge to work properly, but are not fully under our control. We can reduce their risks but not remove them entirely:
@@ -129,6 +123,50 @@ The following systems are important for VoiceBridge to work properly, but are no
     \item \textbf{Third-party services (e.g., login, hosting)}: External authentication or model-serving infrastructure may go down. The app should rely on cached state and switch to a safe, reduced-functionality mode.
 \end{itemize}
 \subsection{Failure Modes and Effects Table}
+
+\begin{table}[h!]
+\centering
+\renewcommand{\arraystretch}{1.8} % <-- increases box height
+\setlength{\tabcolsep}{3pt}
+\scriptsize \LARGE
+% \resizebox{\textwidth}{!}{ % automatically fits to page width
+% \begin{tabular}{|p{3.5cm}|p{3.0cm}|p{2.8cm}|p{2.8cm}|p{4.5cm}|p{1.4cm}|}
+{\hyphenpenalty=10000\exhyphenpenalty=10000 % no hyphenation in this group
+\scriptsize
+\begin{tabular}{|
+  >{\raggedright\arraybackslash}p{2.0cm}|
+  >{\raggedright\arraybackslash}p{2.0cm}|
+  >{\raggedright\arraybackslash}p{2.0cm}|
+  >{\raggedright\arraybackslash}p{1.8cm}|
+  >{\raggedright\arraybackslash}p{2.5cm}|
+  >{\raggedright\arraybackslash}p{1.8cm}|}
+\hline
+\textbf{Component} & \textbf{What Can Go Wrong} & \textbf{What Happens} & \textbf{Why It Happens} & \textbf{How We Reduce the Risk} & \textbf{Ref.} \\
+\hline
+Input Devices & Wrong mic chosen / permissions removed & No audio; session unusable & OS switched input; user denied access & Auto-detect device changes; show clear error messages & IR1, IMR1 \\
+\hline
+Input Devices & Too much background noise & Poor accuracy / wrong commands & Loud space; gain too high & Noise suppression; confirm low-confidence results; keep use to medium–low background environments & IR2, IMR2 \\
+\hline
+ML Model & Model doesn’t adapt to accent or changes & Accuracy slowly drops; user loses trust & Low-quality datasets; poor fine-tuning & Provide re-training when accuracy drops below a threshold & IR3, ADR1 \\
+\hline
+Communication & Weak or lost network & Delays; partial results & Poor Wi-Fi; server timeout & Show offline message & IR4, IMR3 \\
+\hline
+Storage & Private data leaked & Privacy breach & Wrong permissions & Encrypt data; limit access & PRR1, ACR1 \\
+\hline
+Auth / Access & Unauthorized entry & Data exposure; impersonation & Stolen credentials & MFA for admin; session limits & ACR2, ACR3, PRR2 \\
+\hline
+Front-end Interface & Confirmation not clear or accessible & User acts by mistake & Poor contrast; missing cues & Visual + audio feedback; clear icons & IR5, IMR5, ACR1 \\
+\hline
+\end{tabular}
+}
+\caption{\hyphenpenalty=10000\exhyphenpenalty=10000
+Hazard Identification and Risk Mitigation Table for VoiceBridge System}
+
+\end{table}
+
+
+
+
 
 \section{Safety and Security Requirements}
 
@@ -209,8 +247,6 @@ To show clear scope management, the lists below specify which requirements are i
 \newpage{}
 
 \section*{Appendix --- Reflection}
-
-\wss{Not required for CAS 741}
 
 \input{../Reflection.tex}
 
