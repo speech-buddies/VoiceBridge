@@ -472,6 +472,54 @@ The project shall comply with the Personal Information Protection and Electronic
 \subsection{Standards Compliance Requirements}
 The application must comply with the Web Content Accessibility Guidelines (WCAG) 2.0, Level AA guidelines to ensure usability by individuals with disabilities.
 
+\section{Requirements Likely and Unlikely to Change}
+
+\subsection{Likely to Change}
+\begin{itemize}
+    \item \textbf{12.1 Speed \& Latency:} The system shall process speech input and return text in near real-time.\\
+    \textit{Rationale:} Performance targets may improve as speech recognition and browser processing capabilities evolve.
+
+    \item \textbf{14.3 Adaptability:} The system shall allow updates for new languages, user preferences, or accessibility features.\\
+    \textit{Rationale:} Future user needs or new assistive technologies may require system modifications.
+
+    \item \textbf{11.2 Personalization \& Internationalization:} The system shall support preferred voice, accent handling, and language selection.\\
+    \textit{Rationale:} User preferences and supported languages are likely to expand over time.
+
+    \item \textbf{12.6 Scalability \& Extensibility:} The system shall support an increasing number of concurrent users and new modules.\\
+    \textit{Rationale:} User growth or additional features may require changes in infrastructure.
+
+    \item \textbf{13.5 Release Requirements:} Updates shall be deployable on web browsers without downtime.\\
+    \textit{Rationale:} Deployment strategies may change as development tools or environments evolve.
+
+    \item \textbf{26.2 Personalized ASR Fine-Tuning:} The system shall allow individualized model tuning to improve transcription accuracy.\\
+    \textit{Rationale:} Model improvements and user feedback may necessitate adjustments.
+
+
+    \item \textbf{17.2 Standards Compliance Requirements:} System shall follow relevant industry standards.\\
+    \textit{Rationale:} Standard adherence ensures safety, reliability, and credibility. As the product evolves, new features may require compliance with additional standards.
+\end{itemize}
+
+\subsection{Unlikely to Change}
+\begin{itemize}
+    \item \textbf{9.1 Functional Requirements:} The system shall accurately transcribe speech to text for users with speech impairments.\\
+    \textit{Rationale:} Core transcription functionality is foundational and will not change.
+
+    \item \textbf{10.1 Appearance:} Interface shall be clean, minimal, and visually organized to reduce cognitive load.\\
+    \textit{Rationale:} Minimal and clear design is essential for accessibility and usability.
+
+    \item \textbf{10.2 Style:} Interface shall use consistent fonts, spacing, and colors to support clarity.\\
+    \textit{Rationale:} Visual consistency is fundamental for usability.
+
+    \item \textbf{11.1 Ease of Use:} Users shall complete tasks with minimal steps or cognitive effort.\\
+    \textit{Rationale:} Streamlined interaction is a core accessibility requirement.
+
+    \item \textbf{15.3 Privacy Requirements:} User data shall be encrypted in the database and logs. \\
+    \textit{Rationale:} Privacy protection is legally required and critical for trust, this requirement will not change.
+
+    \item \textbf{17.1 Legal Requirements:} System shall comply with relevant regulations (e.g., PIPEDA).\\
+    \textit{Rationale:} Compliance is mandatory for this project, must be complied with at all times.
+
+\end{itemize}
 
 \section{Open Issues}
 The primary open issue is maintaining high ASR accuracy across the diverse and severe spectrum of dysarthric speech. This requires extensive training and validation data, as well as careful model tuning.
