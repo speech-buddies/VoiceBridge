@@ -10,6 +10,7 @@
 \usepackage{tabularx}
 \usepackage{hyperref}
 \usepackage{float}
+\usepackage{graphicx} 
 \hypersetup{
     bookmarks=true,         % show bookmarks bar?
       colorlinks=true,      % false: boxed links; true: colored links
@@ -258,17 +259,92 @@ involved in the Project}
 
 \section{Relevant Facts And Assumptions}
 \subsection{Relevant Facts}
-\lips
+
+\subsection{User-Centered Facts}
+\begin{table}[H]
+\centering
+\begin{tabularx}{\textwidth}{p{1cm}p{6cm}X}
+\toprule {\textbf{Fact ID}} & {\textbf{Fact}} & {\textbf{Explanation / Relevance}}\\
+\midrule
+F1 & \textbf{Users experience speech impairments of varying severity.} & VoiceBridge must handle varying speech clarity, from slurred to partially formed words (related to (\textbf{\hyperref[tab:project-goals]{G1}}), (\textbf{\hyperref[tab:project-goals]{G2}})). \\ \hline
+F2 & \textbf{Users want to communicate and navigate independently.} & Motivates autonomy in using the system without reliance on caretakers (supports (\textbf{\hyperref[tab:project-goals]{G3}})). \\ \hline
+F3 & \textbf{Users may have limited mobility.} & Hands-free operation improves accessibility and inclusion (supports (\textbf{\hyperref[tab:project-goals]{G3}}), (\textbf{\hyperref[tab:project-goals]{G4}})). \\ \hline
+F4 & \textbf{Users value simplicity and low cognitive load.} & Commands should remain intuitive and easy to use (supports (\textbf{\hyperref[tab:project-goals]{G4}})). \\ \hline
+F5 & \textbf{Users may have emotional sensitivity around speech difficulty.} & Interface should be respectful and encouraging without repeating goals (complements (\textbf{\hyperref[tab:project-goals]{G6}})). \\ \hline
+F6 & \textbf{Users expect privacy and dignity.} & Data handling should preserve privacy and transparency (supports (\textbf{\hyperref[tab:project-goals]{G7}})). \\ \hline
+F7 & \textbf{Users may use different languages or accents.} & System must accommodate linguistic diversity without bias (relates to (\textbf{\hyperref[tab:project-goals]{G1}}), (\textbf{\hyperref[tab:project-goals]{G8}})). \\ \hline
+F8 & \textbf{Users may use assistive tools concurrently.} & VoiceBridge should integrate seamlessly with other accessibility tools (supports (\textbf{\hyperref[tab:project-goals]{G4}}), (\textbf{\hyperref[tab:project-goals]{G8}})). \\ \hline
+F9 & \textbf{Users will vary in technical comfort.} & Onboarding should be minimal and low-friction (supports (\textbf{\hyperref[tab:project-goals]{G4}}), (\textbf{\hyperref[tab:project-goals]{G8}})). \\ \hline
+F10 & \textbf{Users appreciate visual feedback and control.} & Feedback builds trust and reduces frustration (complements (\textbf{\hyperref[tab:project-goals]{G1}}), (\textbf{\hyperref[tab:project-goals]{G8}})). \\
+\bottomrule
+\end{tabularx}
+\caption{User-Centered Facts for VoiceBridge with references to project goals}
+\label{tab:user-facts}
+\end{table}
+
+
+
 \subsection{Business Rules}
-\lips
+
+\begin{table}[H]
+\centering
+\begin{tabularx}{\textwidth}{p{1cm} X X}
+\toprule
+\textbf{ID} & \textbf{Business Rule} & \textbf{Rationale} \\
+\midrule
+BR1 & Users must be able to cancel or stop a command at any time. & Empowers users and prevents frustration. (\hyperref[tab:project-goals]{G3}, \hyperref[tab:project-goals]{G4}) \\
+BR2 & Transcribed text must be displayed for user verification before executing critical commands. & Ensures accuracy, avoids misinterpretation, and maintains user confidence, inline with (\hyperref[tab:project-goals]{G1}) \\
+BR3 & Browser commands must not execute without user consent for actions with potential data impact (e.g., sending messages, closing tabs). & Protects user privacy and prevents accidental operations. (\hyperref[tab:project-goals]{G2}, \hyperref[tab:project-goals]{G7}) \\
+BR4 & The system should provide immediate visual feedback within 5 seconds of speech input. & Builds trust, transparency, and usability for impaired users. (\hyperref[tab:project-goals]{G6}, \hyperref[tab:project-goals]{G1}) \\
+BR5 & System must handle moderate background noise without significant degradation of performance. & Maintains reliability in real-world environments.(\hyperref[tab:project-goals]{G1}, \hyperref[tab:project-goals]{G6}) \\
+BR6 & Users should be able to configure simple command mappings for personalized tasks. & Supports individual preferences and improves user autonomy. (\hyperref[tab:project-goals]{G2}, \hyperref[tab:project-goals]{G3}, \hyperref[tab:project-goals]{G8}) \\
+\bottomrule
+\end{tabularx}
+\caption{Business Rules for VoiceBridge}
+\label{tab:business-rules}
+\end{table}
+
+
 \subsection{Assumptions}
-\lips
+\begin{table}[H]
+\centering
+\begin{tabularx}{\textwidth}{p{1cm}p{6cm}X}
+\toprule {\textbf{ID}} & {\textbf{Assumption}} & {\textbf{Implication for Design}}\\
+\midrule
+A1 & \textbf{Users have access to a working microphone and modern browser.} & The system assumes functional input hardware and browser APIs for speech capture (see \hyperref[tab:project-goals]{G1}, \hyperref[tab:project-goals]{G5}). \\ \hline
+A2 & \textbf{Users will tolerate minor transcription errors if quickly correctable.} & Fast feedback and correction options are more important than perfect accuracy (see \hyperref[tab:project-goals]{G1}, \hyperref[tab:project-goals]{G6}). \\ \hline
+A3 & \textbf{Users are willing to train or calibrate the model briefly.} & A short setup phase (e.g., sample phrases) can improve recognition quality (see \hyperref[tab:project-goals]{G1}, \hyperref[tab:project-goals]{G8}). \\ \hline
+A4 & \textbf{Users prefer transparent, explainable behavior.} & VoiceBridge should indicate what command is being executed to prevent confusion or mistrust (see \hyperref[tab:project-goals]{G8}). \\ \hline
+A5 & \textbf{Users may be in noisy or uncontrolled environments.} & Noise-robust models and confirmation prompts are required to maintain reliability (see \hyperref[tab:project-goals]{G1}, \hyperref[tab:project-goals]{G6}). \\ \hline
+A6 & \textbf{Users want emotional ease of use.} & Tone and interface language must feel supportive — e.g., “Let’s try again” instead of “Error” (see \hyperref[tab:project-goals]{G6}). \\ \hline
+A7 & \textbf{Users will likely use the tool for daily web tasks.} & The feature set should prioritize essential browser actions (navigation, scrolling, typing, tab control) (see \hyperref[tab:project-goals]{G2}, \hyperref[tab:project-goals]{G3}, \hyperref[tab:project-goals]{G8}). \\
+\bottomrule
+\end{tabularx}
+\caption{Design Assumptions for VoiceBridge with references to related project goals (\textbf{Goals Table \ref{tab:project-goals}}).}
+\label{tab:assumptions}
+\end{table}
 
 \section{The Scope of the Work}
 \subsection{The Current Situation}
-\lips
+
+Individuals with speech impairments currently rely on standard speech-to-text or manual input to use browsers and devices. Existing systems struggle with slurred or atypical speech, often requiring caregiver assistance.
+
+Typical workarounds include typing commands, using alternative inputs, or correcting errors, leading to frustration and limited autonomy.
+
+Current workflow:
+User speaks → Standard recognition → Frequent errors → Manual/caregiver correction → Action executed
+
+VoiceBridge aims to replace this with accurate transcription, command mapping, and immediate feedback, enabling independent browser control.
+
 \subsection{The Context of the Work}
-\lips
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=1\textwidth]{../imgs/VoiceBridge_context_diagram.png}
+\caption{Context Diagram of VoiceBridge}
+\label{fig:voicebridge-context}
+\end{figure}
+
 \subsection{Work Partitioning}
 \lips
 \subsection{Specifying a Business Use Case (BUC)}
