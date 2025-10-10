@@ -46,6 +46,8 @@
 \begin{tabularx}{\textwidth}{p{3cm}p{2cm}X}
 \toprule {\textbf{Date}} & {\textbf{Version}} & {\textbf{Notes}}\\
 \midrule
+October 2, 2025 & Rawan and Luna & Filled-In Initial Draft of SRS Document\\
+October 10, 2025 & Rawan and Luna & Completed SRS Document\\
 
 \bottomrule
 \end{tabularx}
@@ -610,6 +612,154 @@ Additional visual, auditory, or haptic cues for feedback and help features could
 
 \subsection{Data Encryption}
 Anonymized logging and privacy approaches can balance model improvement with privacy in mind. Section 15 discusses privacy requirements in detail.
+
+\section{Requirements Phase-In Plan}
+
+The following plan outlines the order in which the system requirements (9.1--17.2) will be addressed, aligned with project phases. Prioritization ensures that core functional requirements and critical non-functional requirements are validated first, with refinements and extensions added in later phases. Timelines for each phase are detailed in the Development Plan.
+
+\subsection{Phase Definitions}
+
+\begin{itemize}
+    \item \textbf{Proof of Concept (PoC):} Validate feasibility of core functionality and critical performance metrics.
+    \item \textbf{Revision 0:} Expand functionality, address usability, accessibility, and integrate initial security/privacy mechanisms.
+    \item \textbf{Revision 1:} Final refinement, full productization, compliance, cultural, and maintainability requirements.
+\end{itemize}
+
+\subsection{Requirements Phase-In}
+
+\begin{enumerate}
+    % Functional Requirements
+    \item \textbf{9.1 Functional Requirements:} Core system behaviors including input processing and basic transcription.\\
+    \textit{Phase: PoC} \\
+    \textit{Rationale:} Core functionality must be demonstrated to validate feasibility.
+
+    % Look and Feel
+    \item \textbf{10.1 Appearance Requirements:} Initial UI layout and interface elements.\\
+    \textit{Phase: Revision 0} \\
+    \textit{Rationale:} Visual interface can be refined after core functions are stable.
+
+    \item \textbf{10.2 Style Requirements:} Consistent fonts, colors, and spacing.\\
+    \textit{Phase: Revision 0} \\
+    \textit{Rationale:} Enhances readability and user experience once functionality is proven.
+
+    % Usability
+    \item \textbf{11.1 Ease of Use Requirements:} Interface must be intuitive and straightforward.\\
+    \textit{Phase: Revision 0} \\
+    \textit{Rationale:} Important for usability testing, applied after functional PoC is complete.
+
+    \item \textbf{11.2 Personalization and Internationalization Requirements:} Language/voice adaptations.\\
+    \textit{Phase: Revision 1} \\
+    \textit{Rationale:} Applied later when system is functionally stable.
+
+    \item \textbf{11.3 Learning Requirements:} System should adapt to repeated user patterns.\\
+    \textit{Phase: Revision 1} \\
+    \textit{Rationale:} Machine learning or adaptation features require validated data pipelines.
+
+    \item \textbf{11.4 Understandability and Politeness Requirements:} Feedback should be clear and respectful.\\
+    \textit{Phase: Revision 0} \\
+    \textit{Rationale:} Improves user experience during early testing.
+
+    \item \textbf{11.5 Accessibility Requirements:} Interface supports assistive technologies.\\
+    \textit{Phase: Revision 0} \\
+    \textit{Rationale:} Early implementation ensures PoC testing is inclusive.
+
+    % Performance
+    \item \textbf{12.1 Speed and Latency Requirements:} System responds within acceptable time frames.\\
+    \textit{Phase: PoC} \\
+    \textit{Rationale:} Performance validation is crucial for feasibility.
+
+    \item \textbf{12.2 Safety-Critical Requirements:} Ensure no harmful outputs or behaviors.\\
+    \textit{Phase: PoC} \\
+    \textit{Rationale:} Early validation prevents critical errors in PoC.
+
+    \item \textbf{12.3 Precision or Accuracy Requirements:} Transcription must meet minimum WER/CER.\\
+    \textit{Phase: PoC} \\
+    \textit{Rationale:} Accuracy is the central PoC metric.
+
+    \item \textbf{12.4 Robustness or Fault-Tolerance Requirements:} Handle errors gracefully.\\
+    \textit{Phase: Revision 0} \\
+    \textit{Rationale:} Necessary for reliable system use beyond PoC.
+
+    \item \textbf{12.5 Capacity Requirements:} Support a small set of concurrent users/data.\\
+    \textit{Phase: Revision 0} \\
+    \textit{Rationale:} Ensure system can handle expected early usage.
+
+    \item \textbf{12.6 Scalability or Extensibility Requirements:} System should allow future growth.\\
+    \textit{Phase: Revision 1} \\
+    \textit{Rationale:} Added after functional validation for longer-term planning.
+
+    \item \textbf{12.7 Longevity Requirements:} Components maintainable over time.\\
+    \textit{Phase: Revision 1} \\
+    \textit{Rationale:} Stability and maintainability are late-stage concerns.
+
+    % Operational & Environment
+    \item \textbf{13.1 Expected Physical Environment:} System works on typical office/lab computers.\\
+    \textit{Phase: PoC} \\
+    \textit{Rationale:} Early testing on target devices is essential.
+
+    \item \textbf{13.2 Wider Environment Requirements:} Browser compatibility.\\
+    \textit{Phase: Revision 0} \\
+    \textit{Rationale:} Once core functionality works, broaden environment testing.
+
+    \item \textbf{13.3 Requirements for Interfacing with Adjacent Systems:} Integration points identified.\\
+    \textit{Phase: Revision 1} \\
+    \textit{Rationale:} External integration is late-phase after internal systems are stable.
+
+    \item \textbf{13.4 Productization Requirements:} Ready for deployment.\\
+    \textit{Phase: Revision 1} \\
+    \textit{Rationale:} Combines all prior validations for release.
+
+    \item \textbf{13.5 Release Requirements:} Packaging, distribution readiness.\\
+    \textit{Phase: Revision 1} \\
+    \textit{Rationale:} Ensures final delivery meets standards.
+
+    % Maintainability & Support
+    \item \textbf{14.1 Maintenance Requirements:} System maintainable.\\
+    \textit{Phase: Revision 1} \\
+    \textit{Rationale:} Implemented once core system is functional.
+
+    \item \textbf{14.2 Supportability Requirements:} Technical support procedures.\\
+    \textit{Phase: Revision 1} \\
+    \textit{Rationale:} Late-stage requirement after main functionality.
+
+    \item \textbf{14.3 Adaptability Requirements:} System can be upgraded.\\
+    \textit{Phase: Revision 1} \\
+    \textit{Rationale:} Flexibility comes after base system is validated.
+
+    % Security
+    \item \textbf{15.1 Access Requirements:} User roles and permissions.\\
+    \textit{Phase: Revision 0} \\
+    \textit{Rationale:} Early implementation secures initial PoC data.
+
+    \item \textbf{15.2 Integrity Requirements:} Prevent tampering or corruption.\\
+    \textit{Phase: Revision 0} \\
+    \textit{Rationale:} Ensures reliable data handling.
+
+    \item \textbf{15.3 Privacy Requirements:} Encrypt data in transit and at rest.\\
+    \textit{Phase: Revision 0} \\
+    \textit{Rationale:} Essential for user trust and legal compliance.
+
+    \item \textbf{15.4 Audit Requirements:} Track critical system events.\\
+    \textit{Phase: Revision 1} \\
+    \textit{Rationale:} Auditing implemented after basic functionality and privacy are validated.
+
+    \item \textbf{15.5 Immunity Requirements:} Protection from external attacks.\\
+    \textit{Phase: Revision 1} \\
+    \textit{Rationale:} Security hardening is a late-stage activity.
+
+    % Cultural & Compliance
+    \item \textbf{16.1 Cultural Requirements:} Respect cultural norms and sensitivities.\\
+    \textit{Phase: Revision 1} \\
+    \textit{Rationale:} Applied after all functional, UI, and content elements are stable.
+
+    \item \textbf{17.1 Legal Requirements:} Comply with laws and regulations.\\
+    \textit{Phase: Revision 1} \\
+    \textit{Rationale:} Legal compliance verified after security, privacy, and functionality are validated.
+
+    \item \textbf{17.2 Standards Compliance Requirements:} Follow industry standards.\\
+    \textit{Phase: Revision 1} \\
+    \textit{Rationale:} Ensures credibility and certification readiness at final stage.
+\end{enumerate}
 
 
 \newpage{}
