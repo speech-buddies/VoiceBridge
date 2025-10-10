@@ -146,129 +146,199 @@ involved in the Project}
 
 \section{Look and Feel Requirements}
 \subsection{Appearance Requirements}
-\lips
+The interface shall have a clean and minimal design to reduce cognitive load. Key elements should be visually distinct, with consistent spacing, and color usage to support quick recognition of actions.
+
+Since it’s a browser integration, the user interface should minimally interfere with the visibility of the content on the page. The interface should only capture the user’s attention as functionally needed (i.e., listening to user prompts, confirming user intent), but should otherwise blend in with the browser interface.
+
 \subsection{Style Requirements}
-\lips
+The system shall maintain a professional and neutral visual style suitable for general workplace use. Colors, icons, and fonts should prioritize clarity over branding at this stage. Future iterations may incorporate custom styling or theming.
+
 
 \section{Usability and Humanity Requirements}
 \subsection{Ease of Use Requirements}
-\lips
+The system should minimize user effort by providing a simple, intuitive interface. Key actions should be accessible within 3-4 interactions, with clear feedback after each action.
 \subsection{Personalization and Internationalization Requirements}
-\lips
+The system should support basic personalization (e.g., remembering user preferences) and allow easy adaptation for different languages or regions at a later stage. For the PoC, English support is sufficient.
 \subsection{Learning Requirements}
-\lips
+The system should be learnable within 10 minutes without prior training or documentation. Users should be able to complete core tasks on their first attempt through the interfaces navigation tutorial upon first time launch. Additional documentation should be supplemental but not necessary. 
 \subsection{Understandability and Politeness Requirements}
-\lips
+The system should use clear, direct, and neutral language in responses. Error messages or clarifications should remain polite and informative.
 \subsection{Accessibility Requirements}
-\lips
+The interface should be navigable using standard assistive tools and offer clear text contrast and legible font sizes. Full accessibility compliance is not required at the PoC stage but should be feasible for future iterations.
 
 \section{Performance Requirements}
 \subsection{Speed and Latency Requirements}
-\lips
+Under normal operating conditions, latency requirements can be broken down into:
+
+Speech interpretation: 5 s after end of utterance
+
+Command generation \& execution: 10-15 seconds after end of speech interpretation
 \subsection{Safety-Critical Requirements}
-\lips
+The system shall enforce guardrails to prevent unsafe or unintended actions, requiring validation and user confirmation for potentially disruptive operations, and provide warnings or fail-safes for errors.
 \subsection{Precision or Accuracy Requirements}
-\lips
+ASR accuracy shall be at least 70\% in stationary noise conditions. The system shall achieve at least 80\% command recognition precision under stationary noise conditions for the PoC.
 \subsection{Robustness or Fault-Tolerance Requirements}
-\lips
+The system shall remain stable under fluctuating network conditions and noisy input. Fallback mechanisms (e.g., retry logic, error messaging) shall ensure graceful issue handling.
 \subsection{Capacity Requirements}
-\lips
+The system shall support at least 20 concurrent users without service degradation if the product is commercialized.
 \subsection{Scalability or Extensibility Requirements}
-\lips
+The system architecture shall allow horizontal scaling to handle increased traffic and modular extensions fo new interaction capabilities. 
 \subsection{Longevity Requirements}
-\lips
+The system shall be designed to operate reliably over a minimum of 5 years, with maintainable and updatable components to support long-term product evolution.
 
 \section{Operational and Environmental Requirements}
 \subsection{Expected Physical Environment}
-\lips
+The product shall be operable in a variety of typical office, home, or institutional environments where users perform their daily tasks. The system shall be robust to stationary background noise such as air conditioning, computer fans, and ambient hum. It is not required to reliably handle non-stationary noise, including multiple people speaking or sudden loud interruptions. No modifications to the host operating system, browser, or network configuration shall be required.
 \subsection{Wider Environment Requirements}
-\lips
+The primary interface shall be web-based, accessible via standard web browsers, to maximize user accessibility and support flexible use cases.
 \subsection{Requirements for Interfacing with Adjacent Systems}
-\lips
+\begin{enumerate}
+    \item The system shall integrate with existing browser-based platforms and may interface with external language interpreter modules.
+    \item Open-source components (e.g., browser interaction agents and libraries) may be incorporated, ensuring compatibility and maintainability.
+\end{enumerate}
+
 \subsection{Productization Requirements}
-\lips
+\begin{enumerate}
+    \item The product shall be deployable for multiple users within an organization, supporting secure user accounts and personalized ASR profiles.
+    \item The design shall allow packaging and distribution without requiring technical setup by end users. The product shall have straightforward installation or access via pre-configured web access and automatic model initialization.
+    \item Productization shall include logging suitable for monitoring performance and usage in a hosted environment.
+    \item The system shall include mechanisms for updates to features with minimal disruption to users.
+\end{enumerate}
 \subsection{Release Requirements}
-\lips
+The product shall follow a defined release cycle, providing minor updates quarterly and major updates semi-annually. Each release must maintain backward compatibility with user data, personalization settings, and existing features. Release planning will account for maintenance effort, compute resources, and compliance obligations.
 
 \section{Maintainability and Support Requirements}
 \subsection{Maintenance Requirements}
-\lips
+Code must be modular, documented, and testable to support scalability, debugging, and future updates. Maintenance must be possible by developers who were not the original authors. 
 \subsection{Supportability Requirements}
-\lips
+The product shall provide an accessible Help Page and a Frequently Asked Questions (FAQ) section with clear instructions. It shall be displayed with high-contrast visuals, simple language, and auditory and visual aids. 
 \subsection{Adaptability Requirements}
-\lips
+The system must run on common workplace platforms via a web browser, including Windows 10 or later, macOS 12 Monterey or later, and Linux distributions such as Ubuntu 20.04 LTS or later, supporting modern web browsers.
 
 \section{Security Requirements}
 \subsection{Access Requirements}
-\lips
+Only authorized end users shall be able to access personalized ASR features, voice command execution, and saved transcripts. Access shall be role-based:
+
+\begin{itemize}
+    \item \textbf{Primary users (end users):} can access their own data.
+    \item \textbf{Secondary users (supervisors/SMEs):} may have read-only access to assist with support or troubleshooting.
+    \item \textbf{Tertiary users (caregivers):} may have limited access to assist the end user, can view basic usage history and transcripts but cannot modify settings.
+\end{itemize}
+
+Access to external services (e.g., LLM APIs) shall be rate-limited to ensure system stability, control costs, and prevent abuse.
 \subsection{Integrity Requirements}
-\lips
+The system must provide real-time confirmation and validation of commands before execution to ensure they match user intent. 
 \subsection{Privacy Requirements}
-\lips
+The system must gather explicity user consent for storing voice and personal data. All user data used for model improvement must be anonymized. Database and personalized ASR models must maintain integrity through secure, versioned backups. Unauthorized changes or corruption of user data must be prevented. 
 \subsection{Audit Requirements}
-\lips
+The system shall maintain secure logs of major actions and commands, including loging events, access to profile and personal data, and command execution failures. Logs shall be protected and retained in a secure database. 
 \subsection{Immunity Requirements}
-\lips
+The system must be resilient to accidental misuse. It shall handle noisy input robustly, avoid executing unintended commands, and operate safely within rate limits to prevent resource overload. 
 
 \section{Cultural Requirements}
 \subsection{Cultural Requirements}
-\lips
+The system shall maintain a culturally neutral and respectful tone when prompting users, avoiding slang, bias, and discriminatory language. It must include ethical guardrails to prevent the generation of harmful content or execution of potentially dangerous commands.
+
+It shall support inclusive and accessible design to serve users across diverse cultural backgrounds.
 
 \section{Compliance Requirements}
 \subsection{Legal Requirements}
-\lips
+The project shall comply with the Personal Information Protection and Electronic Documents Act (PIPEDA) regarding the collection, storage, and handling of personal information.
+
 \subsection{Standards Compliance Requirements}
-\lips
+The application must comply with the Web Content Accessibility Guidelines (WCAG) 2.0, Level AA guidelines to ensure usability by individuals with disabilities.
+
 
 \section{Open Issues}
-\lips
+The primary open issue is maintaining high ASR accuracy across the diverse and severe spectrum of dysarthric speech. This requires extensive training and validation data, as well as careful model tuning.
+
 
 \section{Off-the-Shelf Solutions}
 \subsection{Ready-Made Products}
-\lips
+The project will evaluate existing, specialized speech recognition models and applications (e.g., Whisper model and Project Euphonia) as performance baselines.
+
 \subsection{Reusable Components}
-\lips
+Potential reused components could include existing Text-to-Speech (TTS) modules for feedback and LLMs to map user commands into structured actions.
+
 \subsection{Products That Can Be Copied}
-\lips
+Open-source browser automation agents (e.g., The AI browser agent) may be integrated for command execution via voice input.
+
 
 \section{New Problems}
 \subsection{Effects on the Current Environment}
-\lips
+The product shall operate without modifying the user’s OS, browser, or network configuration. This separation prevents unintended impact from incorrect commands.
+
 \subsection{Effects on the Installed Systems}
-\lips
+The product shall not bypass firewalls, alter security settings, access banned sites, install untrusted content, or perform any malware execution.
+
 \subsection{Potential User Problems}
-\lips
+Due to the non-deterministic nature of dysarthric speech patterns, a user’s exact speech type may not be fully captured by the model, leading to higher training overhead for personalization before the system becomes reliably usable for them. Users may experience misinterpretations requiring retries, which can cause frustration.
+
 \subsection{Limitations in the Anticipated Implementation Environment That May
 Inhibit the New Product}
-\lips
+Variability in dysarthric speech may necessitate frequent retraining of ASR models.
+
+Real-time performance varies between devices, depending on processing power and low-latency operation.
 \subsection{Follow-Up Problems}
-\lips
+The local operation limits the ability to perform remote problem diagnosis if any issues arise.
+
 
 \section{Tasks}
 \subsection{Project Planning}
-\lips
+Breakdown of major tasks:
+
+Our main tasks are centered on preparing the system by training and tuning the dysarthric ASR model, integrating the core command interpreter, designing the accessible interface, and conducting rigorous testing.
 \subsection{Planning of the Development Phases}
-\lips
+A detailed schedule of development phases, milestones, and dependencies is outlined in the PoC and Development Plan.
 
 \section{Migration to the New Product}
 \subsection{Requirements for Migration to the New Product}
-\lips
+The system shall support new users with no prior ASR and interpreter experience through an onboarding process. 
+
+The system shall support transitioning users migrating from an existing system by allowing for easy uploading of recordings of their speech training data.
+
 \subsection{Data That Has to be Modified or Translated for the New System}
-\lips
+All previous transcripts, audio files, and personalization data shall be tied to secure user accounts.
+
+Users shall be able to access their data from any supported device after logging in and authentication.
 
 \section{Costs}
-\lips
+The primary costs for this product are related to machine learning computation and hosting. Development and training will initially leverage Compute Canada credits provided by the supervising research team, along with Colab Pro (CAD 13.99/month).
+
+No external hosting costs are anticipated for the initial release; however, optional hosting may be required for commercial distribution and deployments. If hosting is included, approximate costs for cloud-based deployment on Google Cloud Platform (GCP) include: training and inference on GPUs (~\$50 CAD/month for pilot use), storage (~\$3 CAD/month), and minimal networking (~\$2–5 CAD/month). Costs scale with the number of users and training frequency. All estimates are approximate and intended for planning purposes.
 \section{User Documentation and Training}
 \subsection{User Documentation Requirements}
-\lips
+The system shall provide clear, accessible documentation, including an instructional guide and FAQ. (As noted in Section 14b, supporting requirements already cover this in detail.)
+
 \subsection{Training Requirements}
-\lips
+Training shall not require formal instruction; the documentation and interface shall support self-directed onboarding.
 
 \section{Waiting Room}
-\lips
+The system shall display launch, loading, or processing pages during transitions to provide users with clear feedback and reduce confusion during waiting periods.
 
 \section{Ideas for Solution}
-\lips
+
+\subsection{Browser-Based Extensions}
+The product is primarily web-based. Future considerations could include desktop or mobile apps to broaden the scope and accessibility (see Section 13 for environment and interface requirements).
+
+\subsection{Personalized ASR Fine-Tuning}
+Consider incremental model tuning paired with real-time streaming of speech input. This could be an approach to adapt to individual speech patterns while minimizing the training time overhead, related to the adaptability requirements discussed in earlier sections.
+
+\subsection{LLM Command Mapping}
+User intent parsing via context-aware LLMs could improve natural language command interpretation, as mentioned in Section 13.
+
+\subsection{Noise Filtering}
+Beyond stationary noise, adaptive filtering techniques could be adapted to enhance recognition in busier environments. Section 13 already specifies stationary noise handling.
+
+\subsection{Open-Source Integrations}
+Potential use of browser automation or voice control frameworks can be investigated, as mentioned in Section 16 for off-the-shelf solutions.
+
+\subsection{Accessibility Enhancements}
+Additional visual, auditory, or haptic cues for feedback and help features could enhance usability. Section 14 highlights basic supportability requirements that these enhancements would build on.
+
+\subsection{Data Encryption}
+Anonymized logging and privacy approaches can balance model improvement with privacy in mind. Section 15 discusses privacy requirements in detail.
+
 
 \newpage{}
 \section*{Appendix --- Reflection}
