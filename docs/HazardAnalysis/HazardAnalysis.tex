@@ -251,16 +251,32 @@ To show clear scope management, the lists below specify which requirements are i
 \input{../Reflection.tex}
 
 \begin{enumerate}
-    \item What went well while writing this deliverable? 
-    \item What pain points did you experience during this deliverable, and how
-    did you resolve them?
-    \item Which of your listed risks had your team thought of before this
-    deliverable, and which did you think of while doing this deliverable? For
-    the latter ones (ones you thought of while doing the Hazard Analysis), how
-    did they come about?
-    \item Other than the risk of physical harm (some projects may not have any
-    appreciable risks of this form), list at least 2 other types of risk in
-    software products. Why are they important to consider?
+  \item \textbf{What went well while writing this deliverable?}\\
+  We split the work effectively across the team (writing, tables/figures, checks), agreed on clear owners for each section, and used short review cycles to keep everything consistent. This let us move quickly without stepping on each other’s toes and made integration straightforward.
+
+  \item \textbf{What pain points did you experience, and how did you resolve them?}\\
+  The hardest part was \emph{identifying hazards}, brainstorming how they could affect our project, and then \emph{translating those into concrete additional requirements}. We initially struggled to scope severity/likelihood consistently. We resolved this by aligning on a simple risk matrix with definitions, walking through realistic user stories, and iterating on a Failure Modes \& Effects table. Each accepted hazard now maps to a mitigation and a verifiable requirement.
+
+  \item \textbf{Which risks were known before vs.\ discovered during this deliverable? How did the new ones come about?}\\
+  \textit{Known before:}
+  \begin{itemize}
+    \item Cloud/network outages affecting availability.
+    \item User device/OS audio stack failures and limitations.
+  \end{itemize}
+  \textit{Identified during the Hazard Analysis:}
+  \begin{itemize}
+    \item Data privacy in logs and error reports.
+    \item Latency spikes undermining “real-time” interaction.
+    \item Poor failure UX (unclear prompts/recovery paths) compounding minor faults.
+  \end{itemize}
+  These emerged by systematically asking “what if?” at each step of the user flow, filling out the failure modes table, and tracing each failure to effects and necessary mitigations.
+
+  \item \textbf{Beyond physical harm, list at least two other risk types in software and why they matter.}\\
+  \begin{itemize}
+    \item \textbf{Privacy \& Security Risk:} Breaches or over-collection can expose sensitive data, create legal liability, and erode user trust.
+    \item \textbf{Reliability/Availability Risk:} Downtime or unstable behavior blocks users at critical moments; SLO breaches damage credibility.
+    \item \textbf{Compliance/Regulatory Risk:} Violations (e.g., data residency, consent) can lead to fines and forced rework.
+  \end{itemize}
 \end{enumerate}
 
 \end{document}
