@@ -11,6 +11,8 @@
 \usepackage{hyperref}
 \usepackage{float}
 \usepackage{graphicx} 
+\usepackage{longtable}
+
 \hypersetup{
     bookmarks=true,         % show bookmarks bar?
       colorlinks=true,      % false: boxed links; true: colored links
@@ -260,7 +262,6 @@ involved in the Project}
 \section{Relevant Facts And Assumptions}
 \subsection{Relevant Facts}
 
-\subsection{User-Centered Facts}
 \begin{table}[H]
 \centering
 \begin{tabularx}{\textwidth}{p{1cm}p{6cm}X}
@@ -346,27 +347,219 @@ VoiceBridge aims to replace this with accurate transcription, command mapping, a
 \end{figure}
 
 \subsection{Work Partitioning}
-\lips
-\subsection{Specifying a Business Use Case (BUC)}
+\begin{table}[H]
+\centering
+\begin{tabularx}{\textwidth}{X X X X X}
+\toprule
+\textbf{Event Name} & \textbf{Input} & \textbf{Output} & \textbf{Brief BUC Summary} & \textbf{Relevant Data Classes} \\
+\midrule
+\textbf{Input Capture} & User speech via microphone & Audio stream to system & Capture speech for processing & Raw audio, timestamp \\
+\hline
+\textbf{Speech-to-Text Modelling} & Audio stream & Transcribed text & Convert impaired speech to text & Audio data, transcription \\
+\hline
+\textbf{Intent Confirmation} & Transcribed text & User confirmation & Verify intended command & Text data, confidence score \\
+\hline
+\textbf{Command Mapping} & Confirmed text & Actionable command & Map text to browser action & Command definitions, user preferences \\
+\hline
+\textbf{Browser Interaction Layer} & Actionable command & Executed browser action & Perform command in browser & Command data, page context, execution status \\
+\bottomrule
+\end{tabularx}
+\caption{VoiceBridge Events, Inputs, Outputs, and Data Classes}
+\label{tab:voicebridge-events}
+\end{table}
+
+% \subsection{Specifying a Business Use Case (BUC)} insert diagram
 \lips
 
 \section{Business Data Model and Data Dictionary}
 \subsection{Business Data Model}
 \lips
 \subsection{Data Dictionary}
-\lips
+
+\begin{table}[H]
+\centering
+\begin{tabularx}{\textwidth}{p{3cm} X X X X X}
+\toprule
+\textbf{Data Element} & \textbf{Description} & \textbf{Format / Constraints} & \textbf{Source} & \textbf{Remarks / Usage} \\
+\midrule
+Audio\_Input & Raw speech signal captured from microphone &  PCM, WAV, 16 kHz, 16-bit & User microphone & Primary input for ASR processing \\
+Speech\_Features & Extracted features (e.g., MFCCs, spectrogram)  & N-dimensional array & Feature extractor module & Internal representation for ASR engine \\
+Transcript\_Text & Recognized text from speech input & UTF-8 encoded, free text & ASR engine & Used to interpret user intent \\
+Error\_Code & Status / error indicator & Integer &  ASR engine / Controller & 0 = Success, >0 = specific error \\
+User\_Profile & Speaker-specific data (e.g., ID, preferences)  & JSON object & User database & Improves personalization (optional) \\
+Timestamp & Time marker of recognition event & DateTime  & System clock & For logging and debugging \\
+User\_Intent & Parsed intent from natural language & JSON with intent and slots & Interpreter module & Represents structured meaning (e.g., \{“intent”: “open\_file”, “file”: “report.pdf”\}) \\
+Executable\_Command & Structured representation of command before execution & JSON object or Abstract Syntax Tree & Interpreter module & Maps NL to executable form, independent of target system \\
+API\_Request & Finalized API call (if system integration is via APIs)  & REST / GraphQL format & Interpreter module → API translator & Sent to target system \\
+\bottomrule
+\end{tabularx}
+\caption{VoiceBridge Data Elements and Their Usage}
+\label{tab:voicebridge-data-elements}
+\end{table}
+
 
 \section{The Scope of the Product}
 \subsection{Product Boundary}
 \lips
 \subsection{Product Use Case Table}
-\lips
-\subsection{Individual Product Use Cases (PUC's)}
-\lips
+\begin{table}[H]
+\centering
+\caption{Product Use Case (PUC) Table}
+\begin{tabularx}{\textwidth}{p{1.5cm}p{3cm}p{2.5cm}p{3cm}X}
+\toprule
+\textbf{PUC ID} & \textbf{Event Trigger} & \textbf{Input} & \textbf{Output} & \textbf{Description} \\
+\midrule
+PUC-1 & User speaks into microphone & Audio signal & Captured speech data & System listens for user speech input. \\
+PUC-2 & Speech captured & Speech data & Text transcription & Converts impaired speech to text using trained model. \\
+PUC-3 & Transcription complete & Transcribed text & Confirmation prompt / feedback & Seeks user confirmation to ensure correct interpretation. \\
+PUC-4 & Intent confirmed & Confirmed command text & Browser command execution & Maps intent to actionable browser function. \\
+PUC-5 & Command executed or error & System response & Success or error feedback to user & Provides feedback or prompts retry on failure. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsubsection{Individual Product Use Cases (PUC's)}
+\section*{Product Use Cases}
+
+This section defines the detailed Product Use Cases (PUCs) for the VoiceBridge system. Each PUC describes the interaction between the user and the system, including purpose, actors, triggers, inputs/outputs, and main scenarios.
+
+\subsubsection*{PUC-1: Capture User Speech}
+\textbf{Primary Actor:} User \\
+\textbf{Trigger:} User begins speaking into the microphone. \\
+\textbf{Precondition:} The microphone is connected and permissions are granted. \\
+\textbf{Input:} Audio signal (live speech). \\
+\textbf{Output:} Captured audio data stream. \\
+\textbf{Postcondition:} Audio data is made available for processing by the ASR (Automatic Speech Recognition) module. \\
+
+\textbf{Main Scenario:}
+\begin{enumerate}
+  \item User activates the VoiceBridge interface (e.g., presses a “Listen” button).
+  \item The system listens through the microphone for input.
+  \item The system captures the speech signal and stores it temporarily in memory.
+  \item Captured data is sent to the speech-to-text module for processing.
+\end{enumerate}
+
+\textbf{Alternative Flow:}
+\begin{itemize}
+  \item If the microphone is unavailable or access is denied, the system displays an error prompt.
+  \item User can retry after adjusting permissions or hardware connection.
+\end{itemize}
+
+\bigskip
+
+\subsubsection*{PUC-2: Convert Speech to Text}
+\textbf{Primary Actor:} System (Speech Recognition Module) \\
+\textbf{Trigger:} Audio capture event completed. \\
+\textbf{Input:} Captured speech data. \\
+\textbf{Output:} Transcribed text. \\
+\textbf{Postcondition:} Transcription results are ready for user confirmation. \\
+
+\textbf{Main Scenario:}
+\begin{enumerate}
+  \item System processes the captured audio stream using a trained ASR model.
+  \item Acoustic and linguistic features are extracted.
+  \item Speech is converted to text and stored temporarily.
+  \item Transcribed text is passed to the confirmation display.
+\end{enumerate}
+
+\textbf{Alternative Flow:}
+\begin{itemize}
+  \item If transcription confidence is below threshold, the system requests a repeat.
+\end{itemize}
+
+\bigskip
+
+\subsubsection*{PUC-3: Confirm Transcription}
+\textbf{Primary Actor:} User \\
+\textbf{Trigger:} System displays transcribed text. \\
+\textbf{Input:} Transcribed text. \\
+\textbf{Output:} User confirmation or correction. \\
+
+\textbf{Main Scenario:}
+\begin{enumerate}
+  \item The transcribed text is displayed to the user for verification.
+  \item User confirms that the text is correct or requests reprocessing.
+  \item System records the confirmation and proceeds to intent mapping.
+\end{enumerate}
+
+\textbf{Alternative Flow:}
+\begin{itemize}
+  \item If user rejects the transcription, the system returns to PUC-1 for re-input.
+\end{itemize}
+
+\bigskip
+
+\subsubsection*{PUC-4: Map Intent to Browser Command}
+\textbf{Primary Actor:} System (Command Mapping Module) \\
+\textbf{Trigger:} User confirmation received. \\
+\textbf{Input:} Confirmed command text. \\
+\textbf{Output:} Actionable browser command. \\
+
+\textbf{Main Scenario:}
+\begin{enumerate}
+  \item System parses confirmed text for intent (e.g., “open YouTube”).
+  \item System searches for matching browser or OS command.
+  \item Mapped command is passed to the execution layer.
+\end{enumerate}
+
+\textbf{Alternative Flow:}
+\begin{itemize}
+  \item If no matching command is found, the system provides suggestions.
+\end{itemize}
+
+\bigskip
+
+\subsubsection*{PUC-5: Execute Command and Provide Feedback}
+\textbf{Primary Actor:} System \\
+\textbf{Trigger:} Actionable command received. \\
+\textbf{Input:} Command representation (API or accessibility call). \\
+\textbf{Output:} Visible browser or OS action, and feedback message. \\
+
+\textbf{Main Scenario:}
+\begin{enumerate}
+  \item System executes the command using the browser’s API or accessibility layer.
+  \item The target application or tab performs the intended action (e.g., opens a webpage).
+  \item System provides visual and/or auditory feedback to confirm success.
+\end{enumerate}
+
+\textbf{Alternative Flow:}
+\begin{itemize}
+  \item If the command execution fails, an error message or retry option is displayed.
+\end{itemize}
+
 
 \section{Functional Requirements}
 \subsection{Functional Requirements}
-\lips
+
+\subsection{FR1: Accept Speech Audio via Microphone}
+\textbf{Description:} The system must capture live speech input from the user through a standard built-in or external microphone.\\
+\textbf{Rationale:} Without microphone input, the system cannot acquire the user’s speech for transcription. Requiring only standard/built-in microphones keeps the solution accessible and affordable.\\
+\textbf{Fit Criterion:} The system reliably detects and records audio from default OS microphone devices across Windows, macOS, iOS, and Android, with a minimum 16 kHz sampling rate.
+
+\bigskip
+\subsection{FR2: Convert Impaired Speech to Text with greater than or equal to 80\% Accuracy (MVP)}
+\textbf{Description:} The system must process the captured audio and output a textual representation of the spoken utterance.\\
+\textbf{Rationale:} Accurate transcription is the core functionality that enables communication and command execution. Without acceptable accuracy, the product fails its purpose.\\
+\textbf{Fit Criterion:} In evaluation on a test dataset of impaired speech, transcription accuracy must reach at least 80\% word error rate (WER) reduction compared to baseline models, and achieve greater than or equal to 80\% accuracy for common commands.
+
+\bigskip
+\subsection{FR3: Display Transcription for Verification}
+\textbf{Description:} The transcribed text must be displayed in real time on the user’s device interface.\\
+\textbf{Rationale:} Transparent feedback allows the user to verify correctness, catch errors, and build trust in the system.\\
+\textbf{Fit Criterion:} Every spoken input is displayed within 2 seconds as text on the UI, with at least 95\% consistency across trials.
+
+\bigskip
+\subsection{FR4: Map Text to Arbitrary Device Commands}
+\textbf{Description:} The system must recognize when transcribed text corresponds to a predefined device action (e.g., “open amazon.ca,” “draft a new email”) and translate it into the appropriate command representation (API, CLI, or accessibility call).\\
+\textbf{Rationale:} Mapping allows the system to extend beyond communication into real device control, empowering user independence.\\
+\textbf{Fit Criterion:} For a test set of 50 predefined commands, the system maps user input to the correct command representation in at least 90\% of cases.
+
+\bigskip
+\subsection{FR5: Execute Commands on the Host Device}
+\textbf{Description:} The system must execute the mapped commands through the host device’s accessibility framework or APIs, resulting in visible user action (e.g., app launch, scrolling, text entry).\\
+\textbf{Rationale:} Without execution, the system remains a transcription tool only. Execution closes the loop between speech input and device interaction.\\
+\textbf{Fit Criterion:} For each correctly recognized command, the intended system action occurs on the device within 2 seconds, with greater than or equal to 95\% reliability across test scenarios.
+
 
 \section{Look and Feel Requirements}
 \subsection{Appearance Requirements}
