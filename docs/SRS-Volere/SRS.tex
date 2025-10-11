@@ -90,7 +90,7 @@ G8 & \textbf{Customizable Interface} & Allow users to adjust sensitivity, shortc
 G9 & \textbf{Scalable Architecture} & Design the system for future integration beyond browsers. \\ 
 \bottomrule
 \end{tabularx}
-\label{tab:project-goals}
+\caption{Project Goals for VoiceBridge}
 \end{table}
 
 
@@ -169,101 +169,86 @@ The system is designed to accommodate diverse speech patterns, dialects, and acc
 \textbf{Social Impact:} 
 By reducing communication barriers, VoiceBridge fosters greater inclusion in workplaces, education, and online communities. The system thus contributes to both individual empowerment and collective social benefit.
 
-
 \section{Mandated Constraints}
+
 \subsection{Solution Constraints}
 
-\begin{tabularx}{\textwidth}{p{1cm}X X X}
-\toprule
-\textbf{ID} & \textbf{Constraint} & \textbf{Rationale} & \textbf{Fit Criterion} \\
-\midrule
-C1 & The product shall run on consumer-grade hardware using a personal computer microphone and support macOS, Windows, and Linux distributions. & Requiring only consumer-grade hardware ensures broad accessibility for end users and avoids dependency on specialized equipment. & The system must successfully be integrated onto browsers and run on laptops or desktops across the supported operating systems, using either built-in or external microphones. \\
-\hline
-C2 & The product shall accept non-deterministic user input in the form of natural language speech. & Individuals with speech impairments may produce varied speech patterns that cannot be handled by rigid or deterministic command structures. & The system must be capable of processing and responding to variable natural language inputs without requiring a fixed set of commands. \\
-\hline
-C3 & The product shall integrate with a browser control application to execute voice-based commands. & Browser interaction is a primary accessibility point for most digital services, and browser control is essential for practical use of the system. & The system must successfully perform browser actions (e.g., opening tabs, navigating to URLs, scrolling) through the integrated control application. \\
-\bottomrule
-\end{tabularx}
+\noindent\textbf{C1 — The product shall run on consumer-grade hardware using a personal computer microphone and support macOS, Windows, and Linux distributions.}\\
+\textbf{Rationale:} Requiring only consumer-grade hardware ensures broad accessibility for end users and avoids dependency on specialized equipment.\\
+\textbf{Fit Criterion:} The system must successfully be integrated onto browsers and run on laptops or desktops across the supported operating systems, using either built-in or external microphones.
+\par\noindent\rule{\textwidth}{0.4pt}
+
+\noindent\textbf{C2 — The product shall accept non-deterministic user input in the form of natural language speech.}\\
+\textbf{Rationale:} Individuals with speech impairments may produce varied speech patterns that cannot be handled by rigid or deterministic command structures.\\
+\textbf{Fit Criterion:} The system must be capable of processing and responding to variable natural language inputs without requiring a fixed set of commands.
+\par\noindent\rule{\textwidth}{0.4pt}
+
+\noindent\textbf{C3 — The product shall integrate with a browser control application to execute voice-based commands.}\\
+\textbf{Rationale:} Browser interaction is a primary accessibility point for most digital services, and browser control is essential for practical use of the system.\\
+\textbf{Fit Criterion:} The system must successfully perform browser actions (e.g., opening tabs, navigating to URLs, scrolling) through the integrated control application.
+\par\noindent\rule{\textwidth}{0.4pt}
 
 
 \subsection{Implementation Environment of the Current System}
 
+\noindent\textbf{C4 — The product will operate within a consumer computing environment consisting of personal computers equipped with microphones.}\\
+\textbf{Rationale:} This setup reflects the most common user hardware configuration, ensuring the solution is accessible without additional devices.\\
+\textbf{Fit Criterion:} All core functionalities must operate correctly on standard personal computers with a functioning audio input device.
+\par\noindent\rule{\textwidth}{0.4pt}
 
-\begin{tabularx}{\textwidth}{p{1cm}X X X}
-\toprule
-\textbf{ID} & \textbf{Constraint} & \textbf{Rationale} & \textbf{Fit Criterion} \\
-\midrule
-C4 & The product will operate within a consumer computing environment consisting of personal computers equipped with microphones. & This setup reflects the most common user hardware configuration, ensuring the solution is accessible without additional devices. & All core functionalities must operate correctly on standard personal computers with a functioning audio input device. \\
-\bottomrule
-\end{tabularx}
 
 \subsection{Partner or Collaborative Applications}
 
+\noindent\textbf{C5 — The initial integration target is Browser Use, an open-source browser control and automation application.}\\
+\textbf{Rationale:} Leveraging existing open-source browser automation tools accelerates development and reduces implementation complexity.\\
+\textbf{Fit Criterion:} The system must demonstrate the ability to execute at least three browser actions through the integrated partner application during testing.
+\par\noindent\rule{\textwidth}{0.4pt}
 
-\begin{tabularx}{\textwidth}{p{1cm}X X X}
-\toprule
-\textbf{ID} & \textbf{Constraint} & \textbf{Rationale} & \textbf{Fit Criterion} \\
-\midrule
-C5 & The initial integration target is Browser Use, an open-source browser control and automation application. & Leveraging existing open-source browser automation tools accelerates development and reduces implementation complexity. & The system must demonstrate the ability to execute at least three browser actions through the integrated partner application during testing. \\
-\hline
-C6 & Future integrations may include API servers, mobile device agents, and home assistants to extend accessibility and functionality. & Ensuring extensibility allows the system to grow and adapt to new platforms or user needs. & The system architecture must allow seamless integration with additional partner applications without major redesign. \\
-\bottomrule
-\end{tabularx}
+\noindent\textbf{C6 — Future integrations may include API servers, mobile device agents, and home assistants to extend accessibility and functionality.}\\
+\textbf{Rationale:} Ensuring extensibility allows the system to grow and adapt to new platforms or user needs.\\
+\textbf{Fit Criterion:} The system architecture must allow seamless integration with additional partner applications without major redesign.
+\par\noindent\rule{\textwidth}{0.4pt}
+
 
 \subsection{Off-the-Shelf Software}
 
-\begin{tabularx}{\textwidth}{p{1cm}X X X}
-\toprule
-\textbf{ID} & \textbf{Constraint} & \textbf{Rationale} & \textbf{Fit Criterion} \\
-\midrule
-C7 & The product will rely on off-the-shelf software components, specifically Browser Use for automation and Project Euphonia for voice recording. & Using established open-source components allows focus on core functionality, improves maintainability, and supports experimentation with real-world data. & These components must be successfully integrated into the development workflow, and collected recordings must be stored and processed for model training without licensing conflicts. \\
-\bottomrule
-\end{tabularx}
+\noindent\textbf{C7 — The product will rely on off-the-shelf software components, specifically Browser Use for automation and Project Euphonia for voice recording.}\\
+\textbf{Rationale:} Using established open-source components allows focus on core functionality, improves maintainability, and supports experimentation with real-world data.\\
+\textbf{Fit Criterion:} These components must be successfully integrated into the development workflow, and collected recordings must be stored and processed for model training without licensing conflicts.
+\par\noindent\rule{\textwidth}{0.4pt}
+
 
 \subsection{Anticipated Workplace Environment}
 
-
-\begin{tabularx}{\textwidth}{p{1cm}X X X}
-\toprule
-\textbf{ID} & \textbf{Constraint} & \textbf{Rationale} & \textbf{Fit Criterion} \\
-\midrule
-C8 & The product may be used at home, in public spaces, or in clinical settings, each with varying background noise conditions. & The product must function effectively across diverse real-world environments to meet accessibility goals. & The speech recognition system must maintain acceptable accuracy and responsiveness across all three identified environments during testing. \\
-\bottomrule
-\end{tabularx}
+\noindent\textbf{C8 — The product may be used at home, in public spaces, or in clinical settings, each with varying background noise conditions.}\\
+\textbf{Rationale:} The product must function effectively across diverse real-world environments to meet accessibility goals.\\
+\textbf{Fit Criterion:} The speech recognition system must maintain acceptable accuracy and responsiveness across all three identified environments during testing.
+\par\noindent\rule{\textwidth}{0.4pt}
 
 
 \subsection{Schedule Constraints}
 
+\noindent\textbf{C9 — Proof of concept must be completed by November 17, 2025. MVP must be ready within eight months, by May 2026.}\\
+\textbf{Rationale:} Deadlines align with capstone project milestones and funding timelines, ensuring timely testing and delivery.\\
+\textbf{Fit Criterion:} All proof of concept requirements must be met by the November deadline, and MVP functionality must be fully operational by May 2026.
+\par\noindent\rule{\textwidth}{0.4pt}
 
-\begin{tabularx}{\textwidth}{p{1cm}X X X}
-
-\toprule
-\textbf{ID} & \textbf{Constraint} & \textbf{Rationale} & \textbf{Fit Criterion} \\
-\midrule
-C9 & Proof of concept must be completed by November 17, 2025. MVP must be ready within eight months, by May 2026. & Deadlines align with capstone project milestones and funding timelines, ensuring timely testing and delivery. & All proof of concept requirements must be met by the November deadline, and MVP functionality must be fully operational by May 2026. \\
-\bottomrule
-\end{tabularx}
 
 \subsection{Budget Constraints}
 
-\begin{tabularx}{\textwidth}{p{1cm}X X X}
-\toprule
-\textbf{ID} & \textbf{Constraint} & \textbf{Rationale} & \textbf{Fit Criterion} \\
-\midrule
-C10 & The project must operate within the capstone budget allocated for compute infrastructure and development resources. & Budget limitations require prioritizing open-source solutions and efficient resource allocation. & Total cost of infrastructure, hosting, and third-party services must not exceed the allocated capstone budget. \\
-\bottomrule
-\end{tabularx}
+\noindent\textbf{C10 — The project must operate within the capstone budget allocated for compute infrastructure and development resources.}\\
+\textbf{Rationale:} Budget limitations require prioritizing open-source solutions and efficient resource allocation.\\
+\textbf{Fit Criterion:} Total cost of infrastructure, hosting, and third-party services must not exceed the allocated capstone budget.
+\par\noindent\rule{\textwidth}{0.4pt}
 
 
 \subsection{Enterprise Constraints}
 
-\begin{tabularx}{\textwidth}{p{1cm}X X X}
-\toprule
-\textbf{ID} & \textbf{Constraint} & \textbf{Rationale} & \textbf{Fit Criterion} \\
-\midrule
-C11 & The product must comply with all relevant accessibility and privacy regulations, including data usage and user privacy agreements. & Compliance protects user rights, upholds institutional standards, and avoids legal or ethical issues. & All data collection and processing workflows must undergo compliance review, and accessibility features must align with recognized standards (e.g., WCAG). \\
-\bottomrule
-\end{tabularx}
+\noindent\textbf{C11 — The product must comply with all relevant accessibility and privacy regulations, including data usage and user privacy agreements.}\\
+\textbf{Rationale:} Compliance protects user rights, upholds institutional standards, and avoids legal or ethical issues.\\
+\textbf{Fit Criterion:} All data collection and processing workflows must undergo compliance review, and accessibility features must align with recognized standards (e.g., WCAG).
+\par\noindent\rule{\textwidth}{0.4pt}
+
 
 \section{Naming Conventions and Terminology}
 \section*{Glossary of Terms and Acronyms}
@@ -395,8 +380,7 @@ F9 & \textbf{Users will vary in technical comfort.} & Onboarding should be minim
 F10 & \textbf{Users appreciate visual feedback and control.} & Feedback builds trust and reduces frustration (complements (\textbf{\hyperref[tab:project-goals]{G1}}), (\textbf{\hyperref[tab:project-goals]{G8}})). \\
 \bottomrule
 \end{tabularx}
-\caption{User-Centered Facts for VoiceBridge with references to project goals}
-\label{tab:user-facts}
+\caption{User-Centered Facts for VoiceBridge}
 \end{table}
 
 
@@ -418,7 +402,7 @@ BR6 & Users should be able to configure simple command mappings for personalized
 \bottomrule
 \end{tabularx}
 \caption{Business Rules for VoiceBridge}
-\label{tab:business-rules}
+% \label{tab:business-rules}
 \end{table}
 
 
@@ -484,8 +468,55 @@ VoiceBridge aims to replace this with accurate transcription, command mapping, a
 \label{tab:voicebridge-events}
 \end{table}
 
-% \subsection{Specifying a Business Use Case (BUC)} insert diagram
-% \lips
+\subsection{Specifying a Business Use Case (BUC)} 
+
+
+\begin{table}[H]
+\centering
+\caption{Summary of Business Use Cases (BUCs)}
+\begin{tabularx}{\textwidth}{p{2cm}p{3cm}X}
+\toprule
+\textbf{BUC ID} & \textbf{Name} & \textbf{Description} \\
+\midrule
+BUC-1 & Capture Speech Input & The user initiates a speech session, and the system captures audio from the microphone for ASR processing. \\
+\hline
+BUC-2 & Transcribe Speech to Text & The system converts captured audio into text through feature extraction and ASR model inference. \\
+\hline
+BUC-3 & Interpret Intent & The system parses recognized text to determine the user’s intent and prepares a structured intent object. \\
+\hline
+BUC-4 & Execute Browser Command & The structured intent is mapped to a browser action, executed, and confirmed visually or audibly to the user. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.4\textwidth]{../imgs/BUC1.png}
+\caption{BUC-1: Capture Speech Input}
+\label{fig:buc1}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.4\textwidth]{../imgs/BUC2.png}
+\caption{BUC-2: Transcribe Speech to Text}
+\label{fig:buc2}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.8\textwidth]{../imgs/BUC3.png}
+\caption{BUC-3: Interpret Intent}
+\label{fig:buc3}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.4\textwidth]{../imgs/BUC4.png}
+\caption{BUC-4: Execute Browser Command}
+\label{fig:buc4}
+\end{figure}
 
 \section{Business Data Model and Data Dictionary}
 \subsection{Business Data Model}
@@ -497,62 +528,6 @@ VoiceBridge aims to replace this with accurate transcription, command mapping, a
 \end{figure} 
 
 \subsection{Data Dictionary}
-
-% \begin{table}[H]
-% \centering
-% \begin{tabularx}{\textwidth}{p{3cm} X X X X X}
-% \toprule
-% \textbf{Data Element} & \textbf{Description} & \textbf{Format / Constraints} & \textbf{Source} & \textbf{Remarks / Usage} \\
-% \midrule
-% Audio\_Input & Raw speech signal captured from microphone &  PCM, WAV, 16 kHz, 16-bit & User microphone & Primary input for ASR processing \\
-% Speech\_Features & Extracted features (e.g., MFCCs, spectrogram)  & N-dimensional array & Feature extractor module & Internal representation for ASR engine \\
-% Transcript\_Text & Recognized text from speech input & UTF-8 encoded, free text & ASR engine & Used to interpret user intent \\
-% Error\_Code & Status / error indicator & Integer &  ASR engine / Controller & 0 = Success, >0 = specific error \\
-% User\_Profile & Speaker-specific data (e.g., ID, preferences)  & JSON object & User database & Improves personalization (optional) \\
-% Timestamp & Time marker of recognition event & DateTime  & System clock & For logging and debugging \\
-% User\_Intent & Parsed intent from natural language & JSON with intent and slots & Interpreter module & Represents structured meaning (e.g., \{“intent”: “open\_file”, “file”: “report.pdf”\}) \\
-% Executable\_Command & Structured representation of command before execution & JSON object or Abstract Syntax Tree & Interpreter module & Maps NL to executable form, independent of target system \\
-% API\_Request & Finalized API call (if system integration is via APIs)  & REST / GraphQL format & Interpreter module → API translator & Sent to target system \\
-% \bottomrule
-% \end{tabularx}
-% \caption{VoiceBridge Data Elements and Their Usage}
-% \label{tab:voicebridge-data-elements}
-% \end{table}
-% \begin{table}[H]
-% \centering
-% \caption{VoiceBridge Business Data Model}
-% \begin{tabularx}{\textwidth}{p{3cm}X p{2.8cm} p{2.8cm} X}
-% \toprule
-% \textbf{Entity / Field} & \textbf{Description} & \textbf{Data Type / Format} & \textbf{Source / Owner} & \textbf{Purpose / Usage} \\
-% \midrule
-
-% \textbf{Audio\_Input} & Raw speech signal captured from microphone & PCM, WAV, 16 kHz, 16-bit & User microphone & Primary input for ASR processing \\
-
-% \textbf{Speech\_Features} & Extracted acoustic features (e.g., MFCCs, spectrogram) & N-dimensional array & Feature extractor module & Internal representation used by ASR engine \\
-
-% \textbf{Transcript\_Text} & Recognized text output from speech input & UTF-8 encoded free text & ASR engine & Basis for interpreting user intent \\
-
-% \textbf{Error\_Code} & Status or error indicator for system response & Integer & ASR engine / Controller & 0 = Success, >0 = specific error type \\
-
-% \textbf{User\_Profile} & Speaker-specific data such as ID, preferences, and speech patterns & JSON object & User database & Enables personalized recognition and response \\
-
-% \textbf{Timestamp} & Time marker for recognition or command event & DateTime & System clock & Used for logging, debugging, and tracking \\
-
-% \textbf{User\_Intent} & Parsed intent derived from natural language input & JSON (intent and slots) & Interpreter module & Structured meaning representation (e.g., \{“intent”: “open\_file”, “file”: “report.pdf”\}) \\
-
-% \textbf{Executable\_Command} & Structured command before browser execution & JSON object or Abstract Syntax Tree & Interpreter module & Translates user intent into executable browser actions \\
-
-% \textbf{API\_Request} & Outgoing request to external or browser API & REST / GraphQL formatted message & Interpreter module → API translator & Executes command or triggers action in external system \\
-
-% \textbf{Feedback\_Message} & User-facing feedback or error output & String / Audio / JSON & VoiceBridge UI & Confirms action success or requests clarification \\
-
-% \textbf{Session\_ID} & Unique identifier for a single user interaction session & UUID / String & System controller & Links data objects across a single speech-to-command event \\
-
-% \bottomrule
-% \end{tabularx}
-% \label{tab:business-data-model}
-% \end{table}
-
 
 \begin{tabularx}{\textwidth}{p{3cm} X p{2.8cm} p{2.8cm} X}
 \toprule
