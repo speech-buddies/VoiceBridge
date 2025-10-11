@@ -74,8 +74,10 @@ October 10, 2025 & Mazen and Kelvin & Reviewed and Edited SRS Document\\
 Individuals with speech impairments face significant barriers when interacting with digital devices. VoiceBridge addresses this gap by providing an accurate, inclusive, and accessible speech-to-control system that enables users to communicate with their devices using their speech, regardless of clarity of articulation. Building on familiar technology, such as personal computers and mobile devices, may be one of the most cost-effective and easily adoptable approaches for improving an individual with disability’s autonomy and access to the world around them. The rise of automatic speach recognition (ASR)  technology and Artificial Intelligence (AI) integrations in the industry provides a novel landscape of opportunities to improve accessibility interfaces. VoiceBridge exploits bleeding-edge technology for a practical and impactful application.
 
 \subsection{Goals of the Project}
+
 \begin{table}[H]
 \centering
+\setcounter{table}{0}
 \begin{tabularx}{\textwidth}{p{1cm}p{4cm}p{8cm}X}
 \toprule {\textbf{ID}} & {\textbf{Goal}} & {\textbf{Description}}\\
 \midrule
@@ -363,8 +365,11 @@ FAQ     & Frequently Asked Questions             & Common questions and answers 
 \section{Relevant Facts And Assumptions}
 \subsection{Relevant Facts}
 
+
 \begin{table}[H]
 \centering
+\setcounter{table}{3}  
+
 \begin{tabularx}{\textwidth}{p{1cm}p{6cm}X}
 \toprule {\textbf{Fact ID}} & {\textbf{Fact}} & {\textbf{Explanation / Relevance}}\\
 \midrule
@@ -379,8 +384,8 @@ F8 & \textbf{Users may use assistive tools concurrently.} & VoiceBridge should i
 F9 & \textbf{Users will vary in technical comfort.} & Onboarding should be minimal and low-friction (supports (\textbf{\hyperref[tab:project-goals]{G4}}), (\textbf{\hyperref[tab:project-goals]{G8}})). \\ \hline
 F10 & \textbf{Users appreciate visual feedback and control.} & Feedback builds trust and reduces frustration (complements (\textbf{\hyperref[tab:project-goals]{G1}}), (\textbf{\hyperref[tab:project-goals]{G8}})). \\
 \bottomrule
-\end{tabularx}
 \caption{User-Centered Facts for VoiceBridge}
+\end{tabularx}
 \end{table}
 
 
@@ -400,8 +405,8 @@ BR4 & The system should provide immediate visual feedback within 5 seconds of sp
 BR5 & System must handle moderate background noise without significant degradation of performance. & Maintains reliability in real-world environments.(\hyperref[tab:project-goals]{G1}, \hyperref[tab:project-goals]{G6}) \\
 BR6 & Users should be able to configure simple command mappings for personalized tasks. & Supports individual preferences and improves user autonomy. (\hyperref[tab:project-goals]{G2}, \hyperref[tab:project-goals]{G3}, \hyperref[tab:project-goals]{G8}) \\
 \bottomrule
-\end{tabularx}
 \caption{Business Rules for VoiceBridge}
+\end{tabularx}
 % \label{tab:business-rules}
 \end{table}
 
@@ -420,9 +425,8 @@ A5 & \textbf{Users may be in noisy or uncontrolled environments.} & Noise-robust
 A6 & \textbf{Users want emotional ease of use.} & Tone and interface language must feel supportive — e.g., “Let’s try again” instead of “Error” (see \hyperref[tab:project-goals]{G6}). \\ \hline
 A7 & \textbf{Users will likely use the tool for daily web tasks.} & The feature set should prioritize essential browser actions (navigation, scrolling, typing, tab control) (see \hyperref[tab:project-goals]{G2}, \hyperref[tab:project-goals]{G3}, \hyperref[tab:project-goals]{G8}). \\
 \bottomrule
+\caption{Design Assumptions for VoiceBridge}
 \end{tabularx}
-\caption{Design Assumptions for VoiceBridge with references to related project goals (\textbf{Goals Table \ref{tab:project-goals}}).}
-\label{tab:assumptions}
 \end{table}
 
 \section{The Scope of the Work}
@@ -463,9 +467,8 @@ VoiceBridge aims to replace this with accurate transcription, command mapping, a
 \hline
 \textbf{Browser Interaction Layer} & Actionable command & Executed browser action & Perform command in browser & Command data, page context, execution status \\
 \bottomrule
-\end{tabularx}
 \caption{VoiceBridge Events, Inputs, Outputs, and Data Classes}
-\label{tab:voicebridge-events}
+\end{tabularx}
 \end{table}
 
 \subsection{Specifying a Business Use Case (BUC)} 
@@ -473,7 +476,6 @@ VoiceBridge aims to replace this with accurate transcription, command mapping, a
 
 \begin{table}[H]
 \centering
-\caption{Summary of Business Use Cases (BUCs)}
 \begin{tabularx}{\textwidth}{p{2cm}p{3cm}X}
 \toprule
 \textbf{BUC ID} & \textbf{Name} & \textbf{Description} \\
@@ -486,6 +488,7 @@ BUC-3 & Interpret Intent & The system parses recognized text to determine the us
 \hline
 BUC-4 & Execute Browser Command & The structured intent is mapped to a browser action, executed, and confirmed visually or audibly to the user. \\
 \bottomrule
+\caption{Business Use Cases (BUCs) for VoiceBridge}
 \end{tabularx}
 \end{table}
 
@@ -529,42 +532,45 @@ BUC-4 & Execute Browser Command & The structured intent is mapped to a browser a
 
 \subsection{Data Dictionary}
 
-\begin{tabularx}{\textwidth}{p{3cm} X p{2.8cm} p{2.8cm} X}
+\begin{table}[H]
+\centering
+\footnotesize
+
+\begin{tabularx}{\textwidth}{p{3cm} p{4cm} X  X p{4cm}}
 \toprule
-\textbf{Entity / Field} & \textbf{Description} & \textbf{Data Type / Format} & \textbf{Source / Owner} & \textbf{Purpose / Usage} \\
+\textbf{Field} & \textbf{Description} & \textbf{Type} & \textbf{Source} & \textbf{Usage} \\
 \midrule
-
 \textbf{Audio\_Input} & Raw speech signal captured from microphone & PCM, WAV, 16 kHz, 16-bit & User microphone & Primary input for ASR processing \\
-
+\hline
 \textbf{Speech\_Features} & Extracted acoustic features (e.g., MFCCs, spectrogram) & N-dimensional array & Feature extractor module & Internal representation used by ASR engine \\
-
+\hline
 \textbf{Transcript\_Text} & Recognized text output from speech input & UTF-8 encoded free text & ASR engine & Basis for interpreting user intent \\
-
+\hline
 \textbf{Error\_Code} & Status or error indicator for system response & Integer & ASR engine / Controller & 0 = Success, >0 = specific error type \\
-
+\hline
 \textbf{User\_Profile} & Speaker-specific data such as ID, preferences, and speech patterns & JSON object & User database & Enables personalized recognition and response \\
-
+\hline
 \textbf{Timestamp} & Time marker for recognition or command event & DateTime & System clock & Used for logging, debugging, and tracking \\
-
+\hline
 \textbf{User\_Intent} & Parsed intent derived from natural language input & JSON (intent and slots) & Interpreter module & Structured meaning representation (e.g., \{“intent”: “open\_file”, “file”: “report.pdf”\}) \\
-
-\textbf{Executable\_Command} & Structured command before browser execution & JSON object or Abstract Syntax Tree & Interpreter module & Translates user intent into executable browser actions \\
-
+\hline
+\textbf{Exec\_Command} & Structured command before browser execution & JSON object or Abstract Syntax Tree & Interpreter module & Translates user intent into executable browser actions \\
+\hline
 \textbf{API\_Request} & Outgoing request to external or browser API & REST / GraphQL formatted message & Interpreter module → API translator & Executes command or triggers action in external system \\
-
+\hline
 \textbf{Feedback\_Message} & User-facing feedback or error output & String / Audio / JSON & VoiceBridge UI & Confirms action success or requests clarification \\
-
+\hline
 \textbf{Session\_ID} & Unique identifier for a single user interaction session & UUID / String & System controller & Links data objects across a single speech-to-command event \\
-
 \bottomrule
+\caption{VoiceBridge Data Dictionary}
 \end{tabularx}
-
+\end{table}
 
 \section{The Scope of the Product}
 \subsection{Product Boundary}
 \begin{figure}[H]
     \centering
-    \includegraphics[width=1.1\textwidth]{..//imgs/VoiceBridge_use_case_diagram.png}
+    \includegraphics[width=1\textwidth]{..//imgs/VoiceBridge_use_case_diagram.png}
     \caption{VoiceBridge Use Case Diagram. Each ellipse represents a Product Use Case (PUC) corresponding to a major system function.}
     \label{fig:voicebridge-usecase}
 \end{figure} 
