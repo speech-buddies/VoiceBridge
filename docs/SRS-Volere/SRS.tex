@@ -4,7 +4,7 @@
 % Initial draft from https://github.com/Dieblich/volere
 %
 % Risks are removed because they are covered by the Hazard Analysis
-\documentclass[12pt]{article}
+\documentclass[11pt]{article}
 
 \usepackage{booktabs}
 \usepackage{tabularx}
@@ -12,6 +12,12 @@
 \usepackage{float}
 \usepackage{graphicx} 
 \usepackage{longtable}
+\usepackage{geometry}
+\usepackage{ltablex}
+\usepackage{amssymb}
+\usepackage{amsmath}
+
+\keepXColumns
 
 \hypersetup{
     bookmarks=true,         % show bookmarks bar?
@@ -22,6 +28,8 @@
     urlcolor=cyan           % color of external links
 }
 
+\geometry{a4paper, margin=1in}
+
 \newcommand{\lips}{\textit{Insert your content here.}}
 
 \input{../Comments}
@@ -29,7 +37,7 @@
 
 \begin{document}
 
-\title{Software Requirements Specification for \progname: subtitle describing software} 
+\title{Software Requirements Specification for VoiceBridge: An Accessible Speech-to-Control System} 
 \author{\authname}
 \date{\today}
 	
@@ -50,8 +58,10 @@
 \midrule
 October 2, 2025 & Rawan and Luna & Filled-In Initial Draft of SRS Document\\
 October 10, 2025 & Rawan and Luna & Completed SRS Document\\
+October 10, 2025 & Mazen and Kelvin & Reviewed and Edited SRS Document\\
 
 \bottomrule
+\caption{Revision History for SRS Document}
 \end{tabularx}
 
 ~\\
@@ -61,7 +71,7 @@ October 10, 2025 & Rawan and Luna & Completed SRS Document\\
 \subsection{User Business}
 
 
-Individuals with speech impairments face significant barriers when interacting with digital devices. VoiceBridge addresses this gap by providing an accurate, inclusive, and accessible speech-to-control system that enables users to communicate with their devices using their speech, regardless of clarity of articulation. Building on familiar technology, such as personal computers and mobile devices, may be one of the most cost-effective and easily adoptable approaches for improving an individual with disability’s autonomy and access to the world around them. The rise of ASR technology and Artificial Intelligence (AI) integrations in the industry provides a novel landscape of opportunities to improve accessibility interfaces. VoiceBridge exploits bleeding-edge technology for a practical and impactful application.
+Individuals with speech impairments face significant barriers when interacting with digital devices. VoiceBridge addresses this gap by providing an accurate, inclusive, and accessible speech-to-control system that enables users to communicate with their devices using their speech, regardless of clarity of articulation. Building on familiar technology, such as personal computers and mobile devices, may be one of the most cost-effective and easily adoptable approaches for improving an individual with disability’s autonomy and access to the world around them. The rise of automatic speach recognition (ASR)  technology and Artificial Intelligence (AI) integrations in the industry provides a novel landscape of opportunities to improve accessibility interfaces. VoiceBridge exploits bleeding-edge technology for a practical and impactful application.
 
 \subsection{Goals of the Project}
 \begin{table}[H]
@@ -77,10 +87,9 @@ G5 & \textbf{Cross-Browser Compatibility} & Support major browsers (e.g., Chrome
 G6 & \textbf{Robust Error Handling} & Detect and recover gracefully from common failures. \\ \hline
 G7 & \textbf{Data Privacy \& Security} & Protect user data and ensure secure local processing. \\ \hline
 G8 & \textbf{Customizable Interface} & Allow users to adjust sensitivity, shortcuts, and feedback modes. \\ \hline
-G9 & \textbf{Scalable Architecture} & Design the system for future integration beyond browsers. \\ \hline
+G9 & \textbf{Scalable Architecture} & Design the system for future integration beyond browsers. \\ 
 \bottomrule
 \end{tabularx}
-\caption{Project Goals for VoiceBridge}
 \label{tab:project-goals}
 \end{table}
 
@@ -147,6 +156,18 @@ Individuals matching the target user profiles will be recruited for prototype te
             \item Performing preventive maintenance, including performance monitoring and optimization (\textbf{\hyperref[tab:project-goals]{G1}}, \textbf{\hyperref[tab:project-goals]{G6}}).
         \end{itemize}
 \end{itemize}
+\subsection{Society}
+
+Society is recognized as an essential stakeholder in the VoiceBridge project, given the system’s potential impact on accessibility, inclusion, and digital independence for individuals with speech impairments. The project directly supports broader social goals of equity and participation by enabling users to interact with technology without barriers, contributing to fair access to digital communication and online services.
+\\\\
+\textbf{Health and Safety:} 
+VoiceBridge promotes safe technology use by minimizing physical strain associated with traditional input methods, such as typing or clicking, which can be challenging for users with motor limitations. Data privacy and security protocols safeguard user health information and prevent psychological stress caused by data misuse or breaches, aligning with ethical design standards for assistive technology.
+\\\\
+\textbf{Cultural and Ethical Considerations:} 
+The system is designed to accommodate diverse speech patterns, dialects, and accents, ensuring that cultural and linguistic differences are respected rather than penalized by the model. VoiceBridge avoids stigmatizing language or error messaging, instead emphasizing supportive feedback to maintain user confidence and dignity.
+\\\\
+\textbf{Social Impact:} 
+By reducing communication barriers, VoiceBridge fosters greater inclusion in workplaces, education, and online communities. The system thus contributes to both individual empowerment and collective social benefit.
 
 
 \section{Mandated Constraints}
@@ -371,33 +392,104 @@ VoiceBridge aims to replace this with accurate transcription, command mapping, a
 \end{table}
 
 % \subsection{Specifying a Business Use Case (BUC)} insert diagram
-\lips
+% \lips
 
 \section{Business Data Model and Data Dictionary}
 \subsection{Business Data Model}
-\lips
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\textwidth]{..//imgs/VoiceBridge_uml.png}
+    \caption{VoiceBridge UML Diagram. }
+    \label{fig:voicebridge-usecase}
+\end{figure} 
+
 \subsection{Data Dictionary}
 
-\begin{table}[H]
-\centering
-\begin{tabularx}{\textwidth}{p{3cm} X X X X X}
+% \begin{table}[H]
+% \centering
+% \begin{tabularx}{\textwidth}{p{3cm} X X X X X}
+% \toprule
+% \textbf{Data Element} & \textbf{Description} & \textbf{Format / Constraints} & \textbf{Source} & \textbf{Remarks / Usage} \\
+% \midrule
+% Audio\_Input & Raw speech signal captured from microphone &  PCM, WAV, 16 kHz, 16-bit & User microphone & Primary input for ASR processing \\
+% Speech\_Features & Extracted features (e.g., MFCCs, spectrogram)  & N-dimensional array & Feature extractor module & Internal representation for ASR engine \\
+% Transcript\_Text & Recognized text from speech input & UTF-8 encoded, free text & ASR engine & Used to interpret user intent \\
+% Error\_Code & Status / error indicator & Integer &  ASR engine / Controller & 0 = Success, >0 = specific error \\
+% User\_Profile & Speaker-specific data (e.g., ID, preferences)  & JSON object & User database & Improves personalization (optional) \\
+% Timestamp & Time marker of recognition event & DateTime  & System clock & For logging and debugging \\
+% User\_Intent & Parsed intent from natural language & JSON with intent and slots & Interpreter module & Represents structured meaning (e.g., \{“intent”: “open\_file”, “file”: “report.pdf”\}) \\
+% Executable\_Command & Structured representation of command before execution & JSON object or Abstract Syntax Tree & Interpreter module & Maps NL to executable form, independent of target system \\
+% API\_Request & Finalized API call (if system integration is via APIs)  & REST / GraphQL format & Interpreter module → API translator & Sent to target system \\
+% \bottomrule
+% \end{tabularx}
+% \caption{VoiceBridge Data Elements and Their Usage}
+% \label{tab:voicebridge-data-elements}
+% \end{table}
+% \begin{table}[H]
+% \centering
+% \caption{VoiceBridge Business Data Model}
+% \begin{tabularx}{\textwidth}{p{3cm}X p{2.8cm} p{2.8cm} X}
+% \toprule
+% \textbf{Entity / Field} & \textbf{Description} & \textbf{Data Type / Format} & \textbf{Source / Owner} & \textbf{Purpose / Usage} \\
+% \midrule
+
+% \textbf{Audio\_Input} & Raw speech signal captured from microphone & PCM, WAV, 16 kHz, 16-bit & User microphone & Primary input for ASR processing \\
+
+% \textbf{Speech\_Features} & Extracted acoustic features (e.g., MFCCs, spectrogram) & N-dimensional array & Feature extractor module & Internal representation used by ASR engine \\
+
+% \textbf{Transcript\_Text} & Recognized text output from speech input & UTF-8 encoded free text & ASR engine & Basis for interpreting user intent \\
+
+% \textbf{Error\_Code} & Status or error indicator for system response & Integer & ASR engine / Controller & 0 = Success, >0 = specific error type \\
+
+% \textbf{User\_Profile} & Speaker-specific data such as ID, preferences, and speech patterns & JSON object & User database & Enables personalized recognition and response \\
+
+% \textbf{Timestamp} & Time marker for recognition or command event & DateTime & System clock & Used for logging, debugging, and tracking \\
+
+% \textbf{User\_Intent} & Parsed intent derived from natural language input & JSON (intent and slots) & Interpreter module & Structured meaning representation (e.g., \{“intent”: “open\_file”, “file”: “report.pdf”\}) \\
+
+% \textbf{Executable\_Command} & Structured command before browser execution & JSON object or Abstract Syntax Tree & Interpreter module & Translates user intent into executable browser actions \\
+
+% \textbf{API\_Request} & Outgoing request to external or browser API & REST / GraphQL formatted message & Interpreter module → API translator & Executes command or triggers action in external system \\
+
+% \textbf{Feedback\_Message} & User-facing feedback or error output & String / Audio / JSON & VoiceBridge UI & Confirms action success or requests clarification \\
+
+% \textbf{Session\_ID} & Unique identifier for a single user interaction session & UUID / String & System controller & Links data objects across a single speech-to-command event \\
+
+% \bottomrule
+% \end{tabularx}
+% \label{tab:business-data-model}
+% \end{table}
+
+
+\begin{tabularx}{\textwidth}{p{3cm} X p{2.8cm} p{2.8cm} X}
 \toprule
-\textbf{Data Element} & \textbf{Description} & \textbf{Format / Constraints} & \textbf{Source} & \textbf{Remarks / Usage} \\
+\textbf{Entity / Field} & \textbf{Description} & \textbf{Data Type / Format} & \textbf{Source / Owner} & \textbf{Purpose / Usage} \\
 \midrule
-Audio\_Input & Raw speech signal captured from microphone &  PCM, WAV, 16 kHz, 16-bit & User microphone & Primary input for ASR processing \\
-Speech\_Features & Extracted features (e.g., MFCCs, spectrogram)  & N-dimensional array & Feature extractor module & Internal representation for ASR engine \\
-Transcript\_Text & Recognized text from speech input & UTF-8 encoded, free text & ASR engine & Used to interpret user intent \\
-Error\_Code & Status / error indicator & Integer &  ASR engine / Controller & 0 = Success, >0 = specific error \\
-User\_Profile & Speaker-specific data (e.g., ID, preferences)  & JSON object & User database & Improves personalization (optional) \\
-Timestamp & Time marker of recognition event & DateTime  & System clock & For logging and debugging \\
-User\_Intent & Parsed intent from natural language & JSON with intent and slots & Interpreter module & Represents structured meaning (e.g., \{“intent”: “open\_file”, “file”: “report.pdf”\}) \\
-Executable\_Command & Structured representation of command before execution & JSON object or Abstract Syntax Tree & Interpreter module & Maps NL to executable form, independent of target system \\
-API\_Request & Finalized API call (if system integration is via APIs)  & REST / GraphQL format & Interpreter module → API translator & Sent to target system \\
+
+\textbf{Audio\_Input} & Raw speech signal captured from microphone & PCM, WAV, 16 kHz, 16-bit & User microphone & Primary input for ASR processing \\
+
+\textbf{Speech\_Features} & Extracted acoustic features (e.g., MFCCs, spectrogram) & N-dimensional array & Feature extractor module & Internal representation used by ASR engine \\
+
+\textbf{Transcript\_Text} & Recognized text output from speech input & UTF-8 encoded free text & ASR engine & Basis for interpreting user intent \\
+
+\textbf{Error\_Code} & Status or error indicator for system response & Integer & ASR engine / Controller & 0 = Success, >0 = specific error type \\
+
+\textbf{User\_Profile} & Speaker-specific data such as ID, preferences, and speech patterns & JSON object & User database & Enables personalized recognition and response \\
+
+\textbf{Timestamp} & Time marker for recognition or command event & DateTime & System clock & Used for logging, debugging, and tracking \\
+
+\textbf{User\_Intent} & Parsed intent derived from natural language input & JSON (intent and slots) & Interpreter module & Structured meaning representation (e.g., \{“intent”: “open\_file”, “file”: “report.pdf”\}) \\
+
+\textbf{Executable\_Command} & Structured command before browser execution & JSON object or Abstract Syntax Tree & Interpreter module & Translates user intent into executable browser actions \\
+
+\textbf{API\_Request} & Outgoing request to external or browser API & REST / GraphQL formatted message & Interpreter module → API translator & Executes command or triggers action in external system \\
+
+\textbf{Feedback\_Message} & User-facing feedback or error output & String / Audio / JSON & VoiceBridge UI & Confirms action success or requests clarification \\
+
+\textbf{Session\_ID} & Unique identifier for a single user interaction session & UUID / String & System controller & Links data objects across a single speech-to-command event \\
+
 \bottomrule
 \end{tabularx}
-\caption{VoiceBridge Data Elements and Their Usage}
-\label{tab:voicebridge-data-elements}
-\end{table}
 
 
 \section{The Scope of the Product}
@@ -958,6 +1050,100 @@ The following plan outlines the order in which the system requirements (9.1--17.
     \textit{Phase: Revision 1} \\
     \textit{Rationale:} Ensures credibility and certification readiness at final stage.
 \end{enumerate}
+\subsection{Requirement Implementation Timeline}
+
+The phasing of requirements for VoiceBridge follows a structured, incremental schedule aligned with prototype maturity and evaluation cycles. The table below summarizes the planned order and target completion dates for each phase.
+
+\begin{table}[h!]
+\centering
+\begin{tabular}{p{3cm}p{4cm}p{7cm}}
+\toprule
+\textbf{Phase} & \textbf{Target Date} & \textbf{Focus and Included Requirements} \\
+\midrule
+\textbf{Proof of Concept (PoC)} & October--November 2025 &
+Implement core functionality: speech input capture, transcription (FR9.1, 12.1–12.3, 13.1), and safety validation (12.2). Establish baseline latency, accuracy, and system feasibility. \\
+
+\textbf{Revision 0} & December 2025--January 2026 &
+Integrate user interface, accessibility, and initial security layers. Includes appearance (10.1–10.2), usability (11.1, 11.4–11.5), robustness (12.4–12.5), and privacy/integrity controls (15.1–15.3). Conduct early user testing. \\
+
+\textbf{Revision 1} & February--April 2026 &
+Expand system capability and compliance. Add personalization (11.2–11.3), scalability (12.6–12.7), interoperability (13.3–13.5), supportability (14.1–14.3), advanced security (15.4–15.5), and cultural/legal alignment (16.1, 17.1–17.2). Prepare for deployment. \\
+\bottomrule
+\end{tabular}
+\label{tab:req-timeline}
+\end{table}
+
+\noindent This phased plan ensures that feasibility and safety are validated early (PoC), usability and inclusivity are developed next (Revision 0), and full scalability, compliance, and maintainability are achieved in the final iteration (Revision 1).
+
+
+
+
+\section{Formal Specification}
+
+This section provides a simplified formal model of the VoiceBridge system using a state-based representation.  
+The goal is to describe how the system transitions between major states during operation.
+
+\subsection{System States}
+
+Let the system have the following states:
+
+\[
+Q = \{Idle, Listening, Processing, Confirming, Executing, Error\}
+\]
+
+The system starts in the \textit{Idle} state and reacts to user or system inputs.
+
+\subsection{Inputs and Transitions}
+
+Inputs to the system are represented as:
+
+\[
+\Sigma = \{Start, AudioInput, Confirm, Reject, Execute, Fail\}
+\]
+
+The transition function $\delta(q, \sigma)$ describes how the system changes state:
+
+\[
+\begin{array}{ll}
+\delta(Idle, Start) = Listening \\
+\delta(Listening, AudioInput) = Processing \\
+\delta(Processing, Confirm) = Executing \\
+\delta(Processing, Reject) = Listening \\
+\delta(Executing, Execute) = Idle \\
+\delta(Executing, Fail) = Error
+\end{array}
+\]
+
+\subsection{Output Behavior}
+
+Each state produces a specific output:
+
+\[
+\begin{array}{ll}
+Idle \rightarrow \text{System ready prompt} \\
+Listening \rightarrow \text{Microphone active} \\
+Processing \rightarrow \text{Speech to text conversion} \\
+Confirming \rightarrow \text{User verification message} \\
+Executing \rightarrow \text{Command execution feedback} \\
+Error \rightarrow \text{Error or retry prompt}
+\end{array}
+\]
+
+\subsection{Mapping to Requirements}
+
+This formal model represents the main workflow of VoiceBridge and aligns with the following functional requirements:
+
+\begin{itemize}
+    \item FR1: Accept Speech Input ($Idle \rightarrow Listening$)
+    \item FR2: Convert Speech to Text ($Listening \rightarrow Processing$)
+    \item FR3: Confirm Transcription ($Processing \rightarrow Confirming$)
+    \item FR4: Map Intent to Command ($Confirming \rightarrow Executing$)
+    \item FR5: Execute Command ($Executing \rightarrow Idle$)
+\end{itemize}
+
+This simplified formalization shows how user input moves through each stage of the system in a predictable, testable way, ensuring clarity and correctness of behavior.
+
+
 
 
 \newpage{}
