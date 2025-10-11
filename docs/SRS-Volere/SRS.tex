@@ -592,7 +592,6 @@ PUC-5 & Command executed or error & System response & Success or error feedback 
 \end{table}
 
 \subsubsection{Individual Product Use Cases (PUC's)}
-\section*{Product Use Cases}
 
 This section defines the detailed Product Use Cases (PUCs) for the VoiceBridge system. Each PUC describes the interaction between the user and the system, including purpose, actors, triggers, inputs/outputs, and main scenarios.
 
@@ -699,6 +698,40 @@ This section defines the detailed Product Use Cases (PUCs) for the VoiceBridge s
 \begin{itemize}
   \item If the command execution fails, an error message or retry option is displayed.
 \end{itemize}
+
+\bigskip
+\section{Undesired Event Handling}
+\begin{table}[H]
+\centering
+\footnotesize
+\begin{tabularx}{\textwidth}{p{1cm} p{2cm} X X p{1cm} p{2cm}}
+\toprule
+\textbf{Event ID} & \textbf{Description} & \textbf{Possible Cause} & \textbf{System Response / Handling Strategy} & \textbf{Severity} & \textbf{User Notification} \\
+\midrule
+UE-1 & No Speech Detected & User is silent or microphone muted. & System times out after configurable interval (e.g., 5 s) and displays “No input detected. Please speak again.” & Low & Visual and optional audio cue. \\
+\hline
+UE-2 & Unintelligible Speech / Low Confidence Transcription & Background noise, unclear articulation, or poor model match. & VoiceBridge requests repetition and highlights uncertain words. Logs instance for model improvement. & Medium & On-screen prompt: “Sorry, I didn’t catch that.” \\
+\hline
+UE-3 & Misinterpreted Command & Incorrect speech-to-text mapping or ambiguous command phrase. & Requires confirmation before executing potentially disruptive browser actions (e.g., closing tab, submitting form). & High & Confirmation dialog: “Did you mean ‘Close tab’?” \\
+\hline
+UE-4 & Microphone Access Denied & User or OS blocks microphone permission. & System notifies user and provides step-by-step instructions to enable microphone in browser/OS settings. & High & Visual warning banner. \\
+\hline
+UE-5 & Browser Extension / API Failure & Browser crashes, extension disabled, or interface unresponsive. & Detect failure via heartbeat signal. Attempt reconnection; if unsuccessful, disable commands and show recovery notice. & High & “Browser connection lost — attempting to reconnect.” \\
+\hline
+UE-6 & Network Connectivity Loss & Internet connection interrupted. & Offline mode activated: local commands (scroll, zoom, etc.) remain functional; external navigation disabled. & Medium & “Network unavailable — limited mode active.” \\
+\hline
+UE-7 & System Crash / Model Process Failure & Unexpected error during ML inference or memory overflow. & System logs event, restarts inference module, and recovers previous session state when possible. & Critical & “VoiceBridge restarted after an error.” \\
+\hline
+UE-8 & Data Privacy Breach Attempt & Unauthorized access to stored speech logs or transcripts. & Encrypts all local logs; triggers security alert, terminates unauthorized session, and notifies user. & Critical & “Security alert — your data is protected and the session has been closed.” \\
+\hline
+UE-9 & Latency Exceeds Threshold & Inference or browser response exceeds acceptable delay (e.g., > 2 s). & Display progress indicator; optionally degrade to simplified model or local processing fallback. & Low & Spinner with “Processing…” message. \\
+\hline
+UE-10 & User Cancels Ongoing Command & User says “cancel” or “stop.” & Immediately halts current command execution and clears pending queue. & Low & Confirmation sound or text “Cancelled.” \\
+\bottomrule
+\caption{VoiceBridge User Event Handling Scenarios}
+\end{tabularx}
+\end{table}
+
 
 
 \section{Functional Requirements}
