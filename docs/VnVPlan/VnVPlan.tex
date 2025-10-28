@@ -1,5 +1,6 @@
 \documentclass[12pt, titlepage]{article}
 
+\usepackage[utf8]{inputenc}
 \usepackage{booktabs}
 \usepackage{amssymb}
 \usepackage{tabularx}
@@ -34,6 +35,7 @@
 \midrule
 Oct 26, 2025 & 1.0 & Added Section 3 \\
 Oct 27, 2025 & 1.0 & Added Sections 1,2, and 4.1\\
+Oct 27, 2025 & 1.0 & Added Sections 4.2, 4.3, and 4.4\\
 Date 2 & 1.1 & Notes\\
 \bottomrule
 \end{tabularx}
@@ -344,128 +346,693 @@ Validation confirms that VoiceBridge meets user needs and operates as intended i
 
 \section{System Tests}
 
-\wss{There should be text between all headings, even if it is just a roadmap of
-the contents of the subsections.}
+This section defines the system-level tests for \emph{VoiceBridge}. It follows the course template: each heading includes connective text, and each test case includes the control/type, initial state, inputs/conditions, expected outputs/results, a brief test-case derivation (where applicable), and how the test will be performed. The functional tests map directly to SRS Functional Requirements (FR1–FR5). The nonfunctional tests map to SRS Nonfunctional Requirements (LFR, UHR, PRF, OER, MSR, SCR, CLR, CPR). A traceability table linking tests to requirements is provided at the end of this section.
 
 \subsection{Tests for Functional Requirements}
 
-\wss{Subsets of the tests may be in related, so this section is divided into
-  different areas.  If there are no identifiable subsets for the tests, this
-  level of document structure can be removed.}
+The subsections below outline tests corresponding to the SRS Functional Requirements (FR1–FR5). Each test has a unique ID and clear execution steps. References to the SRS fit criteria are noted in each test’s goal or derivation.
 
-\wss{Include a blurb here to explain why the subsections below
-  cover the requirements.  References to the SRS would be good here.}
+\subsubsection{FR1 — Accept Speech Audio via Microphone}
 
-\subsubsection{Area of Testing1}
-
-\wss{It would be nice to have a blurb here to explain why the subsections below
-  cover the requirements.  References to the SRS would be good here.  If a section
-  covers tests for input constraints, you should reference the data constraints
-  table in the SRS.}
-		
-\paragraph{Title for Test}
+\paragraph{test-FR1-MIC-1 Valid Microphone Capture (Desktop)}
 
 \begin{enumerate}
+\item{test-FR1-MIC-1\\}
+Control: Manual
 
-\item{test-id1\\}
+Initial State: App installed; permissions not yet granted.
 
-Control: Manual versus Automatic
-					
-Initial State: 
-					
-Input: 
-					
-Output: \wss{The expected result for the given inputs.  Output is not how you
-are going to return the results of the test.  The output is the expected
-result.}
+Input: Speak a short phrase (“Testing one two three”) into the default OS microphone on a Window OS laptop.
 
-Test Case Derivation: \wss{Justify the expected value given in the Output field}
-					
-How test will be performed: 
-					
-\item{test-id2\\}
+Output: App requests microphone permission; once granted, waveform/level indicator appears and raw audio frames are buffered at $\geq$16 kHz.
 
-Control: Manual versus Automatic
-					
-Initial State: 
-					
-Input: 
-					
-Output: \wss{The expected result for the given inputs}
+Test Case Derivation: Confirms standard microphone capture per FR1.
 
-Test Case Derivation: \wss{Justify the expected value given in the Output field}
-
-How test will be performed: 
-
+How test will be performed: Launch app $\rightarrow$ start capture $\rightarrow$ verify UI level meter moves; export a short recording and inspect metadata (sample rate $\geq$16 kHz).
 \end{enumerate}
 
-\subsubsection{Area of Testing2}
+\paragraph{test-FR1-MIC-2 Mobile Permission \& Capture}
 
-...
+\begin{enumerate}
+\item{test-FR1-MIC-2\\}
+Control: Manual
+
+Initial State: App freshly installed on iOS and Android.
+
+Input: First-time launch and attempt to record.
+
+Output: OS permission prompt shown; after approval, capture begins; denial shows friendly error and retry path.
+
+Test Case Derivation: Validates cross-platform permission handling and capture (FR1).
+
+How test will be performed: Deny once (expect error + guidance), then allow (expect capture + levels).
+\end{enumerate}
+
+\paragraph{test-FR1-MIC-3 Default Device Selection \& Fallback}
+
+\begin{enumerate}
+\item{test-FR1-MIC-3\\}
+Control: Manual
+
+Initial State: Multiple audio devices present (laptop microphone + USB microphone).
+
+Input: Unplug/plug devices while capturing.
+
+Output: The system selects the current default audio input device. If the device disconnects, it automatically falls back to another available microphone and notifies the user.
+
+Test Case Derivation: Ensures robust device handling required for “default OS microphone devices” (FR1).
+
+How test will be performed: Start capture $\rightarrow$ unplug active microphone $\rightarrow$ observe fallback notice $\rightarrow$ confirm continued capture.
+\end{enumerate}
+
+\subsubsection{FR2 — Convert Impaired Speech to Text $\geq$80\% Accuracy (MVP)}
+
+\paragraph{test-FR2-ASR-1 Dataset Evaluation vs Baseline}
+
+\begin{enumerate}
+\item{test-FR2-ASR-1\\}
+Control: Automated (batch evaluation)
+
+Initial State: Curated impaired-speech test set with references; chosen baseline model.
+
+Input: Run system and baseline over full test set.
+
+Output: System achieves $\geq$80\% WER reduction vs baseline \textbf{or} meets defined WER delta per SRS; report includes per-speaker metrics.
+
+Test Case Derivation: Directly tests Fit Criterion’s WER reduction expectation.
+
+How test will be performed: Evaluation script computes WER, CER; export CSV; assert threshold met.
+\end{enumerate}
+
+\paragraph{test-FR2-ASR-2 Common Command Accuracy $\geq$80\%}
+
+\begin{enumerate}
+\item{test-FR2-ASR-2\\}
+Control: Automated (scripted playback)
+
+Initial State: Command list of 50+ common intents; audio variants (different speakers/noise).
+
+Input: Play each command sample to the system.
+
+Output: $\geq$80\% correct textual outputs (exact or accepted synonyms).
+
+Test Case Derivation: Meets “$\geq$80\% accuracy for common commands.”
+
+How test will be performed: Align decoded text with ground truth (string/intent match); assert $\geq$80\% pass rate.
+\end{enumerate}
+
+\subsubsection{FR3 — Display Transcription for Verification}
+
+\paragraph{test-FR3-UI-1 Real-Time Display Latency}
+
+\begin{enumerate}
+\item{test-FR3-UI-1\\}
+Control: Automated (instrumented)
+
+Initial State: Logging timestamps at (a) audio frame arrival, (b) first token shown.
+
+Input: 100 short utterances across platforms.
+
+Output: Time-to-first-text $\leq$2 s in $\geq$95\% of trials.
+
+Test Case Derivation: Direct Fit Criterion.
+
+How test will be performed: Run scripted playback or live reads with a timer, store successful and unsuccessful trials and calculate percentage.
+\end{enumerate}
+
+\paragraph{test-FR3-UI-2 Continuous Update \& Finalization}
+
+\begin{enumerate}
+\item{test-FR3-UI-2\\}
+Control: Manual
+
+Initial State: Streaming UI enabled.
+
+Input: Speak a 10–15 s sentence; include pauses and restarts.
+
+Output: UI shows incremental textas it is transcribed; final text locks with a small visual cue; no flickering or text loss occurs.
+
+Test Case Derivation: Ensures transparency/trust via visible updates (FR3).
+
+How test will be performed: Observe display during input; record the session on video; verify that the text updates smoothly and that the finalization cue appears.
+\end{enumerate}
+
+\subsubsection{FR4 — Map Text to Arbitrary Device Commands}
+
+\paragraph{test-FR4-MAP-1 Canonical Command Set Accuracy}
+
+\begin{enumerate}
+\item{test-FR4-MAP-1\\}
+Control: Automated
+
+Initial State: 50 predefined commands with canonical phrasings and expected command representations (API/CLI/accessibility).
+
+Input: Exact text phrases.
+
+Output: $\geq$90\% correct mapping to the expected command representation.
+
+Test Case Derivation: Direct Fit Criterion.
+
+How test will be performed: Feed text into intent mapper; compare output to expected representations for accuracy.
+\end{enumerate}
+
+\paragraph{test-FR4-MAP-2 Paraphrase \& Synonym Robustness}
+
+\begin{enumerate}
+\item{test-FR4-MAP-2\\}
+Control: Automated
+
+Initial State: Same 50 intents with 2–3 paraphrases each.
+
+Input: Paraphrased commands (e.g., “launch mail app” for “open email”).
+
+Output: Maintains $\geq$90\% accuracy across the combined set or recorded separately for robustness.
+
+Test Case Derivation: Realistic language coverage (FR4 rationale).
+
+How test will be performed: Evaluate precision/recall across the set and calculate percentage.
+\end{enumerate}
+
+\paragraph{test-FR4-MAP-3 Ambiguity \& Disambiguation}
+
+\begin{enumerate}
+\item{test-FR4-MAP-3\\}
+Control: Manual
+
+Initial State: Commands with ambiguous target (“open Amazon” vs “open Amazon.ca”).
+
+Input: Ambiguous phrasing.
+
+Output: System asks a brief clarifying question before mapping; no unsafe default.
+
+Test Case Derivation: Safe mapping for independence without surprises (FR4).
+
+How test will be performed: Provide ambiguous text; verify clarification prompt and final mapping.
+\end{enumerate}
+
+\paragraph{test-FR4-MAP-4 Out-of-Domain Commands}
+
+\begin{enumerate}
+\item{test-FR4-MAP-4\\}
+Control: Manual
+
+Initial State: Intent catalog fixed; user requests unsupported app/action.
+
+Input: “Turn on bedroom lights” (if smart-home unsupported).
+
+Output: Clear feedback: unsupported command + suggestion (link/alternative).
+
+Test Case Derivation: Graceful handling of arbitrary requests (FR4).
+
+How test will be performed: Issue out-of-domain (OOD) text; verify messaging and no execution.
+\end{enumerate}
+
+\subsubsection{FR5 — Execute Commands on the Host Device}
+
+\paragraph{test-FR5-EXEC-1 End-to-End Execution Latency \& Reliability}
+
+\begin{enumerate}
+\item{test-FR5-EXEC-1\\}
+Control: Automated (instrumented E2E)
+
+Initial State: Known-good mappings for a 50-command set.
+
+Input: Trigger each command (text or speech $\rightarrow$ text).
+
+Output: Visible system action completes within $\leq$2 s in $\geq$95\% of runs (per command), across platforms.
+
+Test Case Derivation: Direct Fit Criterion.
+
+How test will be performed: Timestamp intent and effect (e.g., window focus/app open), calculate success rate over the 50-command set.
+\end{enumerate}
+
+\paragraph{test-FR5-EXEC-2 Accessibility/API Fallback Paths}
+
+\begin{enumerate}
+\item{test-FR5-EXEC-2\\}
+Control: Manual/Automated
+
+Initial State: Primary API disabled (simulate outage).
+
+Input: Execute commands that have both accessibility and API paths.
+
+Output: System selects fallback path, still within target latency where feasible, or reports partial degradation.
+
+Test Case Derivation: Ensures robust execution loop (FR5 rationale).
+
+How test will be performed: Toggle feature flags/mocks; verify fallback invocation.
+\end{enumerate}
+
+\paragraph{test-FR5-EXEC-3 Safety \& Confirmation for Destructive Actions}
+
+\begin{enumerate}
+\item{test-FR5-EXEC-3\\}
+Control: Manual
+
+Initial State: Commands include potentially destructive actions (e.g., “delete email”).
+
+Input: Issue destructive command.
+
+Output: Confirmation prompt appears; execution only after explicit confirmation.
+
+Test Case Derivation: Safe device control (FR5).
+
+How test will be performed: Attempt action, 
+• verify prompt appears and execution is blocked if canceled.
+\end{enumerate}
 
 \subsection{Tests for Nonfunctional Requirements}
 
-\wss{The nonfunctional requirements for accuracy will likely just reference the
-  appropriate functional tests from above.  The test cases should mention
-  reporting the relative error for these tests.  Not all projects will
-  necessarily have nonfunctional requirements related to accuracy.}
+This section covers system tests for the Non-Functional Requirements (NFR) in the SRS. Each test ties back to one or more NFRs (see “Covers” field). NFRs not explicitly tested here are covered by functional or unit tests and are referenced in the traceability matrix.
 
-\wss{For some nonfunctional tests, you won't be setting a target threshold for
-passing the test, but rather describing the experiment you will do to measure
-the quality for different inputs.  For instance, you could measure speed versus
-the problem size.  The output of the test isn't pass/fail, but rather a summary
-table or graph.}
+\subsubsection{Look \& Feel}
 
-\wss{Tests related to usability could include conducting a usability test and
-  survey.  The survey will be in the Appendix.}
-
-\wss{Static tests, review, inspections, and walkthroughs, will not follow the
-format for the tests given below.}
-
-\wss{If you introduce static tests in your plan, you need to provide details.
-How will they be done?  In cases like code (or document) walkthroughs, who will
-be involved? Be specific.}
-
-\subsubsection{Area of Testing1}
-		
-\paragraph{Title for Test}
+\paragraph{test-LF-1 UI Browser Overlay Coverage}
 
 \begin{enumerate}
+\item{test-LF-1\\}
+Type: Non-Functional, Manual, Survey-based
 
-\item{test-id1\\}
+Covers: LFR-11.1
 
-Type: Functional, Dynamic, Manual, Static etc.
-					
-Initial State: 
-					
-Input/Condition: 
-					
-Output/Result: 
-					
-How test will be performed: 
-					
-\item{test-id2\\}
+Initial State: VoiceBridge extension/app active on common pages (docs, dashboards, news).
 
-Type: Functional, Dynamic, Manual, Static etc.
-					
-Initial State: 
-					
-Input: 
-					
-Output: 
-					
-How test will be performed: 
+Input/Condition: Idle state; listening state; confirmation state.
 
+Output/Result: Browser is full visible, browser is fully visible with indication that in listening state, interface confirms action and user confirms.
+
+How test will be performed: Usability survey is performed with users indicating how well they were able to see the content while running the interface on a scale from 1-5 with 5 being the clearest. Manual spot-checks confirm no critical content is masked.
 \end{enumerate}
 
-\subsubsection{Area of Testing2}
+\paragraph{test-LF-2 Visual Consistency \& Minimalism Heuristic Review}
 
-...
+\begin{enumerate}
+\item{test-LF-2\\}
+Type: Heuristic Inspection (Design QA)
+
+Covers: LFR-11.1, LFR-11.2
+
+Initial State: Latest build with UI design with spacing/typography/colors.
+
+Input/Condition: Inspect primary screens \& dialogs.
+
+Output/Result: Checklist rating and noting consistent spacing scale, typography hierarchy, color roles, icon style.
+
+How test will be performed: 10-item checklist scored by two reviewers done at separate times to prevent bias, ratings are review and consolidated to make necessary fixes.
+\end{enumerate}
+
+\subsubsection{Usability \& Humanity}
+
+\paragraph{test-UH-1 Core Task Ease of Use}
+
+\begin{enumerate}
+\item{test-UH-1\\}
+Type: User Testing, Instrumented
+
+Covers: UHR-12.1
+
+Initial State: Tasks prepared (start/stop listening, confirm command, view transcript).
+
+Input/Condition: n$\geq$10 participants (target users).
+
+Output/Result: $\geq$ 90\% complete each task in $\leq$ 4 interactions; success feedback observed within 1s of action.
+
+How test will be performed: Users interact with the interface through their browser and go through the prepared tasks, observers verify timing/task success rate/feedback time.
+\end{enumerate}
+
+\paragraph{test-UH-2 Onboarding Learnability \& First-Try Success}
+
+\begin{enumerate}
+\item{test-UH-2\\}
+Type: User Testing + Survey
+
+Covers: UHR-12.3
+
+Initial State: Fresh profile; onboarding tutorial enabled.
+
+Input/Condition: Participants complete first-run tutorial then perform core tasks.
+
+Output/Result: $\geq$ 85\% complete all core tasks on first attempt; onboarding time $\leq$ 10 minutes on average.
+
+How test will be performed: Time-on-task success percentage, rating documentation out of 5 with feedback on what they liked/disliked.
+\end{enumerate}
+
+\paragraph{test-UH-3 Personalization Ability}
+
+\begin{enumerate}
+\item{test-UH-3\\}
+Type: Manual, Dynamic
+
+Covers: UHR-12.2
+
+Initial State: Preferences (e.g., language, microphone, confirmation style) changed.
+
+Input/Condition: Switch browser profile, sign-out/in.
+
+Output/Result: Preferences persist across sessions/devices when a user has an account.
+
+How test will be performed: User fills out their preferences such as language, confirmation style. Then logs out and logs in on a different device and check if behavior is saved after logging in again.
+\end{enumerate}
+
+\paragraph{test-UH-4 Message Clarity \& Politeness}
+
+\begin{enumerate}
+\item{test-UH-4\\}
+Type: Survey-Based Language Review
+
+Covers: UHR-12.4
+
+Initial State: Library of prompts/errors/confirmations.
+
+Input/Condition: Participants rate clarity and politeness.
+
+Output/Result: $\geq$ 90\% rate $\geq$ 4/5 for clarity \& tone; comments reviewed.
+
+How test will be performed: Run a survey with participants rating the confirmation/errors/prompts out of 5, with an option to leave specific feedback at the end of the survey.
+\end{enumerate}
+
+\paragraph{test-UH-5 Assistive Navigation}
+
+\begin{enumerate}
+\item{test-UH-5\\}
+Type: Manual, User Testing
+
+Covers: UHR-12.5
+
+Initial State: Screen reader \& keyboard nav enabled; color tokens set.
+
+Input/Condition: Navigate all primary flows via keyboard; screen reader announces roles/states; run contrast analyzer.
+
+Output/Result: All interactive elements reachable and user is able to interact and fullfill their chosen task.
+
+How test will be performed: User turns on their stand assistive tools and performs a task through the interface, observer checks if they are able to complete their tasks and how the program interacts with their assistive tools to ensure there are no issues.
+\end{enumerate}
+
+\subsubsection{Performance}
+
+\paragraph{test-PF-1 ASR Latency Benchmark}
+
+\begin{enumerate}
+\item{test-PF-1\\}
+Type: Automated, Dynamic
+
+Covers: PRF-13.1
+
+Initial State: ASR service with a ready test audio set.
+
+Input/Condition: Feed audio with marked end-of-speech.
+
+Output/Result: latency $\leq$ 5 s from end-of-speech to transcript availability.
+
+How test will be performed: Measure timestamps from End of Audio to getting transcript, repeat over 20 different audio samples and calculate average latency.
+\end{enumerate}
+
+\paragraph{test-PF-2 Command Pipeline Latency}
+
+\begin{enumerate}
+\item{test-PF-2\\}
+Type: Automated, Dynamic
+
+Covers: PRF-13.2
+
+Initial State: Full pipeline (NLP $\rightarrow$ action planning $\rightarrow$ execution).
+
+Input/Condition: Standard command set (e.g., “summarize page”, “reply to this email”).
+
+Output/Result: Average $\leq$ 15 s from transcript ready to command result.
+
+How test will be performed: Measure timestamps from End of Audio to command set being performed, repeat over 20 different audio samples and calculate average latency.
+\end{enumerate}
+
+\paragraph{test-PF-3 Accuracy \& Precision (Stationary Noise)}
+
+\begin{enumerate}
+\item{test-PF-3\\}
+Type: Offline Evaluation
+
+Covers: PRF-13.1, PRF-13.2
+
+Initial State: Labeled impaired-speech with a command set with stationary background noise (AC/fan) mixed at 20/10/5 dB.
+
+Input/Condition: Run ASR with the intent/command classifier.
+
+Output/Result: WER meets $\geq$ 70\% accuracy; command precision $\geq$ 80\% at SNR less than or equal to 20 dB.
+
+How test will be performed: Run sample audios with the different levels of background noise, calculate accuracy and command recognition against the what was actually meant from the audio sample, then calculate percentages of accuracy and precision.
+\end{enumerate}
+
+\noindent\textbf{Unnecessary Tests and Justifications}
+\begin{itemize}
+\item \textbf{PRF-13.5 Capacity ($\geq$ 20 concurrent users) — Out of Scope (PoC)}\\
+\emph{Why not tested now:} The PoC targets \textbf{single-user} evaluation focused on correctness and latency. It is infeasible at this stage to run a system test that scales over 20 users and adds significant load and costs.
+\item \textbf{PRF-13.6 Scalability/Extensibility (Horizontal scaling; modular extensions) — Out of Scope (PoC)}\\
+\emph{Why not tested now:} Horizontal scaling is an \textbf{infrastructure} concern that isn’t meaningfully exercised without real or simulated multi-tenant traffic. Extensibility is largely an \textbf{architecture/code-structure} attribute rather than a runtime metric.\\
+\emph{How it’s handled instead:} Verified via \textbf{architecture/code review} and maintainability checks (see \textbf{test-MS-1} for modularity and extension points).
+\item \textbf{PRF-13.7 Longevity (reliable operations $\geq$ 5 years) — Out of Scope (PoC)}\\
+\emph{Why not tested now:} Longevity cannot be validated with a short-cycle \textbf{system test}; it requires years of operation data. Running a 5-year endurance test is infeasible at this stag
+\end{itemize}
+
+\subsubsection{Operational \& Environmental}
+
+\paragraph{test-OER-1 Cross-Platform Browser Compatibility}
+
+\begin{enumerate}
+\item{test-OER-1\\}
+Type: Manual + Automated
+
+Covers: OER-14.1, OER-14.2, MSR-15.3
+
+Initial State: Windows 10+, macOS 12+, Ubuntu 20.04+; Chrome/Edge/Firefox/Safari (latest two versions).
+
+Input/Condition: Run flow test.
+
+Output/Result: All flows pass, no OS tweaks/extensions beyond product install.
+
+How test will be performed: Run same flow test through each browser, validate that each runs as expected regardless of browser used.
+\end{enumerate}
+
+\paragraph{test-OER-2 Update \& Backward Compatibility}
+
+\begin{enumerate}
+\item{test-OER-2\\}
+Type: Manual + Automated Regression
+
+Covers: OER-14.4, OER-14.5
+
+Initial State: Real user profile with data/preferences.
+
+Input/Condition: Apply minor and major updates.
+
+Output/Result: No data loss. preferences retained; <1 minute downtime perceived.
+
+How test will be performed: Update then validate data and features are saved simulate rollback and check the same conditions.
+\end{enumerate}
+
+\noindent\textbf{Unnecessary Tests and Justifications}
+\begin{itemize}
+\item \textbf{OER-14.3 Adjacent systems \& OSS compatibility — Out of Scope (PoC)}\\
+\emph{Why not tested now:} No concrete adjacent systems are defined for the PoC, runtime end to end integration would be speculative and low-value. Compatibility is sufficiently covered via CI dependency/license checks and mock contract tests at this stage.
+\end{itemize}
+
+\subsubsection{Maintainability \& Support}
+
+\paragraph{test-MS-1 Codebase Maintainability Review}
+
+\begin{enumerate}
+\item{test-MS-1\\}
+Type: Static Analysis + Doc Review
+
+Covers: MSR-15.1
+
+Initial State: Final repo \& docs.
+
+Input/Condition: Evaluate architecture, boundaries, test coverage, comments, READMEs.
+
+Output/Result: Checklist score $\geq$ 85\%, new dev completes a small change in $\leq$ 0.5 day using docs.
+
+How test will be performed: Two new reviewers/devs score the documentation and the code, they attempt to make a change to the code and rate how easily they were able to perform the task.
+\end{enumerate}
+
+\paragraph{test-MS-2 Support Assets Accessibility}
+
+\begin{enumerate}
+\item{test-MS-2\\}
+Type: Manual + Automated Accessibility Checks
+
+Covers: MSR-15.2
+
+Initial State: Help/FAQ pages built.
+
+Input/Condition: Audit contrast and readability and media aids.
+
+Output/Result: Pass high-contrast checks with captions/alt text present.
+
+How test will be performed: Run a contrast tool on the page and manual spot-checks to ensure captions and alt text is present.
+\end{enumerate}
+
+\subsubsection{Security}
+
+\paragraph{test-SEC-1 Role-Based Access Control (RBAC)}
+
+\begin{enumerate}
+\item{test-SEC-1\\}
+Type: Manual + Automated Security Tests
+
+Covers: SCR-16.1
+
+Initial State: Accounts for primary/secondary/tertiary roles.
+
+Input/Condition: Attempt in-role and out-of-role actions.
+
+Output/Result: Least-privilege enforced, unauthorized actions blocked and logged.
+
+How test will be performed: Test privileges of each of the 3 users, run through a checklist of what they can and cannot access and make sure they are able to do all actions they have permissions to do and are blocked out of actions they are unauthorized to do.
+\end{enumerate}
+
+\paragraph{test-SEC-2 Command Confirmation \& Intent Match}
+
+\begin{enumerate}
+\item{test-SEC-2\\}
+Type: Manual, Dynamic
+
+Covers: SCR-16.2
+
+Initial State: Confirmation UI enabled.
+
+Input/Condition: Ambiguous/noisy commands; potentially disruptive actions.
+
+Output/Result: System requires user validation and shows warnings with no unintended execution.
+
+How test will be performed: Run with a script of commands and verify confirmation flow.
+\end{enumerate}
+
+\paragraph{test-SEC-3 Consent \& Data Handling}
+
+\begin{enumerate}
+\item{test-SEC-3\\}
+Type: Static Review + Manual Flow
+
+Covers: SCR-16.3
+
+Initial State: Fresh user; data policy active.
+
+Input/Condition: Onboarding consent and option to opt-in for model improvement.
+
+Output/Result: Explicit consent captured and a decline path respected with data anonymized before training.
+
+How test will be performed: Review code/config plus run onboarding with a new user, inspect data pipeline \& backup config to ensure user consent is respected.
+\end{enumerate}
+
+\noindent\textbf{Unnecessary Tests and Justifications}
+\begin{itemize}
+\item \textbf{SCR-16.4 Secure logging (audit integrity \& retention) — Out of Scope (Unit tests)}\\
+\emph{Why not tested now:} Best validated via code-level/unit tests and static review. Duplicating with system tests in the PoC adds little value.
+\item \textbf{SCR-16.5 Immunity to misuse (robust to noise/rate limits) — Out of Scope (Unit tests)}\\
+\emph{Why not tested now:} Requires targeted fault injection/adversarial unit tests (e.g., noisy inputs, burst traffic) and contract tests for rate limiting. Portions are indirectly covered by existing flows; full coverage deferred to unit/integration tests.
+\end{itemize}
+
+\subsubsection{Cultural}
+
+\paragraph{test-CUL-1 Tone, Bias \& Harm Guardrails Review}
+
+\begin{enumerate}
+\item{test-CUL-1\\}
+Type: Static and Scenario-Based Testing
+
+Covers: CLR-17.1
+
+Initial State: Prompt templates and moderation/guardrail rules configured.
+
+Input/Condition: Run scenarios across diverse names with edge cases.
+
+Output/Result: Neutral tone; harmful/biased outputs blocked with safe messaging; escalation path provided.
+
+How test will be performed: Run a curated scenario set and have a reviewer checklist how the output tone is and if guardrails are deployed against harmful content.
+\end{enumerate}
+
+\subsubsection{Compliance}
+
+\paragraph{test-CPL-1 PIPEDA Compliance Audit}
+
+\begin{enumerate}
+\item{test-CPL-1\\}
+Type: Documentation \& Process Audit
+
+Covers: CPR-18.1
+
+Initial State: Data inventory, consent records, retention policy, DSAR process.
+
+Input/Condition: Auditor reviews artifacts \& simulates data access/deletion request.
+
+Output/Result: Pass checklist; DSAR fulfilled within policy timelines; lawful basis documented.
+
+How test will be performed: Map data flows and verify consent \& retention.
+\end{enumerate}
+
+\paragraph{test-CPL-2 WCAG 2.0 AA Spot-Compliance}
+
+\begin{enumerate}
+\item{test-CPL-2\\}
+Type: Automated and Manual Accessibility Testing
+
+Covers: CPR-18.2
+
+Initial State: UI build with  accessibility tooling integrated.
+
+Input/Condition: Run automated audit; manual keyboard/screen reader checks on critical paths.
+
+Output/Result: No critical AA violations on core flows; issues tracked with remediation plan.
+
+How test will be performed: Automated scan and manual verification on forms.
+\end{enumerate}
 
 \subsection{Traceability Between Test Cases and Requirements}
 
-\wss{Provide a table that shows which test cases are supporting which
-  requirements.}
+The table below maps each test case to the SRS requirements it supports.
+
+\begin{center}
+\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{|l|l|}
+\hline
+\textbf{Test ID} & \textbf{Requirement(s)} \\
+\hline
+test-FR1-MIC-1 & FR1 \\
+test-FR1-MIC-2 & FR1 \\
+test-FR1-MIC-3 & FR1 \\
+test-FR2-ASR-1 & FR2 \\
+test-FR2-ASR-2 & FR2 \\
+test-FR3-UI-1 & FR3 \\
+test-FR3-UI-2 & FR3 \\
+test-FR4-MAP-1 & FR4 \\
+test-FR4-MAP-2 & FR4 \\
+test-FR4-MAP-3 & FR4 \\
+test-FR4-MAP-4 & FR4 \\
+test-FR5-EXEC-1 & FR5 \\
+test-FR5-EXEC-2 & FR5 \\
+test-FR5-EXEC-3 & FR5 \\
+test-LF-1 & LFR-11.1 \\
+test-LF-2 & LFR-11.1, LFR-11.2 \\
+test-UH-1 & UHR-12.1 \\
+test-UH-2 & UHR-12.3 \\
+test-UH-3 & UHR-12.2 \\
+test-UH-4 & UHR-12.4 \\
+test-UH-5 & UHR-12.5 \\
+test-PF-1 & PRF-13.1 \\
+test-PF-2 & PRF-13.2 \\
+test-PF-3 & PRF-13.1, PRF-13.2 \\
+test-OER-1 & OER-14.1, OER-14.2, MSR-15.3 \\
+test-OER-2 & OER-14.4, OER-14.5 \\
+test-MS-1 & MSR-15.1 \\
+test-MS-2 & MSR-15.2 \\
+test-SEC-1 & SCR-16.1 \\
+test-SEC-2 & SCR-16.2 \\
+test-SEC-3 & SCR-16.3 \\
+test-CUL-1 & CLR-17.1 \\
+test-CPL-1 & CPR-18.1 \\
+test-CPL-2 & CPR-18.2 \\
+\hline
+\end{tabular}
+\end{center}
 
 \section{Unit Test Description}
 
