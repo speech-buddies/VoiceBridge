@@ -93,22 +93,7 @@ The V\&V plan described in this document applies to the VoiceBridge application.
 
 \subsection{Objectives}
 
-\wss{State what is intended to be accomplished.  The objective will be around
-  the qualities that are most important for your project.  You might have
-  something like: ``build confidence in the software correctness,''
-  ``demonstrate adequate usability.'' etc.  You won't list all of the qualities,
-  just those that are most important.}
-
-\wss{You should also list the objectives that are out of scope.  You don't have 
-the resources to do everything, so what will you be leaving out.  For instance, 
-if you are not going to verify the quality of usability, state this.  It is also 
-worthwhile to justify why the objectives are left out.}
-
-\wss{The objectives are important because they highlight that you are aware of 
-limitations in your resources for verification and validation.  You can't do everything, 
-so what are you going to prioritize?  As an example, if your system depends on an 
-external library, you can explicitly state that you will assume that external library 
-has already been verified by its implementation team.}
+The primary objective of VoiceBridge is to accurately capture and interpret the intended meaning of speech from users with impaired or atypical articulation, ensuring that their spoken input is reliably translated into the correct text or device actions. A critical focus is the safe and precise mapping of user intent, particularly when controlling web browsers and other general-purpose software environments where unintended or harmful actions could have significant consequences. Because the system is dependent on non-deterministic AI models, robust safeguards, validation layers, and command verification mechanisms will be implemented to prevent misinterpretation, accidental activation, or malicious exploitation. The project also strives to maintain usability and accessibility by operating on standard consumer hardware and providing clear, transparent feedback to the user. Ultimately, the goal is to empower users with meaningful autonomy while maintaining strict control, reliability, and safety in all system interactions.
 
 \subsection{Challenge Level and Extras}
 
