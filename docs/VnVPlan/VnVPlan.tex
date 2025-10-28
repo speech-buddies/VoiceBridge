@@ -33,6 +33,7 @@
 \toprule {\bf Date} & {\bf Version} & {\bf Notes}\\
 \midrule
 Oct 26, 2025 & 1.0 & Added Section 3 \\
+Oct 27, 2025 & 1.0 & Added Sections 1,2, and 4.1\\
 Date 2 & 1.1 & Notes\\
 \bottomrule
 \end{tabularx}
@@ -91,43 +92,15 @@ This document ... \wss{provide an introductory blurb and roadmap of the
 
 \subsection{Summary}
 
-\wss{Say what software is being tested.  Give its name and a brief overview of
-  its general functions.}
+The V\&V plan described in this document applies to the VoiceBridge application. VoiceBridge is an accessibility tool that is built around speech-to-text, designed for individuals with impaired or atypical speech caused by neurological or motor speech disorders. Using a customizable model, it converts slurred or non-standard speech into accurate text and control commands on standard consumer devices. The system integrates seamlessly with commonly used technology, including web browsers, enabling open-ended, customizable control for tasks such as online shopping, browsing, and digital communication. By allowing users to operate everyday applications with their own speech patterns, the product promotes greater autonomy, accessibility, and independence.
 
 \subsection{Objectives}
 
-\wss{State what is intended to be accomplished.  The objective will be around
-  the qualities that are most important for your project.  You might have
-  something like: ``build confidence in the software correctness,''
-  ``demonstrate adequate usability.'' etc.  You won't list all of the qualities,
-  just those that are most important.}
-
-\wss{You should also list the objectives that are out of scope.  You don't have 
-the resources to do everything, so what will you be leaving out.  For instance, 
-if you are not going to verify the quality of usability, state this.  It is also 
-worthwhile to justify why the objectives are left out.}
-
-\wss{The objectives are important because they highlight that you are aware of 
-limitations in your resources for verification and validation.  You can't do everything, 
-so what are you going to prioritize?  As an example, if your system depends on an 
-external library, you can explicitly state that you will assume that external library 
-has already been verified by its implementation team.}
+The primary objective of VoiceBridge is to accurately capture and interpret the intended meaning of speech from users with impaired or atypical articulation, ensuring that their spoken input is reliably translated into the correct text or device actions. A critical focus is the safe and precise mapping of user intent, particularly when controlling web browsers and other general-purpose software environments where unintended or harmful actions could have significant consequences. Because the system is dependent on non-deterministic AI models, robust safeguards, validation layers, and command verification mechanisms will be implemented to prevent misinterpretation, accidental activation, or malicious exploitation. The project also strives to maintain usability and accessibility by operating on standard consumer hardware and providing clear, transparent feedback to the user. Ultimately, the goal is to empower users with meaningful autonomy while maintaining strict control, reliability, and safety in all system interactions.
 
 \subsection{Challenge Level and Extras}
 
-\wss{State the challenge level (advanced, general, basic) for your project.
-Your challenge level should exactly match what is included in your problem
-statement.  This should be the challenge level agreed on between you and the
-course instructor.  You can use a pull request to update your challenge level
-(in TeamComposition.csv or Repos.csv) if your plan changes as a result of the
-VnV planning exercise.}
-
-\wss{Summarize the extras (if any) that were tackled by this project.  Extras
-can include usability testing, code walkthroughs, user documentation, formal
-proof, GenderMag personas, Design Thinking, etc.  Extras should have already
-been approved by the course instructor as included in your problem statement.
-You can use a pull request to update your extras (in TeamComposition.csv or
-Repos.csv) if your plan changes as a result of the VnV planning exercise.}
+Challenges not applicable to V\&V plan.
 
 \subsection{Relevant Documentation}
 
