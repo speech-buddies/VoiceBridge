@@ -429,6 +429,103 @@ Each test has a unique ID and clear execution steps.
 
 \end{enumerate}
 
+\subsubsection{4.1.3 Tests for FR3 — Display Transcription for Verification}
+
+
+\textbf{Goal:} Real-time text display within 2 seconds for $\geq$95\% of trials.
+
+\paragraph{Transcription Display Tests}
+
+\begin{enumerate}
+
+\item{test-FR3-UI-1: Real-Time Display Latency\\}
+
+\textbf{Type:} Automated (instrumented)
+
+\textbf{Initial State:} Logging timestamps at (a) audio frame arrival, (b) first token shown.
+
+\textbf{Input/Condition:} 100 short utterances across platforms.
+
+\textbf{Output/Result:} Time-to-first-text $\leq$2 s in $\geq$95\% of trials.
+
+\textbf{How test will be performed:} Run scripted playback or live reads with a timer, store successful and unsuccessful trials and calculate percentage.
+
+\item{test-FR3-UI-2: Continuous Update \& Finalization\\}
+
+\textbf{Type:} Manual
+
+\textbf{Initial State:} Streaming UI enabled.
+
+\textbf{Input/Condition:} Speak a 10--15 s sentence; include pauses and restarts.
+
+\textbf{Output/Result:} UI shows incremental text as it is transcribed; final text locks with a small visual cue; no flickering or text loss occurs.
+
+\textbf{How test will be performed:} Observe display during input; record the session on video; verify that the text updates smoothly and that the finalization cue appears.
+
+\end{enumerate}
+
+\subsubsection{4.1.4 Tests for FR4 — Map Text to Arbitrary Device Commands}
+
+
+
+\textbf{Goal:} $\geq$90\% correct mapping on a 50-command test set; handle ambiguity safely.
+
+
+
+\begin{enumerate}
+
+\item{test-FR4-MAP-1: Canonical Command Set Accuracy\\}
+
+\textbf{Type:} Automated
+
+\textbf{Initial State:} 50 predefined commands with canonical phrasings and expected command representations (API/CLI/accessibility).
+
+\textbf{Input/Condition:} Exact text phrases.
+
+\textbf{Output/Result:} $\geq$90\% correct mapping to the expected command representation.
+
+\textbf{How test will be performed:} Feed text into intent mapper; compare output to expected representations for accuracy.
+
+\item{test-FR4-MAP-2: Paraphrase \& Synonym Robustness\\}
+
+\textbf{Type:} Automated
+
+\textbf{Initial State:} Same 50 intents with 2--3 paraphrases each.
+
+\textbf{Input/Condition:} Paraphrased commands (e.g., “launch mail app” for “open email”).
+
+\textbf{Output/Result:} Maintains $\geq$90\% accuracy across the combined set or recorded separately for robustness.
+
+\textbf{How test will be performed:} Evaluate precision/recall across the set and calculate percentage.
+
+\item{test-FR4-MAP-3: Ambiguity \& Disambiguation\\}
+
+\textbf{Type:} Manual
+
+\textbf{Initial State:} Commands with ambiguous target (“open Amazon” vs “open Amazon.ca”).
+
+\textbf{Input/Condition:} Ambiguous phrasing.
+
+\textbf{Output/Result:} System asks a brief clarifying question before mapping; no unsafe default.
+
+\textbf{How test will be performed:} Provide ambiguous text; verify clarification prompt and final mapping.
+
+\item{test-FR4-MAP-4: Out-of-Domain Commands\\}
+
+\textbf{Type:} Manual
+
+\textbf{Initial State:} Intent catalog fixed; user requests unsupported app/action.
+
+\textbf{Input/Condition:} “Turn on bedroom lights” (if smart-home unsupported).
+
+\textbf{Output/Result:} Clear feedback: unsupported command + suggestion (link/alternative).
+
+\textbf{How test will be performed:} Issue out-of-domain (OOD) text; verify messaging and no execution.
+
+\end{enumerate}
+
+\subsubsection{Other Areas of Testing}
+
 \subsubsection{Other Areas of Testing}
 
 
