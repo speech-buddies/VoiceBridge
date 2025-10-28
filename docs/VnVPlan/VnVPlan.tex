@@ -354,7 +354,6 @@ Each test has a unique ID and clear execution steps.
 
 \subsubsection{4.1.1 Tests for FR1 — Accept Speech Audio via Microphone}
 
-\paragraph{Microphone Capture Tests}
 \textbf{Goal:} Verify live microphone capture across platforms at $\geq$16 kHz.
 
 \begin{enumerate}
@@ -434,7 +433,6 @@ Each test has a unique ID and clear execution steps.
 
 \textbf{Goal:} Real-time text display within 2 seconds for $\geq$95\% of trials.
 
-\paragraph{Transcription Display Tests}
 
 \begin{enumerate}
 
@@ -524,12 +522,53 @@ Each test has a unique ID and clear execution steps.
 
 \end{enumerate}
 
-\subsubsection{Other Areas of Testing}
-
-\subsubsection{Other Areas of Testing}
+\subsubsection{4.1.5 Tests for FR5 — Execute Commands on the Host Device}
 
 
-\subsubsection{Area of Testing2}
+\textbf{Goal:} For each correctly recognized command, execute within 2 seconds, $\geq$95\% reliability.
+
+
+\begin{enumerate}
+
+\item{test-FR5-EXEC-1: End-to-End Execution Latency \& Reliability\\}
+
+\textbf{Type:} Automated (instrumented E2E)
+
+\textbf{Initial State:} Known-good mappings for a 50-command set.
+
+\textbf{Input/Condition:} Trigger each command (text or speech $\rightarrow$ text).
+
+\textbf{Output/Result:} Visible system action completes within $\leq$2 s in $\geq$95\% of runs (per command), across platforms.
+
+\textbf{How test will be performed:} Timestamp intent and effect (e.g., window focus/app open), calculate success rate over the 50-command set.
+
+\item{test-FR5-EXEC-2: Accessibility/API Fallback Paths\\}
+
+\textbf{Type:} Manual/Automated
+
+\textbf{Initial State:} Primary API disabled (simulate outage).
+
+\textbf{Input/Condition:} Execute commands that have both accessibility and API paths.
+
+\textbf{Output/Result:} System selects fallback path, still within target latency where feasible, or reports partial degradation.
+
+\textbf{How test will be performed:} Toggle feature flags/mocks; verify fallback invocation.
+
+\item{test-FR5-EXEC-3: Safety \& Confirmation for Destructive Actions\\}
+
+\textbf{Type:} Manual
+
+\textbf{Initial State:} Commands include potentially destructive actions (e.g., “delete email”).
+
+\textbf{Input/Condition:} Issue destructive command.
+
+\textbf{Output/Result:} Confirmation prompt appears; execution only after explicit confirmation.
+
+\textbf{How test will be performed:} Attempt action, verify prompt appears and execution is blocked if canceled.
+
+\end{enumerate}
+
+
 
 ...
 
