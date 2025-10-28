@@ -352,7 +352,7 @@ the contents of the subsections.}
 The subsections below outline tests corresponding to the SRS Functional Requirements (FR1--FR5).
 Each test has a unique ID and clear execution steps.
 
-\subsubsection{4.1.1 Tests for FR1 — Accept Speech Audio via Microphone}
+\subsubsection{Tests for FR1 — Accept Speech Audio via Microphone}
 
 \textbf{Goal:} Verify live microphone capture across platforms at $\geq$16 kHz.
 
@@ -366,6 +366,8 @@ Each test has a unique ID and clear execution steps.
 
 \textbf{Input/Condition:} Speak a short phrase (\textit{``Testing one two three''}) into the default OS microphone on a Windows OS laptop.
 
+\textbf{Test Case Derivation:} Confirms standard microphone capture per FR1.
+
 \textbf{Output/Result:} App requests microphone permission; once granted, waveform/level indicator appears and raw audio frames are buffered at $\geq$16 kHz.
 
 \textbf{How test will be performed:} Launch app $\to$ start capture $\to$ verify UI level meter moves; export a short recording and inspect metadata (sample rate $\geq$16 kHz).
@@ -377,6 +379,8 @@ Each test has a unique ID and clear execution steps.
 \textbf{Initial State:} App freshly installed on iOS and Android.
 
 \textbf{Input/Condition:} First-time launch and attempt to record.
+
+\textbf{Test Case Derivation:} Validates cross-platform permission handling and capture (FR1).
 
 \textbf{Output/Result:} OS permission prompt shown; after approval, capture begins; denial shows friendly error and retry path.
 
@@ -391,6 +395,8 @@ Each test has a unique ID and clear execution steps.
 \textbf{Input/Condition:} Unplug/plug devices while capturing.
 
 \textbf{Output/Result:} The system selects the current default audio input device. If the device disconnects, it automatically falls back to another available microphone and notifies the user.
+
+\textbf{Test Case Derivation:} Ensures robust device handling required for “default OS microphone devices” (FR1).
 
 \textbf{How test will be performed:} Start capture $\to$ unplug active microphone $\to$ observe fallback notice $\to$ confirm continued capture.
 
@@ -412,6 +418,8 @@ Each test has a unique ID and clear execution steps.
 
 \textbf{Output/Result:} System achieves $\geq$80\% WER reduction vs baseline \textbf{or} meets defined WER delta per SRS; report includes per-speaker metrics.
 
+\textbf{Test Case Derivation:} Directly tests Fit Criterion’s WER reduction expectation.
+
 \textbf{How test will be performed:} Evaluation script computes WER, CER; export CSV; assert threshold met.
 
 \item{test-FR2-ASR-2: Common Command Accuracy $\geq$80\%\\}
@@ -424,11 +432,13 @@ Each test has a unique ID and clear execution steps.
 
 \textbf{Output/Result:} Meets $\geq$80\% correct textual outputs (exact or accepted synonyms).
 
+\textbf{Test Case Derivation:} Meets “$\geq$80\% accuracy for common commands.”
+
 \textbf{How test will be performed:} Align decoded text with ground truth (string/intent match); assert $\geq$80\% pass rate.
 
 \end{enumerate}
 
-\subsubsection{4.1.3 Tests for FR3 — Display Transcription for Verification}
+\subsubsection{Tests for FR3 — Display Transcription for Verification}
 
 
 \textbf{Goal:} Real-time text display within 2 seconds for $\geq$95\% of trials.
@@ -446,6 +456,8 @@ Each test has a unique ID and clear execution steps.
 
 \textbf{Output/Result:} Time-to-first-text $\leq$2 s in $\geq$95\% of trials.
 
+\textbf{Test Case Derivation:} Direct Fit Criterion.
+
 \textbf{How test will be performed:} Run scripted playback or live reads with a timer, store successful and unsuccessful trials and calculate percentage.
 
 \item{test-FR3-UI-2: Continuous Update \& Finalization\\}
@@ -458,11 +470,13 @@ Each test has a unique ID and clear execution steps.
 
 \textbf{Output/Result:} UI shows incremental text as it is transcribed; final text locks with a small visual cue; no flickering or text loss occurs.
 
+\textbf{Test Case Derivation:} Ensures transparency/trust via visible updates (FR3).
+
 \textbf{How test will be performed:} Observe display during input; record the session on video; verify that the text updates smoothly and that the finalization cue appears.
 
 \end{enumerate}
 
-\subsubsection{4.1.4 Tests for FR4 — Map Text to Arbitrary Device Commands}
+\subsubsection{Tests for FR4 — Map Text to Arbitrary Device Commands}
 
 
 
@@ -482,6 +496,8 @@ Each test has a unique ID and clear execution steps.
 
 \textbf{Output/Result:} $\geq$90\% correct mapping to the expected command representation.
 
+\textbf{Test Case Derivation:} Direct Fit Criterion.
+
 \textbf{How test will be performed:} Feed text into intent mapper; compare output to expected representations for accuracy.
 
 \item{test-FR4-MAP-2: Paraphrase \& Synonym Robustness\\}
@@ -494,6 +510,8 @@ Each test has a unique ID and clear execution steps.
 
 \textbf{Output/Result:} Maintains $\geq$90\% accuracy across the combined set or recorded separately for robustness.
 
+\textbf{Test Case Derivation:} Realistic language coverage (FR4 rationale).
+
 \textbf{How test will be performed:} Evaluate precision/recall across the set and calculate percentage.
 
 \item{test-FR4-MAP-3: Ambiguity \& Disambiguation\\}
@@ -505,6 +523,8 @@ Each test has a unique ID and clear execution steps.
 \textbf{Input/Condition:} Ambiguous phrasing.
 
 \textbf{Output/Result:} System asks a brief clarifying question before mapping; no unsafe default.
+
+\textbf{Test Case Derivation:} Safe mapping for independence without surprises (FR4).
 
 \textbf{How test will be performed:} Provide ambiguous text; verify clarification prompt and final mapping.
 
@@ -522,7 +542,7 @@ Each test has a unique ID and clear execution steps.
 
 \end{enumerate}
 
-\subsubsection{4.1.5 Tests for FR5 — Execute Commands on the Host Device}
+\subsubsection{Tests for FR5 — Execute Commands on the Host Device}
 
 
 \textbf{Goal:} For each correctly recognized command, execute within 2 seconds, $\geq$95\% reliability.
@@ -540,6 +560,8 @@ Each test has a unique ID and clear execution steps.
 
 \textbf{Output/Result:} Visible system action completes within $\leq$2 s in $\geq$95\% of runs (per command), across platforms.
 
+\textbf{Test Case Derivation:} Direct Fit Criterion.
+
 \textbf{How test will be performed:} Timestamp intent and effect (e.g., window focus/app open), calculate success rate over the 50-command set.
 
 \item{test-FR5-EXEC-2: Accessibility/API Fallback Paths\\}
@@ -551,6 +573,8 @@ Each test has a unique ID and clear execution steps.
 \textbf{Input/Condition:} Execute commands that have both accessibility and API paths.
 
 \textbf{Output/Result:} System selects fallback path, still within target latency where feasible, or reports partial degradation.
+
+\textbf{Test Case Derivation:} Ensures robust execution loop (FR5 rationale).
 
 \textbf{How test will be performed:} Toggle feature flags/mocks; verify fallback invocation.
 
@@ -564,10 +588,11 @@ Each test has a unique ID and clear execution steps.
 
 \textbf{Output/Result:} Confirmation prompt appears; execution only after explicit confirmation.
 
+\textbf{Test Case Derivation:} Safe device control (FR5).
+
 \textbf{How test will be performed:} Attempt action, verify prompt appears and execution is blocked if canceled.
 
 \end{enumerate}
-
 
 
 ...
