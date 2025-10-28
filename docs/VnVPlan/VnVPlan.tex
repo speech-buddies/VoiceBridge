@@ -355,12 +355,13 @@ Each test has a unique ID and clear execution steps.
 \subsubsection{4.1.1 Tests for FR1 — Accept Speech Audio via Microphone}
 
 \paragraph{Microphone Capture Tests}
+\textbf{Goal:} Verify live microphone capture across platforms at $\geq$16 kHz.
 
 \begin{enumerate}
 
-\item{test-FR1-MIC-1\\}
+\item{test-FR1-MIC-1 Valid Microphone Capture (Desktop)\\}
 
-\textbf{Type:} Functional, Dynamic, Manual
+\textbf{Type:} Manual
 
 \textbf{Initial State:} App installed; permissions not yet granted.
 
@@ -370,9 +371,9 @@ Each test has a unique ID and clear execution steps.
 
 \textbf{How test will be performed:} Launch app $\to$ start capture $\to$ verify UI level meter moves; export a short recording and inspect metadata (sample rate $\geq$16 kHz).
 
-\item{test-FR1-MIC-2\\}
+\item{test-FR1-MIC-2 Mobile Permission \& Capture\\}
 
-\textbf{Type:} Functional, Dynamic, Manual
+\textbf{Type:} Manual
 
 \textbf{Initial State:} App freshly installed on iOS and Android.
 
@@ -382,9 +383,9 @@ Each test has a unique ID and clear execution steps.
 
 \textbf{How test will be performed:} Deny once (expect error + guidance), then allow (expect capture + levels).
 
-\item{test-FR1-MIC-3\\}
+\item{test-FR1-MIC-3 Default Device Selection \& Fallback\\}
 
-\textbf{Type:} Functional, Dynamic, Manual
+\textbf{Type:} Manual
 
 \textbf{Initial State:} Multiple audio devices present (laptop microphone + USB microphone).
 
@@ -393,6 +394,38 @@ Each test has a unique ID and clear execution steps.
 \textbf{Output/Result:} The system selects the current default audio input device. If the device disconnects, it automatically falls back to another available microphone and notifies the user.
 
 \textbf{How test will be performed:} Start capture $\to$ unplug active microphone $\to$ observe fallback notice $\to$ confirm continued capture.
+
+\end{enumerate}
+
+\subsubsection{Tests for FR2 — Convert Impaired Speech to Text $\geq$80\% Accuracy (MVP)}
+\textbf{Goal:} Validate transcription accuracy on impaired speech and common commands.
+
+
+\begin{enumerate}
+
+\item{test-FR2-ASR-1 Dataset Evaluation vs Baseline\\}
+
+\textbf{Type:} Automated \(batch evaluation\)
+
+\textbf{Initial State:} Curated impaired-speech test set with references; chosen baseline model.
+
+\textbf{Input/Condition:} Run system and baseline over full test set.
+
+\textbf{Output/Result:} System achieves $\geq$80\% WER reduction vs baseline \textbf{or} meets defined WER delta per SRS; report includes per-speaker metrics.
+
+\textbf{How test will be performed:} Evaluation script computes WER, CER; export CSV; assert threshold met.
+
+\item{test-FR2-ASR-2: Common Command Accuracy $\geq$80\%\\}
+
+\textbf{Type:} Automated \(scripted playback\)
+
+\textbf{Initial State:} Command list of 50+ common intents; audio variants (different speakers/noise).
+
+\textbf{Input/Condition:} Play each command sample to the system.
+
+\textbf{Output/Result:} Meets $\geq$80\% correct textual outputs (exact or accepted synonyms).
+
+\textbf{How test will be performed:} Align decoded text with ground truth (string/intent match); assert $\geq$80\% pass rate.
 
 \end{enumerate}
 
