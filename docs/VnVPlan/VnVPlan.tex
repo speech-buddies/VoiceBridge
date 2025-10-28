@@ -1,7 +1,9 @@
 \documentclass[12pt, titlepage]{article}
 
 \usepackage{booktabs}
+\usepackage{amssymb}
 \usepackage{tabularx}
+\usepackage{float}
 \usepackage{hyperref}
 \hypersetup{
     colorlinks,
@@ -30,7 +32,7 @@
 \begin{tabularx}{\textwidth}{p{3cm}p{2cm}X}
 \toprule {\bf Date} & {\bf Version} & {\bf Notes}\\
 \midrule
-Date 1 & 1.0 & Notes\\
+Oct 26, 2025 & 1.0 & Added Section 3 \\
 Date 2 & 1.1 & Notes\\
 \bottomrule
 \end{tabularx}
@@ -151,95 +153,221 @@ Below is a list of documents that can be referenced for further information, as 
 
 \section{Plan}
 
-\wss{Introduce this section.  You can provide a roadmap of the sections to
-  come.}
+This section describes how the VoiceBridge team will verify and validate the system throughout its lifecycle. It outlines responsibilities, reviews, and testing activities that ensure each stage, from the SRS to it’s implementation. The plan emphasizes practical verification aligned with our project scope.
 
 \subsection{Verification and Validation Team}
 
-\wss{Your teammates.  Maybe your supervisor.
-  You should do more than list names.  You should say what each person's role is
-  for the project's verification.  A table is a good way to summarize this information.}
+\begin{itemize}
+    \item \textbf{Kelvin Yu:} Lead Tester. Coordinates overall V\&V activities and integration testing across the ASR, intent mapping, and browser components.
+    \item \textbf{Mazen Youssef:} Functional Tester. Verifies core functional requirements (FR1--FR5) including audio capture, transcription, and command execution.
+    \item \textbf{Rawan Mahdi:} UI and Usability Tester. Tests the front-end interface for accessibility, feedback clarity, and overall user experience.
+    \item \textbf{Luna Aljammal:} Non-Functional Tester. Assesses performance, latency, and privacy compliance; maintains testing documentation and traceability.
+    \item \textbf{Dr.~Christian Brodbeck (Supervisor):} Oversees the V\&V process, providing feedback on testing and alignment with project goals.
+\end{itemize}
+
 
 \subsection{SRS Verification}
 
-\wss{List any approaches you intend to use for SRS verification.  This may
-  include ad hoc feedback from reviewers, like your classmates (like your
-  primary reviewer), or you may plan for something more rigorous/systematic.}
+\subsubsection*{3.2.1 Requirements Validation}
+Each functional and non-functional requirement will be verified for clarity, feasibility, and measurability. A formal SRS Review Checklist will be applied to Sections~10--16, focusing on fit criteria, ambiguity, and traceability. Automated verification will be performed for measurable criteria (e.g., transcription latency, confidence scores) using \texttt{PyTest}, while manual validation will confirm qualitative attributes such as user feedback clarity.
 
-\wss{If you have a supervisor for the project, you shouldn't just say they will
-read over the SRS.  You should explain your structured approach to the review.
-Will you have a meeting?  What will you present?  What questions will you ask?
-Will you give them instructions for a task-based inspection?  Will you use your
-issue tracker?}
+\subsubsection*{3.2.2 Supervisor Review}
+A structured review session will be held with Dr.~Christian Brodbeck. The meeting will consist of:
 
-\wss{Maybe create an SRS checklist?}
+\begin{enumerate}
+    \item A concise summary of all functional and safety-related requirements (IR, PRR, ACR, IMR).
+    \item System and use case diagrams for visual reference.
+    \item Specific discussion prompts on potentially ambiguous or high-risk requirements.
+\end{enumerate}
+
+During the meeting, we will assess correctness, feasibility, and alignment with user needs. All comments will be logged as GitHub issues and tracked under the \textit{SRS Verification} label for resolution.
+
+\subsubsection*{3.2.3 Prototype-Based Validation}
+A low-fidelity prototype of VoiceBridge’s transcription interface and feedback module will be used to validate usability-related requirements (e.g., accessibility of controls, clarity of feedback, and response timing). Test participants will perform scripted scenarios derived from core functional requirements, such as initiating live transcription, adjusting speech sensitivity, and reviewing transcript accuracy.Results will be compared against defined success metrics (e.g., \textit{task completion within 5 seconds} or \textit{90\% accuracy threshold}).
+
+\subsubsection*{3.2.4 Continuous Verification}
+To ensure ongoing alignment between the SRS and the evolving design, biweekly verification reviews will be conducted. These sessions will:
+\begin{itemize}
+    \item Assess the impact of requirement modifications.
+    \item Re-verify modified requirements using the checklist to confirm consistency and completeness.
+\end{itemize}
+
+
+\begin{table}[H]
+\centering
+\caption{SRS Verification Checklist}
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{|p{5cm}|p{9cm}|}
+\hline
+\textbf{Criteria} & \textbf{Verification Activities} \\ \hline
+
+Requirements Validation &
+\(\square\) Apply checklist to all SRS sections \newline
+\(\square\) Execute automated + manual verifications \\ \hline
+
+Supervisor Review &
+\(\square\) Prepare and distribute review materials \newline
+\(\square\) Conduct formal walkthrough \newline
+\(\square\) Record findings as GitHub issues \\ \hline
+
+Prototype-Based Validation &
+\(\square\) Develop interactive prototype \newline
+\(\square\) Run scenario-based usability tests \newline
+\(\square\) Compare results against success metrics \\ \hline
+
+Continuous Verification &
+\(\square\) Hold biweekly review meetings \newline
+\(\square\) Update documentation and traceability records \newline
+\(\square\) Re-inspect modified requirements \\ \hline
+
+\end{tabular}
+\end{table}
+
 
 \subsection{Design Verification}
 
-\wss{Plans for design verification}
+Design verification confirms that the VoiceBridge architecture and modules meet all verified requirements from the SRS. Planned Verification Activities:
 
-\wss{The review will include reviews by your classmates}
+\begin{itemize}
+    \item Design Review Meeting: \\
+    Conduct a structured walkthrough of the Module Interface Specification with Dr.~Brodbeck. Each module will be checked against SRS FR1--FR5 and non-functional requirements. Findings will be documented and tracked in GitHub under \textit{Design Verification}.
+    
+    \item Checklist Inspection: \\
+    Verify that data flows align with the SRS Data Dictionary and that control logic matches the Business Use Cases. Confirm consistency in naming, data handling, and error management.
+    
+    \item Interface Validation: \\
+    Use UI mock-ups to confirm compliance with Accessibility and Safety-Critical requirements. Validate color contrast, keyboard navigation, and error feedback clarity.
+\end{itemize}
 
-\wss{Create a checklists?}
+\begin{table}[H]
+\centering
+\caption{Design Verification Checklist}
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{|p{5cm}|p{9cm}|}
+\hline
+Criteria & Verification Activities \\ \hline
+Design Review &
+\(\square\) Cross-check each module with SRS requirements \newline
+\(\square\) Log findings in GitHub \\ \hline
+Checklist Inspection &
+\(\square\) Validate data flows and logic consistency \newline
+\(\square\) Check naming and error handling \\ \hline
+Interface Validation &
+\(\square\) Review mock-ups for accessibility and safety compliance \\ \hline
+\end{tabular}
+\end{table}
 
 \subsection{Verification and Validation Plan Verification}
 
-\wss{The verification and validation plan is an artifact that should also be
-verified.  Techniques for this include review and mutation testing.}
+The Verification and Validation (V\&V) Plan will undergo its own verification process to ensure that it is accurate, complete, and consistent with project standards. Planned Verification Activities:
 
-\wss{The review will include reviews by your classmates}
+\begin{itemize}
+    \item Peer Inspection: \\
+    All team members will review the plan using a standardized checklist to evaluate completeness of scope, requirement traceability, and feasibility of proposed activities.
 
-\wss{Create a checklists?}
+    \item Supervisor Approval: \\
+    The finalized document will be submitted to Dr.~Brodbeck for formal review. Feedback will confirm that verification procedures align with course and project expectations.
+
+    \item Issue Logging and Revision Tracking: \\
+    Any missing information, inconsistencies, or suggested improvements will be logged as GitHub issues. Updates will be reviewed and approved before submission.
+\end{itemize}
+
+\begin{table}[H]
+\centering
+\caption{V\&V Plan Verification Checklist}
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{|p{5.5cm}|p{8cm}|}
+\hline
+Criteria & Verification Activities \\ \hline
+Peer Inspection &
+\(\square\) Verify traceability and feasibility  \newline
+\(\square\) Review plan scope, objectives, and completeness \\ \hline
+Supervisor Approval &
+\(\square\) Submit plan for instructor feedback \newline
+\(\square\) Incorporate required revisions \\ \hline
+Issue Logging and Tracking &
+\(\square\) Record suggested updates in GitHub \newline
+\(\square\) Confirm all revisions are reviewed and approved \\ \hline
+\end{tabular}
+\end{table}
 
 \subsection{Implementation Verification}
 
-\wss{You should at least point to the tests listed in this document and the unit
-  testing plan.}
+Implementation verification ensures that VoiceBridge’s source code correctly implements the approved design and satisfies all verified requirements. Planned Verification Activities:
 
-\wss{In this section you would also give any details of any plans for static
-  verification of the implementation.  Potential techniques include code
-  walkthroughs, code inspection, static analyzers, etc.}
+\begin{itemize}
+    \item Unit and Integration Testing: \\
+    Automated tests will verify core functional requirements (SRS~§10, FR1--FR5), covering audio input, speech-to-text, intent mapping, and command execution. End-to-end PUC flows (SRS~§8.2) will be validated through CI pipelines with coverage tracking.
 
-\wss{The final class presentation in CAS 741 could be used as a code
-walkthrough.  There is also a possibility of using the final presentation (in
-CAS741) for a partial usability survey.}
+    \item Static Analysis and Peer Review: \\
+    Code reviews will check compliance with maintainability and security requirements (SRS~§15--16) and confirm mitigation of hazards listed in the Hazard Analysis (e.g., IR1, IMR1--IMR3). Issues will be tracked on GitHub for traceability.
+
+    \item Automated Code Quality Tools: \\
+    PEP~8 and ESLint will enforce code quality and consistency, supporting maintainability goals (SRS~§15.1).
+\end{itemize}
+
+\begin{table}[H]
+\centering
+\caption{Implementation Verification Checklist}
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{|p{6cm}|p{8cm}|}
+\hline
+Criteria & Verification Activities \\ \hline
+Unit \& Integration Testing &
+\(\square\) Track coverage and test results \newline
+\(\square\) Develop automated test suites for all modules \\ \hline
+Static Analysis \& Peer Review &
+\(\square\) Conduct code inspections \newline
+\(\square\) Log and resolve defects in GitHub \\ \hline
+Code Quality Tools &
+\(\square\) Enforce style rules with PEP~8 and ESLint \newline
+\(\square\) Verify consistent formatting and documentation \\ \hline
+\end{tabular}
+\end{table}
+
 
 \subsection{Automated Testing and Verification Tools}
 
-\wss{What tools are you using for automated testing.  Likely a unit testing
-  framework and maybe a profiling tool, like ValGrind.  Other possible tools
-  include a static analyzer, make, continuous integration tools, test coverage
-  tools, etc.  Explain your plans for summarizing code coverage metrics.
-  Linters are another important class of tools.  For the programming language
-  you select, you should look at the available linters.  There may also be tools
-  that verify that coding standards have been respected, like flake9 for
-  Python.}
+To support consistent and repeatable verification, the following tools will be used.
 
-\wss{If you have already done this in the development plan, you can point to
-that document.}
+\begin{table}[H]
+\centering
+\caption{Automated Testing and Verification Tools}
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{|p{4cm}|p{10cm}|}
+\hline
+Tool & Purpose \\ \hline
+PyTest / unittest & Automated unit tests for ASR and intent mapping modules (Python). \\ \hline
+GitHub Actions & Continuous integration pipeline executing test suites on each commit. \\ \hline
+ESLint / Prettier & Enforces style and code quality standards for JavaScript/TypeScript. \\ \hline
+pytest-cov / Codecov & Collects and reports test coverage metrics; uploads reports per build. \\ \hline
+WAVE / axe Accessibility Scanner & Evaluates UI compliance with WCAG~2.1~AA. \\ \hline
+\end{tabular}
+\end{table}
 
-\wss{The details of this section will likely evolve as you get closer to the
-  implementation.}
+Coverage and Linting Summary
+
+\begin{itemize}
+    \item \texttt{pytest-cov} will generate line and branch coverage reports.
+    \item Coverage summaries will appear on pull requests and weekly trend reports in the repository.
+    \item Linters (\texttt{ruff}, \texttt{eslint}, and \texttt{prettier}) will ensure consistent style and catch syntax or accessibility issues before merging.
+\end{itemize}
 
 \subsection{Software Validation}
 
-\wss{If there is any external data that can be used for validation, you should
-  point to it here.  If there are no plans for validation, you should state that
-  here.}
+Validation confirms that VoiceBridge meets user needs and operates as intended in real-world conditions. Approaches:
 
-\wss{You might want to use review sessions with the stakeholder to check that
-the requirements document captures the right requirements.  Maybe task based
-inspection?}
+\begin{itemize}
+    \item Stakeholder Feedback and Demo Validation: \\
+    Rev~0 and Rev~1 demos will be used to validate against user personas and supervisor expectations.
 
-\wss{For those capstone teams with an external supervisor, the Rev 0 demo should 
-be used as an opportunity to validate the requirements.  You should plan on 
-demonstrating your project to your supervisor shortly after the scheduled Rev 0 demo.  
-The feedback from your supervisor will be very useful for improving your project.}
+    \item User Testing: \\
+    Collect feedback from two to three target users (simulated or actual) performing core use cases (PUC-1 to PUC-5) with success metrics on accuracy and ease of use.
 
-\wss{For teams without an external supervisor, user testing can serve the same purpose 
-as a Rev 0 demo for the supervisor.}
+    \item Functional Testing: \\
+    Validate VoiceBridge’s performance and behavior against comparable open-source Python speech-processing projects to confirm functional correctness.
+\end{itemize}
 
-\wss{This section might reference back to the SRS verification section.}
 
 \section{System Tests}
 
