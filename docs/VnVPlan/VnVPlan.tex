@@ -350,53 +350,250 @@ This section defines the system-level tests for \emph{VoiceBridge}. It follows t
 
 \subsection{Tests for Functional Requirements}
 
-The subsections below outline tests corresponding to the SRS Functional Requirements (FR1–FR5). Each test has a unique ID and clear execution steps. References to the SRS fit criteria are noted in each test’s goal or derivation.
+The subsections below outline tests corresponding to the SRS Functional Requirements (FR1--FR5).
+Each test has a unique ID and clear execution steps.
 
-\subsubsection{FR1 — Accept Speech Audio via Microphone}
+\subsubsection{Tests for FR1 — Accept Speech Audio via Microphone}
 
-\paragraph{test-FR1-MIC-1 Valid Microphone Capture (Desktop)}
+\textbf{Goal:} Verify live microphone capture across platforms at $\geq$16 kHz.
 
 \begin{enumerate}
-\item{test-FR1-MIC-1\\}
-Control: Manual
 
-Initial State: App installed; permissions not yet granted.
+\item{test-FR1-MIC-1 Valid Microphone Capture (Desktop)\\}
 
-Input: Speak a short phrase (“Testing one two three”) into the default OS microphone on a Window OS laptop.
+\textbf{Type:} Manual
 
-Output: App requests microphone permission; once granted, waveform/level indicator appears and raw audio frames are buffered at $\geq$16 kHz.
+\textbf{Initial State:} App installed; permissions not yet granted.
 
-Test Case Derivation: Confirms standard microphone capture per FR1.
+\textbf{Input/Condition:} Speak a short phrase (\textit{``Testing one two three''}) into the default OS microphone on a Windows OS laptop.
 
-How test will be performed: Launch app $\rightarrow$ start capture $\rightarrow$ verify UI level meter moves; export a short recording and inspect metadata (sample rate $\geq$16 kHz).
+\textbf{Test Case Derivation:} Confirms standard microphone capture per FR1.
+
+\textbf{Output/Result:} App requests microphone permission; once granted, waveform/level indicator appears and raw audio frames are buffered at $\geq$16 kHz.
+
+\textbf{How test will be performed:} Launch app $\to$ start capture $\to$ verify UI level meter moves; export a short recording and inspect metadata (sample rate $\geq$16 kHz).
+
+\item{test-FR1-MIC-2 Mobile Permission \& Capture\\}
+
+\textbf{Type:} Manual
+
+\textbf{Initial State:} App freshly installed on iOS and Android.
+
+\textbf{Input/Condition:} First-time launch and attempt to record.
+
+\textbf{Test Case Derivation:} Validates cross-platform permission handling and capture (FR1).
+
+\textbf{Output/Result:} OS permission prompt shown; after approval, capture begins; denial shows friendly error and retry path.
+
+\textbf{How test will be performed:} Deny once (expect error + guidance), then allow (expect capture + levels).
+
+\item{test-FR1-MIC-3 Default Device Selection \& Fallback\\}
+
+\textbf{Type:} Manual
+
+\textbf{Initial State:} Multiple audio devices present (laptop microphone + USB microphone).
+
+\textbf{Input/Condition:} Unplug/plug devices while capturing.
+
+\textbf{Output/Result:} The system selects the current default audio input device. If the device disconnects, it automatically falls back to another available microphone and notifies the user.
+
+\textbf{Test Case Derivation:} Ensures robust device handling required for “default OS microphone devices” (FR1).
+
+\textbf{How test will be performed:} Start capture $\to$ unplug active microphone $\to$ observe fallback notice $\to$ confirm continued capture.
+
 \end{enumerate}
 
-\paragraph{test-FR1-MIC-2 Mobile Permission \& Capture}
+\subsubsection{Tests for FR2 — Convert Impaired Speech to Text $\geq$80\% Accuracy (MVP)}
+\textbf{Goal:} Validate transcription accuracy on impaired speech and common commands.
+
 
 \begin{enumerate}
 \item{test-FR1-MIC-2\\}
 Control: Manual
 
-Initial State: App freshly installed on iOS and Android.
+\item{test-FR2-ASR-1 Dataset Evaluation vs Baseline\\}
 
-Input: First-time launch and attempt to record.
+\textbf{Type:} Automated \(batch evaluation\)
 
-Output: OS permission prompt shown; after approval, capture begins; denial shows friendly error and retry path.
+\textbf{Initial State:} Curated impaired-speech test set with references; chosen baseline model.
 
-Test Case Derivation: Validates cross-platform permission handling and capture (FR1).
+\textbf{Input/Condition:} Run system and baseline over full test set.
 
-How test will be performed: Deny once (expect error + guidance), then allow (expect capture + levels).
+\textbf{Output/Result:} System achieves $\geq$80\% WER reduction vs baseline \textbf{or} meets defined WER delta per SRS; report includes per-speaker metrics.
+
+\textbf{Test Case Derivation:} Directly tests Fit Criterion’s WER reduction expectation.
+
+\textbf{How test will be performed:} Evaluation script computes WER, CER; export CSV; assert threshold met.
+
+\item{test-FR2-ASR-2: Common Command Accuracy $\geq$80\%\\}
+
+\textbf{Type:} Automated \(scripted playback\)
+
+\textbf{Initial State:} Command list of 50+ common intents; audio variants (different speakers/noise).
+
+\textbf{Input/Condition:} Play each command sample to the system.
+
+\textbf{Output/Result:} Meets $\geq$80\% correct textual outputs (exact or accepted synonyms).
+
+\textbf{Test Case Derivation:} Meets “$\geq$80\% accuracy for common commands.”
+
+\textbf{How test will be performed:} Align decoded text with ground truth (string/intent match); assert $\geq$80\% pass rate.
+
 \end{enumerate}
 
-\paragraph{test-FR1-MIC-3 Default Device Selection \& Fallback}
+\subsubsection{Tests for FR3 — Display Transcription for Verification}
+
+
+\textbf{Goal:} Real-time text display within 2 seconds for $\geq$95\% of trials.
+
 
 \begin{enumerate}
-\item{test-FR1-MIC-3\\}
-Control: Manual
 
-Initial State: Multiple audio devices present (laptop microphone + USB microphone).
+\item{test-FR3-UI-1: Real-Time Display Latency\\}
 
-Input: Unplug/plug devices while capturing.
+\textbf{Type:} Automated (instrumented)
+
+\textbf{Initial State:} Logging timestamps at (a) audio frame arrival, (b) first token shown.
+
+\textbf{Input/Condition:} 100 short utterances across platforms.
+
+\textbf{Output/Result:} Time-to-first-text $\leq$2 s in $\geq$95\% of trials.
+
+\textbf{Test Case Derivation:} Direct Fit Criterion.
+
+\textbf{How test will be performed:} Run scripted playback or live reads with a timer, store successful and unsuccessful trials and calculate percentage.
+
+\item{test-FR3-UI-2: Continuous Update \& Finalization\\}
+
+\textbf{Type:} Manual
+
+\textbf{Initial State:} Streaming UI enabled.
+
+\textbf{Input/Condition:} Speak a 10--15 s sentence; include pauses and restarts.
+
+\textbf{Output/Result:} UI shows incremental text as it is transcribed; final text locks with a small visual cue; no flickering or text loss occurs.
+
+\textbf{Test Case Derivation:} Ensures transparency/trust via visible updates (FR3).
+
+\textbf{How test will be performed:} Observe display during input; record the session on video; verify that the text updates smoothly and that the finalization cue appears.
+
+\end{enumerate}
+
+\subsubsection{Tests for FR4 — Map Text to Arbitrary Device Commands}
+
+
+
+\textbf{Goal:} $\geq$90\% correct mapping on a 50-command test set; handle ambiguity safely.
+
+
+
+\begin{enumerate}
+
+\item{test-FR4-MAP-1: Canonical Command Set Accuracy\\}
+
+\textbf{Type:} Automated
+
+\textbf{Initial State:} 50 predefined commands with canonical phrasings and expected command representations (API/CLI/accessibility).
+
+\textbf{Input/Condition:} Exact text phrases.
+
+\textbf{Output/Result:} $\geq$90\% correct mapping to the expected command representation.
+
+\textbf{Test Case Derivation:} Direct Fit Criterion.
+
+\textbf{How test will be performed:} Feed text into intent mapper; compare output to expected representations for accuracy.
+
+\item{test-FR4-MAP-2: Paraphrase \& Synonym Robustness\\}
+
+\textbf{Type:} Automated
+
+\textbf{Initial State:} Same 50 intents with 2--3 paraphrases each.
+
+\textbf{Input/Condition:} Paraphrased commands (e.g., “launch mail app” for “open email”).
+
+\textbf{Output/Result:} Maintains $\geq$90\% accuracy across the combined set or recorded separately for robustness.
+
+\textbf{Test Case Derivation:} Realistic language coverage (FR4 rationale).
+
+\textbf{How test will be performed:} Evaluate precision/recall across the set and calculate percentage.
+
+\item{test-FR4-MAP-3: Ambiguity \& Disambiguation\\}
+
+\textbf{Type:} Manual
+
+\textbf{Initial State:} Commands with ambiguous target (“open Amazon” vs “open Amazon.ca”).
+
+\textbf{Input/Condition:} Ambiguous phrasing.
+
+\textbf{Output/Result:} System asks a brief clarifying question before mapping; no unsafe default.
+
+\textbf{Test Case Derivation:} Safe mapping for independence without surprises (FR4).
+
+\textbf{How test will be performed:} Provide ambiguous text; verify clarification prompt and final mapping.
+
+\item{test-FR4-MAP-4: Out-of-Domain Commands\\}
+
+\textbf{Type:} Manual
+
+\textbf{Initial State:} Intent catalog fixed; user requests unsupported app/action.
+
+\textbf{Input/Condition:} “Turn on bedroom lights” (if smart-home unsupported).
+
+\textbf{Output/Result:} Clear feedback: unsupported command + suggestion (link/alternative).
+
+\textbf{How test will be performed:} Issue out-of-domain (OOD) text; verify messaging and no execution.
+
+\end{enumerate}
+
+\subsubsection{Tests for FR5 — Execute Commands on the Host Device}
+
+
+\textbf{Goal:} For each correctly recognized command, execute within 2 seconds, $\geq$95\% reliability.
+
+
+\begin{enumerate}
+
+\item{test-FR5-EXEC-1: End-to-End Execution Latency \& Reliability\\}
+
+\textbf{Type:} Automated (instrumented E2E)
+
+\textbf{Initial State:} Known-good mappings for a 50-command set.
+
+\textbf{Input/Condition:} Trigger each command (text or speech $\rightarrow$ text).
+
+\textbf{Output/Result:} Visible system action completes within $\leq$2 s in $\geq$95\% of runs (per command), across platforms.
+
+\textbf{Test Case Derivation:} Direct Fit Criterion.
+
+\textbf{How test will be performed:} Timestamp intent and effect (e.g., window focus/app open), calculate success rate over the 50-command set.
+
+\item{test-FR5-EXEC-2: Accessibility/API Fallback Paths\\}
+
+\textbf{Type:} Manual/Automated
+
+\textbf{Initial State:} Primary API disabled (simulate outage).
+
+\textbf{Input/Condition:} Execute commands that have both accessibility and API paths.
+
+\textbf{Output/Result:} System selects fallback path, still within target latency where feasible, or reports partial degradation.
+
+\textbf{Test Case Derivation:} Ensures robust execution loop (FR5 rationale).
+
+\textbf{How test will be performed:} Toggle feature flags/mocks; verify fallback invocation.
+
+\item{test-FR5-EXEC-3: Safety \& Confirmation for Destructive Actions\\}
+
+\textbf{Type:} Manual
+
+\textbf{Initial State:} Commands include potentially destructive actions (e.g., “delete email”).
+
+\textbf{Input/Condition:} Issue destructive command.
+
+\textbf{Output/Result:} Confirmation prompt appears; execution only after explicit confirmation.
+
+\textbf{Test Case Derivation:} Safe device control (FR5).
+
+\textbf{How test will be performed:} Attempt action, verify prompt appears and execution is blocked if canceled.
 
 Output: The system selects the current default audio input device. If the device disconnects, it automatically falls back to another available microphone and notifies the user.
 
@@ -404,8 +601,6 @@ Test Case Derivation: Ensures robust device handling required for “default OS 
 
 How test will be performed: Start capture $\rightarrow$ unplug active microphone $\rightarrow$ observe fallback notice $\rightarrow$ confirm continued capture.
 \end{enumerate}
-
-\subsubsection{FR2 — Convert Impaired Speech to Text $\geq$80\% Accuracy (MVP)}
 
 \paragraph{test-FR2-ASR-1 Dataset Evaluation vs Baseline}
 
