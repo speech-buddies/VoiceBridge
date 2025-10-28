@@ -349,55 +349,55 @@ the contents of the subsections.}
 
 \subsection{Tests for Functional Requirements}
 
-\wss{Subsets of the tests may be in related, so this section is divided into
-  different areas.  If there are no identifiable subsets for the tests, this
-  level of document structure can be removed.}
+The subsections below outline tests corresponding to the SRS Functional Requirements (FR1--FR5).
+Each test has a unique ID and clear execution steps.
 
-\wss{Include a blurb here to explain why the subsections below
-  cover the requirements.  References to the SRS would be good here.}
+\subsubsection{4.1.1 Tests for FR1 — Accept Speech Audio via Microphone}
 
-\subsubsection{Area of Testing1}
-
-\wss{It would be nice to have a blurb here to explain why the subsections below
-  cover the requirements.  References to the SRS would be good here.  If a section
-  covers tests for input constraints, you should reference the data constraints
-  table in the SRS.}
-		
-\paragraph{Title for Test}
+\paragraph{Microphone Capture Tests}
 
 \begin{enumerate}
 
-\item{test-id1\\}
+\item{test-FR1-MIC-1\\}
 
-Control: Manual versus Automatic
-					
-Initial State: 
-					
-Input: 
-					
-Output: \wss{The expected result for the given inputs.  Output is not how you
-are going to return the results of the test.  The output is the expected
-result.}
+\textbf{Type:} Functional, Dynamic, Manual
 
-Test Case Derivation: \wss{Justify the expected value given in the Output field}
-					
-How test will be performed: 
-					
-\item{test-id2\\}
+\textbf{Initial State:} App installed; permissions not yet granted.
 
-Control: Manual versus Automatic
-					
-Initial State: 
-					
-Input: 
-					
-Output: \wss{The expected result for the given inputs}
+\textbf{Input/Condition:} Speak a short phrase (\textit{``Testing one two three''}) into the default OS microphone on a Windows OS laptop.
 
-Test Case Derivation: \wss{Justify the expected value given in the Output field}
+\textbf{Output/Result:} App requests microphone permission; once granted, waveform/level indicator appears and raw audio frames are buffered at $\geq$16 kHz.
 
-How test will be performed: 
+\textbf{How test will be performed:} Launch app $\to$ start capture $\to$ verify UI level meter moves; export a short recording and inspect metadata (sample rate $\geq$16 kHz).
+
+\item{test-FR1-MIC-2\\}
+
+\textbf{Type:} Functional, Dynamic, Manual
+
+\textbf{Initial State:} App freshly installed on iOS and Android.
+
+\textbf{Input/Condition:} First-time launch and attempt to record.
+
+\textbf{Output/Result:} OS permission prompt shown; after approval, capture begins; denial shows friendly error and retry path.
+
+\textbf{How test will be performed:} Deny once (expect error + guidance), then allow (expect capture + levels).
+
+\item{test-FR1-MIC-3\\}
+
+\textbf{Type:} Functional, Dynamic, Manual
+
+\textbf{Initial State:} Multiple audio devices present (laptop microphone + USB microphone).
+
+\textbf{Input/Condition:} Unplug/plug devices while capturing.
+
+\textbf{Output/Result:} The system selects the current default audio input device. If the device disconnects, it automatically falls back to another available microphone and notifies the user.
+
+\textbf{How test will be performed:} Start capture $\to$ unplug active microphone $\to$ observe fallback notice $\to$ confirm continued capture.
 
 \end{enumerate}
+
+\subsubsection{Other Areas of Testing}
+
 
 \subsubsection{Area of Testing2}
 
