@@ -2,6 +2,7 @@
 
 \usepackage{tabularx}
 \usepackage{booktabs}
+\usepackage{hyperref}  
 
 \title{Problem Statement and Goals\\\progname}
 
@@ -139,6 +140,21 @@ The performance report is essential to evaluate how well our system meets the de
 \end{enumerate} 
 
 \section*{References}
-\bibliographystyle{IEEEtran}
-\bibliography{../../refs/References}
+%\bibliographystyle{IEEEtran} using references,bib did not work
+%\bibliography{../refs/References}
+\begin{thebibliography}{00}
+
+\bibitem{nidcd2024assistive}
+National Institute on Deafness and Other Communication Disorders,
+``Assistive Devices for People with Hearing, Voice, Speech, or Language Disorders,'' 2024.
+[Online]. Available: \url{https://www.nidcd.nih.gov/health/assistive-devices-people-hearing-voice-speech-or-language-disorders}.
+Accessed: 2024-09-29.
+
+\bibitem{pokel2025variational}
+N.~Pokel, P.~Moure, R.~Boehringer, S.-C.~Liu, and Y.~Gao,
+``Variational Low-Rank Adaptation for Personalized Impaired Speech Recognition,''
+\emph{arXiv preprint} arXiv:2509.20397, 2025.
+[Online]. Available: \url{https://arxiv.org/abs/2509.20397}.
+
+\end{thebibliography}
 \end{document}
