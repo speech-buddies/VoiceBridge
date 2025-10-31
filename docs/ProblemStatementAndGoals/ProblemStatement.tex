@@ -2,6 +2,7 @@
 
 \usepackage{tabularx}
 \usepackage{booktabs}
+\usepackage{hyperref}  
 
 \title{Problem Statement and Goals\\\progname}
 
@@ -25,20 +26,35 @@
 Sept 18 & Mazen & Drafted \& Reviewed the Problem Statement/Goals\\
 Sept 22 & Mazen & Made Changes based on team's Feedback and filled Appendix\\
 Sept 28 & Rawan & Added Citations to problem statement based on peer review\\
+Oct 30 & Mazen & Implemented TA Feedback\\
 \bottomrule
 \end{tabularx}
 \end{table}
 
 \section{Problem Statement}
-
+This section outlines the problem that our project aims to solve, detailing the inputs and outputs of the system, identifying key stakeholders, and describing the environment in which the solution will operate.
 \subsection{Problem}
 Individuals with speech impairments, such as those caused by neurological conditions (e.g., Parkinson's disease, stroke, or cerebral palsy), often struggle to interact with modern digital devices \cite{nidcd2024assistive}. Though there have been recent advancements in state-of-the-art Automatic Speech Recognition (ASR) models, widely used models like Whisper and wav2vec show significantly reduced performance on atypical speech \cite{pokel2025variational}. The lack of accurate tools for this population limits their independence, restricts accessibility, and creates barriers to everyday tasks such as sending messages, browsing the internet, or operating applications. A solution is needed that can reliably interpret impaired speech and seamlessly integrate with existing devices to empower users with greater autonomy.
 
 \subsection{Inputs and Outputs}
-At a high level, the system will take speech audio input from users with impaired or slurred speech, captured through a microphone. The input is then processed by a custom-trained machine learning model designed to handle atypical speech patterns. The system will generate text output representing the user's intended words. This text is further mapped into commands or actions that can be executed on a phone or computer interface, allowing the user to control applications, send messages, or perform other digital tasks without requiring standard speech clarity. By bridging the gap between impaired speech and device interaction, the system transforms inaccessible voice commands into actionable outcomes.
+  Inputs:
+    \begin{itemize}
+      \item At a high level, the system will take speech audio input from users with impaired or slurred speech, captured through a microphone.
+    \end{itemize}
+  Processing:
+    \begin{itemize}
+      \item The input is then processed by a custom-trained machine learning model designed to handle atypical speech patterns.
+    \end{itemize}
+  Outputs:
+    \begin{itemize}
+      \item The system will generate text output representing the user's intended words.
+      \item This text is further mapped into commands or actions that can be executed on a phone or computer interface, allowing the user to control applications, send messages, or perform other digital tasks without requiring standard speech clarity.
+
+    \end{itemize}
+    By bridging the gap between impaired speech and device interaction, the system transforms inaccessible voice commands into actionable outcomes.
 
 \subsection{Stakeholders}
-The primary stakeholders are individuals with speech impairments, such as those with Parkinson's disease, stroke-related conditions, cerebral palsy, or other disorders that affect articulation. These users directly benefit from improved accessibility and independence in controlling digital devices.
+The primary stakeholders are individuals with speech impairments or dysarthic speech. These users directly benefit from improved accessibility and independence in controlling digital devices.
 
 Secondary stakeholders include:
 \begin{itemize}
@@ -46,10 +62,11 @@ Secondary stakeholders include:
   \item Healthcare professionals and speech therapists, who can recommend or integrate this technology into treatment plans to support rehabilitation and daily functioning.
   \item Accessibility advocates and organizations, who seek inclusive technology solutions to close the digital accessibility gap.
   \item Software developers and device manufacturers, who may integrate this system into their platforms to expand accessibility features.
+  \item Researchers in speech recognition and assistive technologies, who can build upon this project to further improve accessibility solutions.
 \end{itemize}
 
 \subsection{Environment}
-The system is expected to operate on consumer-grade devices such as smartphones, tablets, or personal computers, equipped with a standard microphone for capturing speech input. It must function in everyday environments where background noise may be present, such as at home, in clinics, or in public settings.
+The system is expected to operate on a personal computer that is equipped with a standard microphone for capturing speech input. It must function in everyday environments where background noise may be present, such as at home, in clinics, or in public settings.
 
 The software environment will include:
 \begin{itemize}
@@ -58,11 +75,9 @@ The software environment will include:
   \item Integration with existing operating system accessibility frameworks to enable device-level control (e.g., opening apps, sending messages, browsing).
 \end{itemize}
 
-The solution must be designed to be lightweight and user-friendly, requiring minimal setup, so that individuals of varying technical ability can use it independently.
-
 
 \section{Goals}
-The following are goals that VoiceBridge must achieve in order to be considered acceptable and complete.
+The table below contains the goals that VoiceBridge must achieve in order to be considered acceptable and complete.
 
 \begin{table}[hp]
 \caption{Minimum Viable Product Goals} 
@@ -78,8 +93,10 @@ Non-Disruptive Feedback & The transcribed text should be displayed clearly to th
 \end{tabularx}
 \end{table}
 
+\newpage
+
 \section{Stretch Goals}
-The following are goals that are not necessary for the product to be viable, but will provide added benefits should they be achieved.
+The table below shows the goals that are not necessary for the product to be viable, but will provide added benefits should they be achieved.
 
 \begin{table}[hp]
 \caption{Stretch Goals}
@@ -98,18 +115,19 @@ Autonomy & Once activated, the system should allow users to operate devices with
 \newpage
 
 \section{Extras}
-
 \begin{itemize}
     \item Literature Review Report
     \item Performance Report
 \end{itemize}
+The reason why we have a literature review report is to understand the current state of speech recognition technologies, especially those tailored for impaired speech. This report will help us identify existing solutions and pick the most appropriate one we can build on to address the needs of our target stakeholders.
+\\
+\\
+The performance report is essential to evaluate how well our system meets the defined goals. It will provide metrics on accuracy and usability and compare our solution to existing solutions to see whether our solution has made an improvement or not.
 
 \newpage{}
 
 \section*{Appendix --- Reflection}
 
-
-\input{../Reflection.tex}
 
 \begin{enumerate}
     \item What went well while writing this deliverable? \\ \\
@@ -124,6 +142,21 @@ Autonomy & Once activated, the system should allow users to operate devices with
 \end{enumerate} 
 
 \section*{References}
-\bibliographystyle{IEEEtran}
-\bibliography{../../refs/References}
+%\bibliographystyle{IEEEtran} using references,bib did not work
+%\bibliography{../refs/References}
+\begin{thebibliography}{00}
+
+\bibitem{nidcd2024assistive}
+National Institute on Deafness and Other Communication Disorders,
+``Assistive Devices for People with Hearing, Voice, Speech, or Language Disorders,'' 2024.
+[Online]. Available: \url{https://www.nidcd.nih.gov/health/assistive-devices-people-hearing-voice-speech-or-language-disorders}.
+Accessed: 2024-09-29.
+
+\bibitem{pokel2025variational}
+N.~Pokel, P.~Moure, R.~Boehringer, S.-C.~Liu, and Y.~Gao,
+``Variational Low-Rank Adaptation for Personalized Impaired Speech Recognition,''
+\emph{arXiv preprint} arXiv:2509.20397, 2025.
+[Online]. Available: \url{https://arxiv.org/abs/2509.20397}.
+
+\end{thebibliography}
 \end{document}
