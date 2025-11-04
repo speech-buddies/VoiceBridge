@@ -31,9 +31,9 @@
 September 22, 2025 & Kelvin Yu & Added Sections 1-5 and updated team charter\\
 September 22, 2025 & Rawan Mahdi & Added sections 6 and 9, and parts of charter \\
 September 22, 2025 & Luna Aljammal & Added sections 7,8,10,11 and parts of charter \\
-September 29, 2025 & Rawan Madhi & Updated PoC plan with new roadmap discussed with supervisor\\
+September 29, 2025 & Rawan Mahdi & Updated PoC plan with new roadmap discussed with supervisor\\
 September 30, 2025 & Luna Aljammal & Updated deadlines, naming conventions, and team charter to address peer feedback \\
-
+November 4, 2025 & Rawan Mahdi & Implemented TA feedback: Rephrased section 1 for clarity on participant consent, added details to section 6 on how work will be partitioned, added minor fixes to links and acronyms \\
 \bottomrule
 \end{tabularx}
 \end{table}
@@ -58,12 +58,9 @@ The github is also linked \href{https://github.com/orgs/speech-buddies/projects/
 
 This project does \textbf{not} currently contain any confidential information from industry. All datasets, tools, and resources used are publicly available and open source.
 
-In the future, if we collect voice data from external participants (e.g., individuals with speech disabilities) and they request that their information remain confidential, we will put a confidentiality and data use agreement / consent form in place before collecting any data. This agreement will outline how their data will be stored, de-identified, and used solely within the project.
-
+Future iterations of VoiceBridge may require running live tests \& demonstrations with end users, which would in turn require data collection. Users who agree to participate in our testing trials will sign a consent form, indicating we can use their material for the collection and use of their personal data. The consent form will outline how their data will be stored and anonymized, and whether or not their data will be distributed publicly or privately. 
 
 \section{IP to Protect}
-
-
 
 There is no IP to protect.
 
@@ -104,7 +101,11 @@ These tools will ensure that all updates, discussions, and decisions are documen
 % not necessary at this stage.  In a student team the role of the individuals will
 % likely change throughout the year.}
 
-All team members will be responsible for creating issues, developing, testing, documenting, and reviewing code. Development work will be partitioned based on project feature. Administrative tasks will be broken down by the following roles, which will be cycled on a regular basis.
+All team members will be responsible for creating issues, developing, testing, documenting, and reviewing code. 
+
+Development work will be partitioned based on project features/components rather than technical expertise. For instance, when implementing the end product, one individual will be responsible for the end to end development of the audio data ingestion components of the projects, including frontend, backend, and database integration. This is so that the technical expertise is evenly distributed across the team, providing an equal learning \& development opportunity for each team mate.
+
+Administrative tasks will be broken down by the following roles, which will be cycled on a regular basis.
 
 \subsection{Project Lead}
 
@@ -117,9 +118,9 @@ All team members will be responsible for creating issues, developing, testing, d
 \subsection{Content Manager}
 
 \begin{itemize}
-  \item Collects materials needed for proposals for data usage, ethics agreements, etc
+  \item Collects materials needed for proposals for data usage, ethics agreements, and other external documents
   \item Documents papers, datasets, and all other resources referenced by the team throughout the project
-  \item Updates Kanban board each week
+  \item Updates \href{https://github.com/orgs/speech-buddies/projects/1}{Kanban board} each week
 \end{itemize}
 
 \subsection{Book Keeper}
@@ -149,7 +150,7 @@ All team members will be responsible for creating issues, developing, testing, d
 
 The team will use Git and GitHub for version control, to manage issues, and to handle pull requests. During the weekly meetings, the team will create a list of issues to complete. This will follow an issue template with a description that includes the Definition of Done (DoD), an assignee, a reviewer, as well as the source/purpose of the issue and any related dependencies or issues. Commits will include a descriptive message outline the changes. To maintain a traceable Git history, all branches must be prefixed with the corresponding Issue Label.
 
-\noindent To keep an organized project, PRs will be merged to main after a reviewer approves that the DoD has been met. Tests will be required where applicable in the DoD. The issue will be linked in the PR description.
+\noindent To keep an organized project, pull requests will be merged to main after a reviewer approves that the DoD has been met. Tests will be required where applicable in the DoD. The issue will be linked in the PR description.
 
 Issues will be used to track all tasks, including work resulting from feedback. Tasks could include:
 \begin{itemize}
@@ -243,7 +244,7 @@ Link to GitHub project: \url{https://github.com/orgs/speech-buddies/projects/1}
 
 \subsection{Objective}
 
-The objective of our proof of concept (PoC) is to demonstrate the feasibility of using machine learning to reliably transcribe impaired speech into text, even at a limited scale. The PoC does not need to encompass the end-to-end application; rather, it should validate whether available ASR architectures and datasets can achieve accuracy sufficient to justify further development.
+The objective of our Proof of Concept (PoC) is to demonstrate the feasibility of using machine learning to reliably transcribe impaired speech into text, even at a limited scale. The PoC does not need to encompass the end-to-end application; rather, it should validate whether available ASR architectures and datasets can achieve accuracy sufficient to justify further development.
 
 \subsection{Scope of PoC}
 
@@ -260,7 +261,7 @@ The objective of our proof of concept (PoC) is to demonstrate the feasibility of
         \item Atypical speech data augmentation strategy for improving accuracy.
     \end{enumerate}
     
-    \item \textbf{Not Included:} Full device control integration, UI, or environment development/deployment.
+    \item \textbf{Not Included:} Full device control integration, user interface (UI), or environment development/deployment.
 \end{itemize}
 
 \section{Timeline (1.5 months / $\sim$7 weeks)}
