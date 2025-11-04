@@ -59,6 +59,7 @@
 October 2, 2025 & Rawan and Luna & Filled-In Initial Draft of SRS Document\\
 October 10, 2025 & Rawan and Luna & Completed SRS Document\\
 October 10, 2025 & Mazen and Kelvin & Reviewed and Edited SRS Document\\
+November 3, 2025 & Luna & Addressed SRS Glossary TA and Peer Feedback, added customer to glossary for clarity, minor glossary organization improvements\\
 
 \bottomrule
 \caption{Revision History for SRS Document}
@@ -258,31 +259,32 @@ By reducing communication barriers, VoiceBridge fosters greater inclusion in wor
 \subsection*{General Project Terms}
 
 \begin{description}
-  \item[VoiceBridge] A software system that enables users with speech impairments to control browsers and devices using their voice, even if their speech is slurred or hard to understand. It is the technology whose requirements are described in this document.
-  \item[Stakeholder] Any individual or group involved in or affected by the project, including users, caregivers, technical experts, and funding organizations.
-  \item[Persona] Example character representing a user to demonstrate design needs, such as Amira with Parkinson’s or David after a stroke.
-  \item[End User] Someone who directly uses the system to assist with speech or browser tasks.
   \item[Client] Group or individual funding or commissioning the system, typically the organization requesting the software.
+  \item[Customer] An individual or organization that purchases, subscribes to, or deploys the VoiceBridge system for use by end users. Customers may not directly participate in defining requirements but represent those who adopt or distribute the final product.
+  \item[End User] Someone who directly uses the system to assist with speech or browser tasks.
+  \item[Persona] Example character representing a user to demonstrate design needs, such as Amira with Parkinson’s or David after a stroke.
   \item[Requirement Phase-In] The process of introducing requirements in planned stages, from proof-of-concept to full deployment.
+  \item[Stakeholder] Any individual or group involved in or affected by the project, including users, caregivers, technical experts, and funding organizations.
+  \item[VoiceBridge] A software system that enables users with speech impairments to control browsers and devices using their voice, even if their speech is slurred or hard to understand. It is the technology whose requirements are described in this document.
 \end{description}
 
 \subsection*{Technical Terminology}
 
 \begin{description}
-  \item[ASR (Automatic Speech Recognition)] Technology that listens to speech and automatically converts it into written text.
-  \item[TTS (Text To Speech)] Technology that transforms written text into spoken words using a computer-generated voice.
-  \item[STT (Speech To Text)] Another term for ASR, representing the conversion of speech into text.
   \item[API (Application Programming Interface)] A set of rules allowing one software program to communicate, exchange services or data with another.
-  \item[LLM (Large Language Model)] Advanced AI designed for understanding and generating human language.
-  \item[PoC (Proof of Concept)] A small system built to demonstrate that the main idea works in practice.
-  \item[MVP (Minimum Viable Product)] Basic version of software with enough features for user testing before further development.
-  \item[CLI (Command Line Interface)] An interaction method using typed text to control a computer, usually for advanced settings.
-  \item[UML (Unified Modeling Language)] Visual diagram style to represent system structure/workflow, mainly for programmers.
-  \item[JSON (JavaScript Object Notation)] A simple data format both easy for humans and computers to read and write.
-  \item[UUID (Universally Unique Identifier)] Special ID assigned to sessions or user interactions for clear data tracking.
+  \item[ASR (Automatic Speech Recognition)] Technology that listens to speech and automatically converts it into written text.
   \item[Browser Agent] Software/code that helps automate browser control tasks.
+  \item[CLI (Command Line Interface)] An interaction method using typed text to control a computer, usually for advanced settings.
+  \item[JSON (JavaScript Object Notation)] A simple data format both easy for humans and computers to read and write.
+  \item[LLM (Large Language Model)] Advanced AI designed for understanding and generating human language.
   \item[Microphone Input] Audio signal collected from a user’s microphone for speech processing.
+  \item[MVP (Minimum Viable Product)] Basic version of software with enough features for user testing before further development.
+  \item[PoC (Proof of Concept)] A small system built to demonstrate that the main idea works in practice.
+  \item[STT (Speech To Text)] Another term for ASR, representing the conversion of speech into text.
   \item[Session] The time period when a user is actively interacting with the system, such as from login to logout.
+  \item[TTS (Text To Speech)] Technology that transforms written text into spoken words using a computer-generated voice.
+  \item[UML (Unified Modeling Language)] Visual diagram style to represent system structure/workflow, mainly for programmers.
+  \item[UUID (Universally Unique Identifier)] Special ID assigned to sessions or user interactions for clear data tracking.
 \end{description}
 
 \subsection*{Medical Terminology}
@@ -291,50 +293,55 @@ By reducing communication barriers, VoiceBridge fosters greater inclusion in wor
   \item[Aphasia] Medical condition causing difficulties in communication, affecting speaking, writing, and understanding language.
   \item[ALS (Amyotrophic Lateral Sclerosis)] Nervous system disease affecting movement, including speech, due to muscle weakness.
   \item[Dysarthria] Speech disorder resulting in slurred/slow speech because of nervous system damage.
+  \item[Parkinson’s Disease] Progressive neurological disorder affecting movement and speech, often causing tremors and slurred speech.
 \end{description}
 
 \subsection*{Accessibility and Compliance}
 
 \begin{description}
   \item[Accessibility] Creating software everyone can use, including those with disabilities (e.g., clear text, screen reader support).
-  \item[WCAG (Web Content Accessibility Guidelines)] Guidelines for making web content usable for people with disabilities; “Level AA” meets many key needs.
   \item[PIPEDA (Personal Information Protection and Electronic Documents Act)] Canadian law regulating personal data collection, use, and protection.
+  \item[WCAG (Web Content Accessibility Guidelines)] Guidelines for making web content usable for people with disabilities; “Level AA” meets many key needs.
 \end{description}
 
 \subsection*{System Features and Components}
 
 \begin{description}
-  \item[Transcription Accuracy] How correctly speech is transformed into text; higher accuracy means fewer mistakes.
-  \item[Command Mapping] System’s ability to recognize and map transcribed text to actions (e.g., “open Gmail”).
-  \item[Error Handling] Detecting, reporting, and recovering from mistakes or unexpected situations.
-  \item[Personalization] Adjusting system behavior to match each user’s preferences, speech pattern, or needs.
-  \item[Scalability] Ability for a system to support more users or new features over time.
-  \item[Latency] Time between user speech input and system response.
-  \item[Robustness/Fault-Tolerance] Ability to keep working even with errors, noise, or network issues.
-  \item[Data Encryption] Protecting information by converting it into unreadable code except for authorized parties.
   \item[Audit Logging] Recording system actions/events to track problems or security issues.
+  \item[Command Mapping] System’s ability to recognize and map transcribed text to actions (e.g., “open Gmail”).
+  \item[Data Encryption] Protecting information by converting it into unreadable code except for authorized parties.
+  \item[Error Handling] Detecting, reporting, and recovering from mistakes or unexpected situations.
+  \item[Latency] Time between user speech input and system response.
+  \item[Personalization] Adjusting system behavior to match each user’s preferences, speech pattern, or needs.
+  \item[Robustness/Fault-Tolerance] Ability to keep working even with errors, noise, or network issues.
+  \item[Scalability] Ability for a system to support more users or new features over time.
+  \item[Transcription Accuracy] How correctly speech is transformed into text; higher accuracy means fewer mistakes.
 \end{description}
 
 \subsection*{Browser and Platform Terms}
 
 \begin{description}
-  \item[Cross-Browser Compatibility] Ability for software to work across different browsers (Chrome, Edge, Firefox, etc.).
   \item[Browser Control Application] Tool for users to control browsers with voice commands.
-  \item[Off-the-Shelf Software] Ready-made software/components integrated into the project instead of building from scratch.
+  \item[Cross-Browser Compatibility] Ability for software to work across different browsers (Chrome, Edge, Firefox, etc.).
   \item[Device Command] Instruction sent to a computer to perform a task, such as opening applications or typing.
+  \item[Off-the-Shelf Software] Ready-made software/components integrated into the project instead of building from scratch.
 \end{description}
 
 \subsection*{Miscellaneous Terms}
 
 \begin{description}
-  \item[User Profile] Data associated with each user, like preferences and speech patterns, for personalized command recognition.
-  \item[Intent] The underlying meaning or goal of what the user says, interpreted by the system.
-  \item[Feedback Message] Confirmation or notification shown to users, indicating actions or errors.
-  \item[Training Data] Audio recordings and transcripts used to improve speech recognition accuracy.
   \item[Data Dictionary] Documentation listing information types used by the system, with explanations.
+  \item[Feedback Message] Confirmation or notification shown to users, indicating actions or errors.
+  \item[Intent] The underlying meaning or goal of what the user says, interpreted by the system.
+  \item[Training Data] Audio recordings and transcripts used to improve speech recognition accuracy.
+  \item[User Profile] Data associated with each user, like preferences and speech patterns, for personalized command recognition.
 \end{description}
 
 \subsection*{Acronym  Reference Table}
+
+
+Table~\ref{tab:acronyms} provides a consolidated list of all acronyms used throughout this document.
+
 
 \begin{table}[ht]
 \centering
@@ -342,24 +349,29 @@ By reducing communication barriers, VoiceBridge fosters greater inclusion in wor
 \hline
 \textbf{Acronym} & \textbf{Full Term} & \textbf{Simple Description} \\
 \hline
-ASR     & Automatic Speech Recognition           & Converts spoken words into text automatically. \\
-TTS     & Text To Speech                        & Converts text to computer-generated spoken words. \\
-STT     & Speech To Text                        & Converts speech into written text. \\
-API     & Application Programming Interface      & Rules for different software to work together. \\
-LLM     & Large Language Model                   & Advanced AI for understanding language. \\
-PoC     & Proof of Concept                       & A small-scale early prototype. \\
-MVP     & Minimum Viable Product                 & First usable version with basic features. \\
-CLI     & Command Line Interface                 & Computer control by typing commands. \\
-UML     & Unified Modeling Language              & Visual diagrams for system planning. \\
-JSON    & JavaScript Object Notation             & Easy data format for computers and humans. \\
-UUID    & Universally Unique Identifier          & Special ID for sessions or users. \\
 ALS     & Amyotrophic Lateral Sclerosis          & Disease causing muscle movement problems. \\
-WCAG    & Web Content Accessibility Guidelines   & Rules for making web sites accessible. \\
-PIPEDA  & Personal Info Protection Document Act  & Canadian privacy protection law. \\
+API     & Application Programming Interface      & Rules for different software to work together. \\
+ASR     & Automatic Speech Recognition           & Converts spoken words into text automatically. \\
+BUC     & Business Use Case         & Description of a scenario representing how a business or organization will use the system. \\
+CER     & Character Error Rate      & Metric for evaluating speech recognition accuracy at the character level, useful for fine-grained analysis. \\
+CLI     & Command Line Interface                 & Computer control by typing commands. \\
 FAQ     & Frequently Asked Questions             & Common questions and answers list. \\
+JSON    & JavaScript Object Notation             & Easy data format for computers and humans. \\
+LLM     & Large Language Model                   & Advanced AI for understanding language. \\
+MVP     & Minimum Viable Product                 & First usable version with basic features. \\
+PIPEDA  & Personal Info Protection Document Act  & Canadian privacy protection law. \\
+PoC     & Proof of Concept                       & A small-scale early prototype. \\
+STT     & Speech To Text                        & Converts speech into written text. \\
+TTS     & Text To Speech                        & Converts text to computer-generated spoken words. \\
+UML     & Unified Modeling Language              & Visual diagrams for system planning. \\
+UUID    & Universally Unique Identifier          & Special ID for sessions or users. \\
+WCAG    & Web Content Accessibility Guidelines   & Rules for making web sites accessible. \\
+WER     & Word Error Rate           & Metric for evaluating the accuracy of speech recognition by comparing transcribed words to the reference text. \\
+
 \hline
 \end{tabular}
 \caption{Acronym Quick Reference}
+\label{tab:acronyms}
 \end{table}
 
 \section{Relevant Facts And Assumptions}
