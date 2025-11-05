@@ -583,7 +583,7 @@ This section covers system tests for the Non-Functional Requirements (NFR) in th
 \item{test-LF-1\\}
 Type: Non-Functional, Manual, Survey-based
 
-Covers: LFR-11.1
+Test Case Derivation: LFR-11.1
 
 Initial State: VoiceBridge extension/app active on common pages (docs, dashboards, news).
 
@@ -600,7 +600,7 @@ How test will be performed: Usability survey is performed with users indicating 
 \item{test-LF-2\\}
 Type: Heuristic Inspection (Design QA)
 
-Covers: LFR-11.1, LFR-11.2
+Test Case Derivation: LFR-11.1, LFR-11.2
 
 Initial State: Latest build with UI design with spacing/typography/colors.
 
@@ -619,7 +619,7 @@ How test will be performed: 10-item checklist scored by two reviewers done at se
 \item{test-UH-1\\}
 Type: User Testing, Instrumented
 
-Covers: UHR-12.1
+Test Case Derivation: UHR-12.1
 
 Initial State: Tasks prepared (start/stop listening, confirm command, view transcript).
 
@@ -636,7 +636,7 @@ How test will be performed: Users interact with the interface through their brow
 \item{test-UH-2\\}
 Type: User Testing + Survey
 
-Covers: UHR-12.3
+Test Case Derivation: UHR-12.3
 
 Initial State: Fresh profile; onboarding tutorial enabled.
 
@@ -653,7 +653,7 @@ How test will be performed: Time-on-task success percentage, rating documentatio
 \item{test-UH-3\\}
 Type: Manual, Dynamic
 
-Covers: UHR-12.2
+Test Case Derivation: UHR-12.2
 
 Initial State: Preferences (e.g., language, microphone, confirmation style) changed.
 
@@ -670,7 +670,7 @@ How test will be performed: User fills out their preferences such as language, c
 \item{test-UH-4\\}
 Type: Survey-Based Language Review
 
-Covers: UHR-12.4
+Test Case Derivation: UHR-12.4
 
 Initial State: Library of prompts/errors/confirmations.
 
@@ -687,7 +687,7 @@ How test will be performed: Run a survey with participants rating the confirmati
 \item{test-UH-5\\}
 Type: Manual, User Testing
 
-Covers: UHR-12.5
+Test Case Derivation: UHR-12.5
 
 Initial State: Screen reader \& keyboard nav enabled; color tokens set.
 
@@ -706,9 +706,9 @@ How test will be performed: User turns on their stand assistive tools and perfor
 \item{test-PF-1\\}
 Type: Automated, Dynamic
 
-Covers: PRF-13.1
+Test Case Derivation: PRF-13.1
 
-Initial State: ASR service with a ready test audio set.
+Initial State: ASR service with a ready test audio set that is from various speakers.
 
 Input/Condition: Feed audio with marked end-of-speech.
 
@@ -723,9 +723,9 @@ How test will be performed: Measure timestamps from End of Audio to getting tran
 \item{test-PF-2\\}
 Type: Automated, Dynamic
 
-Covers: PRF-13.2
+Test Case Derivation: PRF-13.2
 
-Initial State: Full pipeline (NLP $\rightarrow$ action planning $\rightarrow$ execution).
+Initial State: Full app pipeline (NLP $\rightarrow$ action planning $\rightarrow$ execution).
 
 Input/Condition: Standard command set (e.g., “summarize page”, “reply to this email”).
 
@@ -740,7 +740,7 @@ How test will be performed: Measure timestamps from End of Audio to command set 
 \item{test-PF-3\\}
 Type: Offline Evaluation
 
-Covers: PRF-13.1, PRF-13.2
+Test Case Derivation: PRF-13.1, PRF-13.2
 
 Initial State: Labeled impaired-speech with a command set with stationary background noise (AC/fan) mixed at 20/10/5 dB.
 
@@ -770,7 +770,7 @@ How test will be performed: Run sample audios with the different levels of backg
 \item{test-OER-1\\}
 Type: Manual + Automated
 
-Covers: OER-14.1, OER-14.2, MSR-15.3
+Test Case Derivation: OER-14.1, OER-14.2, MSR-15.3
 
 Initial State: Windows 10+, macOS 12+, Ubuntu 20.04+; Chrome/Edge/Firefox/Safari (latest two versions).
 
@@ -787,7 +787,7 @@ How test will be performed: Run same flow test through each browser, validate th
 \item{test-OER-2\\}
 Type: Manual + Automated Regression
 
-Covers: OER-14.4, OER-14.5
+Test Case Derivation: OER-14.4, OER-14.5
 
 Initial State: Real user profile with data/preferences.
 
@@ -812,7 +812,7 @@ How test will be performed: Update then validate data and features are saved sim
 \item{test-MS-1\\}
 Type: Static Analysis + Doc Review
 
-Covers: MSR-15.1
+Test Case Derivation: MSR-15.1
 
 Initial State: Final repo \& docs.
 
@@ -829,7 +829,7 @@ How test will be performed: Two new reviewers/devs score the documentation and t
 \item{test-MS-2\\}
 Type: Manual + Automated Accessibility Checks
 
-Covers: MSR-15.2
+Test Case Derivation: MSR-15.2
 
 Initial State: Help/FAQ pages built.
 
@@ -848,7 +848,7 @@ How test will be performed: Run a contrast tool on the page and manual spot-chec
 \item{test-SEC-1\\}
 Type: Manual + Automated Security Tests
 
-Covers: SCR-16.1
+Test Case Derivation: SCR-16.1
 
 Initial State: Accounts for primary/secondary/tertiary roles.
 
@@ -865,7 +865,7 @@ How test will be performed: Test privileges of each of the 3 users, run through 
 \item{test-SEC-2\\}
 Type: Manual, Dynamic
 
-Covers: SCR-16.2
+Test Case Derivation: SCR-16.2
 
 Initial State: Confirmation UI enabled.
 
@@ -882,7 +882,7 @@ How test will be performed: Run with a script of commands and verify confirmatio
 \item{test-SEC-3\\}
 Type: Static Review + Manual Flow
 
-Covers: SCR-16.3
+Test Case Derivation: SCR-16.3
 
 Initial State: Fresh user; data policy active.
 
@@ -909,7 +909,7 @@ How test will be performed: Review code/config plus run onboarding with a new us
 \item{test-CUL-1\\}
 Type: Static and Scenario-Based Testing
 
-Covers: CLR-17.1
+Test Case Derivation: CLR-17.1
 
 Initial State: Prompt templates and moderation/guardrail rules configured.
 
@@ -928,7 +928,7 @@ How test will be performed: Run a curated scenario set and have a reviewer check
 \item{test-CPL-1\\}
 Type: Documentation \& Process Audit
 
-Covers: CPR-18.1
+Test Case Derivation: CPR-18.1
 
 Initial State: Data inventory, consent records, retention policy, DSAR process.
 
@@ -945,7 +945,7 @@ How test will be performed: Map data flows and verify consent \& retention.
 \item{test-CPL-2\\}
 Type: Automated and Manual Accessibility Testing
 
-Covers: CPR-18.2
+Test Case Derivation: CPR-18.2
 
 Initial State: UI build with  accessibility tooling integrated.
 
