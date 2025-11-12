@@ -33,7 +33,7 @@
 
 \begin{document}
 
-\title{Module Guide for \progname{}} 
+\title{Module Guide for Software Engineering} 
 \author{\authname}
 \date{\today}
 
@@ -46,7 +46,7 @@
 \begin{tabularx}{\textwidth}{p{3cm}p{2cm}X}
 \toprule {\bf Date} & {\bf Version} & {\bf Notes}\\
 \midrule
-Date 1 & 1.0 & Notes\\
+Nov 11, 2025 & 1.0 & Added modules and Traceability Matrix\\
 Date 2 & 1.1 & Notes\\
 \bottomrule
 \end{tabularx}
@@ -74,7 +74,14 @@ This section records information for easy reference.
   SRS & Software Requirements Specification\\
   \progname & Explanation of program name\\
   UC & Unlikely Change \\
-  \wss{etc.} & \wss{...}\\
+  FR & Functional Requirement\\
+  LF & Look and Feel \\
+  PF & Performance \\
+  OER & Operational \& Environmental \\
+  MS & Maintainability \& Support \\
+  SEC & Security \\
+  CUL & Cultural \\
+  CPL & Compliance \\
   \bottomrule
 \end{tabular}\\
 
@@ -191,8 +198,30 @@ below, which are leaves in the hierarchy tree, are the modules that will
 actually be implemented.
 
 \begin{description}
-\item [\refstepcounter{mnum} \mthemnum \label{mHH}:] Hardware-Hiding Module
-\item ...
+
+\item [\refstepcounter{mnum} \mthemnum \label{m1}:] User Interface Module
+\item [\refstepcounter{mnum} \mthemnum \label{m2}:] Accessibility Layer
+\item [\refstepcounter{mnum} \mthemnum \label{m3}:] Feedback Display Module
+\item [\refstepcounter{mnum} \mthemnum \label{m4}:] Speech-to-Text Engine
+\item [\refstepcounter{mnum} \mthemnum \label{m5}:] Intent Interpreter
+\item [\refstepcounter{mnum} \mthemnum \label{m6}:] Command Mapping Module
+\item [\refstepcounter{mnum} \mthemnum \label{m7}:] Command Execution Layer
+\item [\refstepcounter{mnum} \mthemnum \label{m8}:] Error Feedback
+\item [\refstepcounter{mnum} \mthemnum \label{m9}:] Browser Controller
+\item [\refstepcounter{mnum} \mthemnum \label{m10}:] Session Manager
+\item [\refstepcounter{mnum} \mthemnum \label{m11}:] Error Handling \& Recovery Module
+\item [\refstepcounter{mnum} \mthemnum \label{m12}:] Data Management Layer
+\item [\refstepcounter{mnum} \mthemnum \label{m13}:] User Profile Manager
+\item [\refstepcounter{mnum} \mthemnum \label{m14}:] Audit Logger
+\item [\refstepcounter{mnum} \mthemnum \label{m15}:] Credential Manager
+\item [\refstepcounter{mnum} \mthemnum \label{m16}:] Encryption Manager
+\item [\refstepcounter{mnum} \mthemnum \label{m17}:] Out-of-Scope Handler
+\item [\refstepcounter{mnum} \mthemnum \label{m18}:] Microphone Manager
+\item [\refstepcounter{mnum} \mthemnum \label{m19}:] VAD Noise Filter
+\item [\refstepcounter{mnum} \mthemnum \label{m20}:] Prompting Module
+\item [\refstepcounter{mnum} \mthemnum \label{m21}:] Model Tuner
+\item [\refstepcounter{mnum} \mthemnum \label{m22}:] Instruction Registry
+
 \end{description}
 
 
@@ -320,46 +349,149 @@ requirements and between the modules and the anticipated changes.
 \toprule
 \textbf{Req.} & \textbf{Modules}\\
 \midrule
-R1 & \mref{mHH}, \mref{mInput}, \mref{mParams}, \mref{mControl}\\
-R2 & \mref{mInput}, \mref{mParams}\\
-R3 & \mref{mVerify}\\
-R4 & \mref{mOutput}, \mref{mControl}\\
-R5 & \mref{mOutput}, \mref{mODEs}, \mref{mControl}, \mref{mSeqDS}, \mref{mSolver}, \mref{mPlot}\\
-R6 & \mref{mOutput}, \mref{mODEs}, \mref{mControl}, \mref{mSeqDS}, \mref{mSolver}, \mref{mPlot}\\
-R7 & \mref{mOutput}, \mref{mEnergy}, \mref{mControl}, \mref{mSeqDS}, \mref{mPlot}\\
-R8 & \mref{mOutput}, \mref{mEnergy}, \mref{mControl}, \mref{mSeqDS}, \mref{mPlot}\\
-R9 & \mref{mVerifyOut}\\
-R10 & \mref{mOutput}, \mref{mODEs}, \mref{mControl}\\
-R11 & \mref{mOutput}, \mref{mODEs}, \mref{mEnergy}, \mref{mControl}\\
+FR-1 10.1 & \mref{m18}, \mref{m19}, \mref{m4}, \mref{m10}\\
+FR-2 10.2& \mref{m4}, \mref{m19}, \mref{m21}, \mref{m12}\\
+FR-3 10.3& \mref{m1}, \mref{m2}, \mref{m3}, \mref{m8}\\
+FR-4 10.4& \mref{m5}, \mref{m6}, \mref{m22}\\
+FR-5 10.5& \mref{m7}, \mref{m9}, \mref{m11}, \mref{m8}\\
 \bottomrule
 \end{tabular}
-\caption{Trace Between Requirements and Modules}
-\label{TblRT}
+\caption{Trace Between Functional Requirements and Modules}
+\label{TblRTFunctional}
 \end{table}
 
 \begin{table}[H]
 \centering
 \begin{tabular}{p{0.2\textwidth} p{0.6\textwidth}}
 \toprule
-\textbf{AC} & \textbf{Modules}\\
+\textbf{Req.} & \textbf{Modules}\\
 \midrule
-\acref{acHardware} & \mref{mHH}\\
-\acref{acInput} & \mref{mInput}\\
-\acref{acParams} & \mref{mParams}\\
-\acref{acVerify} & \mref{mVerify}\\
-\acref{acOutput} & \mref{mOutput}\\
-\acref{acVerifyOut} & \mref{mVerifyOut}\\
-\acref{acODEs} & \mref{mODEs}\\
-\acref{acEnergy} & \mref{mEnergy}\\
-\acref{acControl} & \mref{mControl}\\
-\acref{acSeqDS} & \mref{mSeqDS}\\
-\acref{acSolver} & \mref{mSolver}\\
-\acref{acPlot} & \mref{mPlot}\\
+LF-1 11.1& \mref{m1}, \mref{m2}, \mref{m3}, \mref{m8}\\
+LF-2 11.2& \mref{m1}, \mref{m2}, \mref{m20}, \mref{m3}\\
 \bottomrule
 \end{tabular}
-\caption{Trace Between Anticipated Changes and Modules}
-\label{TblACT}
+\caption{Trace Between Look \& Feel Requirements and Modules}
+\label{TblRTLF}
 \end{table}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{p{0.2\textwidth} p{0.6\textwidth}}
+\toprule
+\textbf{Req.} & \textbf{Modules}\\
+\midrule
+UH-1 12.1 & \mref{m1}, \mref{m2}, \mref{m3}, \mref{m8}\\
+UH-2 12.2 & \mref{m13}, \mref{m12}, \mref{m5}, \mref{m6}\\
+UH-3 12.3& \mref{m1}, \mref{m2}, \mref{m20}, \mref{m10}\\
+UH-4 12.4& \mref{m8}, \mref{m3}, \mref{m2}, \mref{m20}\\
+UH-5 12.5& \mref{m2}, \mref{m1}, \mref{m3}, \mref{m8}\\
+\bottomrule
+\end{tabular}
+\caption{Trace Between Usability \& Humanity Requirements and Modules}
+\label{TblRTUsabilityHumanity}
+\end{table}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{p{0.2\textwidth} p{0.6\textwidth}}
+\toprule
+\textbf{Req.} & \textbf{Modules}\\
+\midrule
+PF-1 13.1 & \mref{m4}, \mref{m5}, \mref{m6}, \mref{m7}, \mref{m9}\\
+PF-2 13.2& \mref{m5}, \mref{m6}, \mref{m7}, \mref{m8}, \mref{m11}\\
+PF-3 13.3& \mref{m4}, \mref{m19}, \mref{m21}, \mref{m5}\\
+PF-4 13.4& \mref{m11}, \mref{m10}, \mref{m8}, \mref{m9}\\
+PF-5 13.5 & \mref{m10}, \mref{m12}, \mref{m13}\\
+PF-6 13.6& \mref{m10}, \mref{m12}, \mref{m7}, \mref{m9}\\
+PF-7 13.7& \mref{m12}, \mref{m13}, \mref{m14}, \mref{m15}\\
+\bottomrule
+\end{tabular}
+\caption{Trace Between Performance Requirements and Modules}
+\label{TblRTPerformance}
+\end{table}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{p{0.2\textwidth} p{0.6\textwidth}}
+\toprule
+\textbf{Req.} & \textbf{Modules}\\
+\midrule
+OER-1 14.1& \mref{m18}, \mref{m19}, \mref{m4}, \mref{m11}\\
+OER-2 14.2& \mref{m1}, \mref{m2}, \mref{m9}, \mref{m10}\\
+OER-3 14.3& \mref{m5}, \mref{m6}, \mref{m9}, \mref{m22}\\
+OER-4 14.4& \mref{m12}, \mref{m13}, \mref{m14}, \mref{m15}, \mref{m10}\\
+OER-5 14.5& \mref{m10}, \mref{m12}, \mref{m14}, \mref{m15}\\
+\bottomrule
+\end{tabular}
+\caption{Trace Between Operational \& Environmental Requirements and Modules}
+\label{TblRTOperationalEnv}
+\end{table}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{p{0.2\textwidth} p{0.6\textwidth}}
+\toprule
+\textbf{Req.} & \textbf{Modules}\\
+\midrule
+MS-1 15.1& \mref{m10}, \mref{m12}, \mref{m13}, \mref{m14}, \mref{m15}, \mref{m22}\\
+MS-2 15.2& \mref{m1}, \mref{m2}, \mref{m3}, \mref{m8}, \mref{m20}\\
+MS-3 15.3& \mref{m1}, \mref{m2}, \mref{m9}, \mref{m10}, \mref{m11}\\
+\bottomrule
+\end{tabular}
+\caption{Trace Between Maintainability \& Support Requirements and Modules}
+\label{TblRTMaintainSupport}
+\end{table}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{p{0.2\textwidth} p{0.6\textwidth}}
+\toprule
+\textbf{Req.} & \textbf{Modules}\\
+\midrule
+SEC-1 16.1 & \mref{m15}, \mref{m16}, \mref{m13}, \mref{m12}, \mref{m10}\\
+SEC-2 16.2& \mref{m5}, \mref{m6}, \mref{m7}, \mref{m8}, \mref{m11}\\
+SEC-3 16.3& \mref{m12}, \mref{m13}, \mref{m14}, \mref{m15}, \mref{m16}\\
+SEC-4 16.4& \mref{m14}, \mref{m12}, \mref{m10}, \mref{m15}\\
+SEC-5 16.5& \mref{m11}, \mref{m8}, \mref{m19}, \mref{m7}, \mref{m9}\\
+\bottomrule
+\end{tabular}
+\caption{Trace Between Security Requirements and Modules}
+\label{TblRTSecurity}
+\end{table}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{p{0.2\textwidth} p{0.6\textwidth}}
+\toprule
+\textbf{Req.} & \textbf{Modules}\\
+\midrule
+CUL-1 17.1& \mref{m2}, \mref{m3}, \mref{m8}, \mref{m20}, \mref{m5}\\
+\bottomrule
+\end{tabular}
+\caption{Trace Between Cultural Requirements and Modules}
+\label{TblRTCultural}
+\end{table}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{p{0.2\textwidth} p{0.6\textwidth}}
+\toprule
+\textbf{Req.} & \textbf{Modules}\\
+\midrule
+CPL-1 18.1& \mref{m12}, \mref{m13}, \mref{m14}, \mref{m15}, \mref{m16}\\
+CPL-2 18.2& \mref{m1}, \mref{m2}, \mref{m3}, \mref{m8}\\
+\bottomrule
+\end{tabular}
+\caption{Trace Between Compliance Requirements and Modules}
+\label{TblRTCompliance}
+\end{table}
+
+
+
+
+
+
+
 
 \section{Use Hierarchy Between Modules} \label{SecUse}
 
