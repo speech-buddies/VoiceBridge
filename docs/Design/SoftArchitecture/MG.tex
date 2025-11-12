@@ -47,7 +47,7 @@
 \toprule {\bf Date} & {\bf Version} & {\bf Notes}\\
 \midrule
 Nov 11, 2025 & 1.0 & Added modules and Traceability Matrix\\
-Date 2 & 1.1 & Notes\\
+Nov 12, 2025 & 1.0 & Added Modules M6-M11\\
 \bottomrule
 \end{tabularx}
 
@@ -254,6 +254,47 @@ actually be implemented.
 \caption{Module Hierarchy}
 \label{TblMH}
 \end{table}
+
+
+% =========================
+% Module Decomposition
+% =========================
+\section{Module Decomposition}
+
+% ---------- Application (Processing) ----------
+\subsection*{Application (Processing) Modules}
+
+\subsubsection*{M7: Command Execution Layer}
+\textbf{Secrets:} How commands are validated, mapped to backend requests, dispatched, tracked, cancelled, and timed-out. Internal queueing and audit format. \\
+\textbf{Services:} Execute/cancel/status for commands; translate to backend format; rollback hooks. \\
+\textbf{Implemented By:} Core runtime (browser bridge + OS process APIs). \\
+
+\medskip
+\subsubsection*{M8: Error Feedback}
+\textbf{Secrets:} Message templating, localization hooks, mapping of internal error classes to user-facing copy and recovery options. \\
+\textbf{Services:} Show error; show recovery prompt with options; dismiss item; log event. \\
+\textbf{Implemented By:} UI notification layer. \\
+
+% ---------- Control (Orchestration) ----------
+\subsection*{Control (Orchestration) Modules}
+
+\subsubsection*{M9: BrowserController}
+\textbf{Secrets:} Transport protocol to the browser controller, timeout wrappers, normalization of responses, and session plumbing. \\
+\textbf{Services:} Send request; get status; cancel; open/close controller session. \\
+\textbf{Implemented By:} Automation bridge client. \\
+
+\medskip
+\subsubsection*{M10: Session Manager}
+\textbf{Secrets:} Session lifecycle rules, storage schema, and TTL/expiry handling. \\
+\textbf{Services:} Start/stop session; get session state; attach command; set state. \\
+\textbf{Implemented By:} In-memory cache + persistent store. \\
+
+\medskip
+\subsubsection*{M11: Error Handling \& Recovery Module}
+\textbf{Secrets:} Error classification policy, retry/backoff strategy, and compensation catalog. \\
+\textbf{Services:} Handle error; retry; compensate; classify; record event. \\
+\textbf{Implemented By:} Orchestration runtime with policy store. \\
+
 
 \section{Connection Between Requirements and Design} \label{SecConnection}
 
