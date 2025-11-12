@@ -53,7 +53,7 @@ urlcolor=cyan          % color of external links
 \begin{tabularx}{\textwidth}{p{3cm}p{2cm}X}
 \toprule {\bf Date} & {\bf Version} & {\bf Notes}\\
 \midrule
-Date 1 & 1.0 & Notes\\
+Nov 12, 2025 & 1.0 & Added Modules M6-M11\\
 Date 2 & 1.1 & Notes\\
 \bottomrule
 \end{tabularx}
@@ -228,6 +228,535 @@ The following table is taken directly from the Module Guide document for this pr
   have local scope.}
 
 \newpage
+\section{MIS of Command Execution Layer} \label{M7}
+
+\subsection{Module}
+
+Executes verified, mapped commands on the host device via the browser control bridge.
+Responsible for dispatch, cancellation, basic guardrails, timeout handling, and result reporting.
+
+\subsection{Uses}
+
+Browser control/automation client (e.g., \texttt{BrowserUse} bridge); OS process APIs; timer utilities;
+audit logger; configuration store for timeouts and retries.
+
+\subsection{Syntax}
+
+\subsubsection{Exported Constants}
+
+None.
+
+\subsubsection{Exported Access Programs}
+
+\begin{center}
+\begin{tabular}{p{4cm} p{4cm} p{3cm} p{4cm}}
+\hline
+\textbf{Name} & \textbf{In} & \textbf{Out} & \textbf{Exceptions} \\
+\hline
+\texttt{CommandExecLayer} & \texttt{backend: Client}, \texttt{timeout\_s: int} & self & - \\
+\texttt{execute} & \texttt{cmd: ExecCmd} & \texttt{Result} & \texttt{PermissionError}, \texttt{TimeoutError}, \texttt{ExecError} \\
+\texttt{cancel} & \texttt{cmd\_id: UUID} & \texttt{bool} & \texttt{NotFoundError} \\
+\texttt{status} & \texttt{cmd\_id: UUID} & \texttt{ExecStatus} & \texttt{NotFoundError} \\
+\texttt{validate} & \texttt{cmd: ExecCmd} & \texttt{bool} & - \\
+\texttt{map\_to\_backend} & \texttt{cmd: ExecCmd} & \texttt{BackendReq} & \texttt{MappingError} \\
+\texttt{rollback} & \texttt{cmd\_id: UUID} & \texttt{bool} & \texttt{ExecError} \\
+\hline
+\end{tabular}
+\end{center}
+
+\subsection{Semantics}
+
+\subsubsection{State Variables}
+
+\begin{itemize}
+  \item \texttt{pending\_q: map[UUID]$\to$ExecCtx} — commands in flight
+  \item \texttt{default\_timeout\_s: int} — global timeout for executions
+  \item \texttt{retries: int} — max retry attempts for transient failures
+  \item \texttt{backend: Client} — handle to browser automation bridge
+  \item \texttt{audit: Logger} — sink for execution logs
+\end{itemize}
+
+\subsubsection{Environment Variables}
+
+\begin{itemize}
+  \item \texttt{BROWSER\_BRIDGE\_URL} — connection string for automation client
+  \item \texttt{EXEC\_HARD\_LIMIT\_S} — absolute upper bound on execution time
+  \item \texttt{LOG\_LEVEL} — audit verbosity
+\end{itemize}
+
+\subsubsection{Assumptions}
+
+\subsubsection{Access Routine Semantics}
+
+\noindent
+
+\noindent \texttt{CommandExecLayer}(\texttt{backend}, \texttt{timeout\_s}):
+\begin{itemize}
+\item transition: initialize \texttt{pending\_q}, set \texttt{default\_timeout\_s}, bind \texttt{backend}, configure \texttt{audit}
+\item output: initialized instance
+\item exception: -
+\end{itemize}
+
+\noindent \texttt{execute}(\texttt{cmd}):
+\begin{itemize}
+\item transition: add to \texttt{pending\_q}; invoke \texttt{map\_to\_backend}; dispatch to \texttt{backend}; update status; remove on completion
+\item output: \texttt{Result} with success flag, message, and optional payload
+\item exception: \texttt{PermissionError} if disallowed; \texttt{TimeoutError} if exceeds limits; \texttt{ExecError} on backend failure
+\end{itemize}
+
+\noindent \texttt{cancel}(\texttt{cmd\_id}):
+\begin{itemize}
+\item transition: signal cancellation to backend; mark context as cancelled; remove from \texttt{pending\_q}
+\item output: \texttt{true} if cancelled; otherwise \texttt{false}
+\item exception: \texttt{NotFoundError} if \texttt{cmd\_id} not tracked
+\end{itemize}
+
+\noindent \texttt{status}(\texttt{cmd\_id}):
+\begin{itemize}
+\item transition: none
+\item output: \texttt{ExecStatus} in \{\texttt{queued}, \texttt{running}, \texttt{succeeded}, \texttt{failed}, \texttt{cancelled}\}
+\item exception: \texttt{NotFoundError} if unknown
+\end{itemize}
+
+\noindent \texttt{validate}(\texttt{cmd}):
+\begin{itemize}
+\item transition: none
+\item output: \texttt{true} iff command matches allowed action set and guardrails (e.g., requires-confirmation flags met)
+\item exception: -
+\end{itemize}
+
+\noindent \texttt{map\_to\_backend}(\texttt{cmd}):
+\begin{itemize}
+\item transition: none
+\item output: \texttt{BackendReq} (normalized request for the bridge)
+\item exception: \texttt{MappingError} if no mapping exists
+\end{itemize}
+
+\noindent \texttt{rollback}(\texttt{cmd\_id}):
+\begin{itemize}
+\item transition: attempt compensating operation (e.g., reopen tab, revert text entry)
+\item output: \texttt{true} on success; otherwise \texttt{false}
+\item exception: \texttt{ExecError} if rollback fails
+\end{itemize}
+
+\subsubsection{Local Functions}
+
+\begin{itemize}
+  \item \texttt{start\_timer(ctx)} — begin timeout tracking on a context
+  \item \texttt{complete(ctx, result)} — finalize status, log, and cleanup
+  \item \texttt{is\_allowed(cmd)} — check guardrails and policy
+  \item \texttt{retryable(err)} — decide if backend error can be retried
+  \item \texttt{to\_backend(payload)} — format request for bridge
+\end{itemize}
+
+\section{MIS of Error Feedback} \label{M8}
+
+\subsection{Module}
+
+Displays user-friendly error messages and recovery prompts. Surfaces execution issues, suggests next steps, and routes critical errors to support logs.
+
+\subsection{Uses}
+
+UI notification layer; audit logger; configuration store for messages; localization service (optional).
+
+\subsection{Syntax}
+
+\subsubsection{Exported Constants}
+
+None.
+
+\subsubsection{Exported Access Programs}
+
+\begin{center}
+\begin{tabular}{p{4cm} p{4cm} p{3cm} p{4cm}}
+\hline
+\textbf{Name} & \textbf{In} & \textbf{Out} & \textbf{Exceptions} \\
+\hline
+\texttt{ErrorFeedback} & \texttt{notifier: UiClient} & self & - \\
+\texttt{show\_error} & \texttt{code: string}, \texttt{detail: string} & - & - \\
+\texttt{show\_recovery} & \texttt{cmd\_id: UUID}, \texttt{options: string list} & - & - \\
+\texttt{dismiss} & \texttt{feedback\_id: UUID} & \texttt{bool} & - \\
+\texttt{log} & \texttt{event: ErrorEvent} & - & - \\
+\hline
+\end{tabular}
+\end{center}
+
+\subsection{Semantics}
+
+\subsubsection{State Variables}
+
+\begin{itemize}
+  \item \texttt{active: map[UUID] to FeedbackItem} — currently visible items
+  \item \texttt{notifier: UiClient} — handle to UI notifications
+\end{itemize}
+
+\subsubsection{Environment Variables}
+
+\begin{itemize}
+  \item \texttt{DEFAULT\_LANG} — fallback locale
+  \item \texttt{ERROR\_COPY\_PATH} — message templates location
+\end{itemize}
+
+\subsubsection{Assumptions}
+
+UI client is available and permitted to display notifications.
+
+\subsubsection{Access Routine Semantics}
+
+\noindent \texttt{ErrorFeedback}(\texttt{notifier}):
+\begin{itemize}
+\item transition: initialize \texttt{active}; bind \texttt{notifier}
+\item output: initialized instance
+\item exception: -
+\end{itemize}
+
+\noindent \texttt{show\_error}(\texttt{code}, \texttt{detail}):
+\begin{itemize}
+\item transition: create and register a feedback item in \texttt{active}; display via \texttt{notifier}
+\item output: -
+\item exception: -
+\end{itemize}
+
+\noindent \texttt{show\_recovery}(\texttt{cmd\_id}, \texttt{options}):
+\begin{itemize}
+\item transition: render recovery prompt with provided options
+\item output: -
+\item exception: -
+\end{itemize}
+
+\noindent \texttt{dismiss}(\texttt{feedback\_id}):
+\begin{itemize}
+\item transition: remove from \texttt{active}; instruct UI to hide
+\item output: \texttt{true} if removed; otherwise \texttt{false}
+\item exception: -
+\end{itemize}
+
+\noindent \texttt{log}(\texttt{event}):
+\begin{itemize}
+\item transition: write event to audit log
+\item output: -
+\item exception: -
+\end{itemize}
+
+\subsubsection{Local Functions}
+
+\begin{itemize}
+  \item \texttt{format\_message(code, detail)} — produce a concise message
+  \item \texttt{make\_recovery(options)} — build prompt content
+\end{itemize}
+
+\section{MIS of BrowserController} \label{M9}
+
+\subsection{Module}
+
+Handles interaction with the browser controller: sends backend requests, receives statuses, and streams results back to higher layers.
+
+\subsection{Uses}
+
+Browser automation bridge client; transport layer; timer utilities; audit logger.
+
+\subsection{Syntax}
+
+\subsubsection{Exported Constants}
+
+None.
+
+\subsubsection{Exported Access Programs}
+
+\begin{center}
+\begin{tabular}{p{4cm} p{4cm} p{3cm} p{4cm}}
+\hline
+\textbf{Name} & \textbf{In} & \textbf{Out} & \textbf{Exceptions} \\
+\hline
+\texttt{BrowserController} & \texttt{bridge: Client}, \texttt{timeout\_s: int} & self & - \\
+\texttt{send} & \texttt{req: BackendReq} & \texttt{BackendResp} & \texttt{TimeoutError}, \texttt{TransportError} \\
+\texttt{get\_status} & \texttt{cmd\_id: UUID} & \texttt{ExecStatus} & \texttt{NotFoundError} \\
+\texttt{cancel} & \texttt{cmd\_id: UUID} & \texttt{bool} & \texttt{NotFoundError} \\
+\texttt{open\_session} & \texttt{user\_id: UUID} & \texttt{SessionId} & \texttt{TransportError} \\
+\texttt{close\_session} & \texttt{session\_id: SessionId} & \texttt{bool} & \texttt{TransportError} \\
+\hline
+\end{tabular}
+\end{center}
+
+\subsection{Semantics}
+
+\subsubsection{State Variables}
+
+\begin{itemize}
+  \item \texttt{bridge: Client} — transport to the browser controller
+  \item \texttt{default\_timeout\_s: int} — call timeout
+  \item \texttt{sessions: set[SessionId]} — open sessions
+\end{itemize}
+
+\subsubsection{Environment Variables}
+
+\begin{itemize}
+  \item \texttt{BROWSER\_BRIDGE\_URL} — endpoint for the controller
+\end{itemize}
+
+\subsubsection{Assumptions}
+
+Controller endpoint is reachable and authenticated.
+
+\subsubsection{Access Routine Semantics}
+
+\noindent \texttt{BrowserController}(\texttt{bridge}, \texttt{timeout\_s}):
+\begin{itemize}
+\item transition: set \texttt{bridge}, \texttt{default\_timeout\_s}, clear \texttt{sessions}
+\item output: initialized instance
+\item exception: -
+\end{itemize}
+
+\noindent \texttt{send}(\texttt{req}):
+\begin{itemize}
+\item transition: none
+\item output: \texttt{BackendResp} from controller
+\item exception: \texttt{TimeoutError}, \texttt{TransportError} on failures
+\end{itemize}
+
+\noindent \texttt{get\_status}(\texttt{cmd\_id}):
+\begin{itemize}
+\item transition: none
+\item output: current \texttt{ExecStatus}
+\item exception: \texttt{NotFoundError} if unknown
+\end{itemize}
+
+\noindent \texttt{cancel}(\texttt{cmd\_id}):
+\begin{itemize}
+\item transition: signal cancellation upstream
+\item output: \texttt{true} if accepted
+\item exception: \texttt{NotFoundError} if unknown
+\end{itemize}
+
+\noindent \texttt{open\_session}(\texttt{user\_id}):
+\begin{itemize}
+\item transition: create session; add to \texttt{sessions}
+\item output: \texttt{SessionId}
+\item exception: \texttt{TransportError} if controller rejects
+\end{itemize}
+
+\noindent \texttt{close\_session}(\texttt{session\_id}):
+\begin{itemize}
+\item transition: close remotely; remove from \texttt{sessions}
+\item output: \texttt{true} on success; otherwise \texttt{false}
+\item exception: \texttt{TransportError} on failure
+\end{itemize}
+
+\subsubsection{Local Functions}
+
+\begin{itemize}
+  \item \texttt{with\_timeout(call)} — wrap a bridge call with timeout
+  \item \texttt{normalize(resp)} — normalize controller response
+\end{itemize}
+\section{MIS of Session Manager} \label{M10}
+
+\subsection{Module}
+
+Manages ongoing user sessions and their states: start, stop, track activity, and associate commands with sessions.
+
+\subsection{Uses}
+
+Persistent store or cache; clock utilities; audit logger.
+
+\subsection{Syntax}
+
+\subsubsection{Exported Constants}
+
+None.
+
+\subsubsection{Exported Access Programs}
+
+\begin{center}
+\begin{tabular}{p{4cm} p{4cm} p{3cm} p{4cm}}
+\hline
+\textbf{Name} & \textbf{In} & \textbf{Out} & \textbf{Exceptions} \\
+\hline
+\texttt{SessionManager} & \texttt{store: Store}, \texttt{ttl\_s: int} & self & - \\
+\texttt{start} & \texttt{user\_id: UUID} & \texttt{SessionId} & \texttt{StoreError} \\
+\texttt{stop} & \texttt{session\_id: SessionId} & \texttt{bool} & \texttt{StoreError} \\
+\texttt{get} & \texttt{session\_id: SessionId} & \texttt{SessionState} & \texttt{NotFoundError} \\
+\texttt{attach\_command} & \texttt{session\_id: SessionId}, \texttt{cmd\_id: UUID} & \texttt{bool} & \texttt{NotFoundError} \\
+\texttt{set\_state} & \texttt{session\_id: SessionId}, \texttt{state: SessionState} & \texttt{bool} & \texttt{StoreError} \\
+\hline
+\end{tabular}
+\end{center}
+
+\subsection{Semantics}
+
+\subsubsection{State Variables}
+
+\begin{itemize}
+  \item \texttt{store: Store} — persistence for sessions
+  \item \texttt{ttl\_s: int} — idle expiry threshold
+  \item \texttt{index: map[SessionId] to SessionState} — in-memory cache
+\end{itemize}
+
+\subsubsection{Environment Variables}
+
+\begin{itemize}
+  \item \texttt{SESSION\_TTL\_S} — default idle timeout
+\end{itemize}
+
+\subsubsection{Assumptions}
+
+Store operations are atomic per session key.
+
+\subsubsection{Access Routine Semantics}
+
+\noindent \texttt{SessionManager}(\texttt{store}, \texttt{ttl\_s}):
+\begin{itemize}
+\item transition: set fields; warm cache from store if available
+\item output: initialized instance
+\item exception: -
+\end{itemize}
+
+\noindent \texttt{start}(\texttt{user\_id}):
+\begin{itemize}
+\item transition: create session; write to store; cache in \texttt{index}
+\item output: \texttt{SessionId}
+\item exception: \texttt{StoreError} on failure
+\end{itemize}
+
+\noindent \texttt{stop}(\texttt{session\_id}):
+\begin{itemize}
+\item transition: mark closed; evict from \texttt{index}; update store
+\item output: \texttt{true} on success; otherwise \texttt{false}
+\item exception: \texttt{StoreError} on failure
+\end{itemize}
+
+\noindent \texttt{get}(\texttt{session\_id}):
+\begin{itemize}
+\item transition: none
+\item output: current \texttt{SessionState}
+\item exception: \texttt{NotFoundError} if unknown
+\end{itemize}
+
+\noindent \texttt{attach\_command}(\texttt{session\_id}, \texttt{cmd\_id}):
+\begin{itemize}
+\item transition: append command reference to session state
+\item output: \texttt{true} if attached
+\item exception: \texttt{NotFoundError} if session unknown
+\end{itemize}
+
+\noindent \texttt{set\_state}(\texttt{session\_id}, \texttt{state}):
+\begin{itemize}
+\item transition: update state in cache and store
+\item output: \texttt{true} if updated
+\item exception: \texttt{StoreError} on write failure
+\end{itemize}
+
+\subsubsection{Local Functions}
+
+\begin{itemize}
+  \item \texttt{now()} — current timestamp
+  \item \texttt{expired(state)} — checks idle expiry
+\end{itemize}
+\section{MIS of Error Handling \& Recovery Module} \label{M11}
+
+\subsection{Module}
+
+Classifies errors, applies retry and backoff policies, and coordinates recovery or compensation actions to return the system to a consistent state.
+
+\subsection{Uses}
+
+Policy store; timer/backoff utilities; audit logger; command execution layer; browser controller.
+
+\subsection{Syntax}
+
+\subsubsection{Exported Constants}
+
+None.
+
+\subsubsection{Exported Access Programs}
+
+\begin{center}
+\begin{tabular}{p{4cm} p{4cm} p{3cm} p{4cm}}
+\hline
+\textbf{Name} & \textbf{In} & \textbf{Out} & \textbf{Exceptions} \\
+\hline
+\texttt{ErrorHandler} & \texttt{policy: Policy} & self & - \\
+\texttt{handle} & \texttt{err: ExecError}, \texttt{ctx: ExecCtx} & \texttt{ActionResult} & - \\
+\texttt{retry} & \texttt{cmd\_id: UUID} & \texttt{bool} & \texttt{PolicyError} \\
+\texttt{compensate} & \texttt{cmd\_id: UUID} & \texttt{bool} & \texttt{ExecError} \\
+\texttt{classify} & \texttt{err: ExecError} & \texttt{ErrorClass} & - \\
+\texttt{record} & \texttt{err: ExecError}, \texttt{ctx: ExecCtx} & \texttt{UUID} & - \\
+\hline
+\end{tabular}
+\end{center}
+
+\subsection{Semantics}
+
+\subsubsection{State Variables}
+
+\begin{itemize}
+  \item \texttt{policy: Policy} — retry and compensation rules
+  \item \texttt{history: map[UUID] to ErrorEvent} — recent errors
+  \item \texttt{backoff: map[UUID] to int} — current backoff in seconds
+\end{itemize}
+
+\subsubsection{Environment Variables}
+
+\begin{itemize}
+  \item \texttt{MAX\_RETRIES} — hard cap for attempts
+  \item \texttt{BASE\_BACKOFF\_S} — initial delay
+\end{itemize}
+
+\subsubsection{Assumptions}
+
+Compensation actions are idempotent or guarded.
+
+\subsubsection{Access Routine Semantics}
+
+\noindent \texttt{ErrorHandler}(\texttt{policy}):
+\begin{itemize}
+\item transition: set \texttt{policy}; clear \texttt{history}, \texttt{backoff}
+\item output: initialized instance
+\item exception: -
+\end{itemize}
+
+\noindent \texttt{handle}(\texttt{err}, \texttt{ctx}):
+\begin{itemize}
+\item transition: classify; decide action (retry, compensate, fail); update \texttt{history}, \texttt{backoff}
+\item output: \texttt{ActionResult} describing action taken
+\item exception: -
+\end{itemize}
+
+\noindent \texttt{retry}(\texttt{cmd\_id}):
+\begin{itemize}
+\item transition: schedule retry with policy backoff
+\item output: \texttt{true} if scheduled
+\item exception: \texttt{PolicyError} if retries exhausted
+\end{itemize}
+
+\noindent \texttt{compensate}(\texttt{cmd\_id}):
+\begin{itemize}
+\item transition: execute compensation; update state
+\item output: \texttt{true} on success; otherwise \texttt{false}
+\item exception: \texttt{ExecError} if compensation fails
+\end{itemize}
+
+\noindent \texttt{classify}(\texttt{err}):
+\begin{itemize}
+\item transition: none
+\item output: \texttt{ErrorClass} such as transient, permanent, or user
+\item exception: -
+\end{itemize}
+
+\noindent \texttt{record}(\texttt{err}, \texttt{ctx}):
+\begin{itemize}
+\item transition: persist error event; update \texttt{history}
+\item output: event identifier \texttt{UUID}
+\item exception: -
+\end{itemize}
+
+\subsubsection{Local Functions}
+
+\begin{itemize}
+  \item \texttt{calc\_backoff(cmd\_id)} — compute next delay
+  \item \texttt{is\_idempotent(cmd\_id)} — check compensation safety
+\end{itemize}
+
+
 
 \bibliographystyle {plainnat}
 \bibliography {../../../refs/References}
