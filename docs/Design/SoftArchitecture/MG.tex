@@ -47,7 +47,8 @@
 \toprule {\bf Date} & {\bf Version} & {\bf Notes}\\
 \midrule
 Nov 11, 2025 & 1.0 & Added modules and Traceability Matrix\\
-Nov 12, 2025 & 1.0 & Added Modules M6-M11\\
+Nov 12, 2025 & 1.1 & Added Modules M6-M11\\
+Nov 12, 2025 & 1.2 & Added Modules M18-M22\\
 \bottomrule
 \end{tabularx}
 
@@ -394,6 +395,35 @@ actually be implemented.
 \end{itemize}
 \textbf{Implemented By:} OutOfScopeHandlerImpl.
 
+\subsection*{Input Processing Layer Modules}
+
+\subsubsection*{M18: Microphone Manager}
+\textbf{Secrets:} Device-level audio capture configuration, sampling parameters, buffering strategy, fallback device selection, and how raw audio is normalized before downstream processing.\\
+\textbf{Services:} Start/stop microphone stream; read audio frames; provide normalized PCM buffer; expose current device status; surface hardware errors.\\
+\textbf{Implemented By:} Browser audio APIs or OS audio interface.\\
+
+\subsubsection*{M19: VAD Noise Filter}
+\textbf{Secrets:} Voice-activity-detection thresholds, noise-suppression heuristics, smoothing windows, and adaptive gain rules.\\
+\textbf{Services:} Filter raw microphone frames; determine speech vs. silence; emit clean audio frames; send VAD events (start/stop speech).\\
+\textbf{Implemented By:} DSP/VAD library.\\
+
+
+\subsection*{Personalization  Layer}
+\subsubsection*{M20: Prompting Module}
+\textbf{Secrets:} Prompt templates, personalization rules, condition-based variation (user history, context), and confidence-based prompt selection logic.\\
+\textbf{Services:} Generate user prompts; provide clarifying follow-ups when intent confidence is low; produce culturally inclusive and accessibility-enabled copy.\\
+\textbf{Implemented By:} Application prompt engine.\\
+
+\subsubsection*{M21: Model Tuner}
+\textbf{Secrets:} Adaptation strategy for user-specific speech patterns, tuning weights for model updates, online vs. offline update thresholds, and embedding storage rules.\\
+\textbf{Services:} Update inference parameters based on user data; compute personalized embeddings; adjust thresholds for intent classification and STT confidence.\\
+\textbf{Implemented By:} ML runtime (Whisper fine-tuning layer or lightweight personalization pipeline).\\
+
+\subsubsection*{M22: Instruction Registry}
+\textbf{Secrets:} Internal representation of user-custom commands, schema for mapping instructions to intents, and safety constraints preventing unsafe or ambiguous command creation.\\
+\textbf{Services:} Store/update/delete user instructions; resolve user-defined commands during intent parsing; validate new instructions; expose registry lookup API.\\
+\textbf{Implemented By:} Local or cloud command registry service.\\
+
 
 
 \section{Connection Between Requirements and Design} \label{SecConnection}
@@ -479,8 +509,9 @@ to be implemented.
 
 \section{Traceability Matrix} \label{SecTM}
 
-This section shows two traceability matrices: between the modules and the
-requirements and between the modules and the anticipated changes.
+The traceability matrices show how each requirement is
+implemented by specific modules and how each anticipated change is isolated
+within a single module.
 
 % the table should use mref, the requirements should be named, use something
 % like fref
