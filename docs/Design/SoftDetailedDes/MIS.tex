@@ -54,7 +54,7 @@ urlcolor=cyan          % color of external links
 \toprule {\bf Date} & {\bf Version} & {\bf Notes}\\
 \midrule
 Nov 12, 2025 & 1.0 & Added Modules M6-M17\\
-Date 2 & 1.1 & Notes\\
+Nov 12, 2025 & 1.1 & Added Modules M18-M22\\
 \bottomrule
 \end{tabularx}
 
@@ -1041,6 +1041,226 @@ Integrates with M14 to log anomaly-triggered safety events.
 \begin{itemize}
 \item \textbf{transition:} Restores safe prior system state through M11.
 \end{itemize}
+
+\label{MIS:M18}
+
+\section{MIS of MicrophoneManager --- M18}
+
+\textbf{Module:} MicrophoneManager
+
+\subsection{Uses:}
+\begin{itemize}
+\item VAD Noise Filter (M19) for downstream speech/noise classification.
+\item Session Manager (M10) for tracking active input sessions.
+\item AuditLogger (M14) for logging permission events or device failures.
+\end{itemize}
+
+\subsection{Syntax:}
+
+\subsubsection{Exported Access Programs:}
+
+\begin{tabular}{|l|l|l|l|}
+\hline
+\textbf{Name} & \textbf{In} & \textbf{Out} & \textbf{Exceptions} \\ \hline
+\texttt{listDevices} & - & deviceList & DeviceQueryException \\ \hline
+\texttt{startCapture} & deviceID & status & PermissionException \\ \hline
+\texttt{readFrame} & - & audioFrame & CaptureInactiveException \\ \hline
+\end{tabular}
+
+\subsection{Semantics}
+
+Implements audio acquisition requirements (FR1). Provides consistent, normalized microphone
+input to subsequent modules. Integrates with M10 to maintain session continuity.
+
+\subsubsection{Access Routine Semantics:}
+
+\noindent\texttt{startCapture(deviceID)}:
+\begin{itemize}
+\item \textbf{transition:} Initializes device stream and marks microphone as active.
+\end{itemize}
+
+\noindent\texttt{readFrame()}:
+\begin{itemize}
+\item \textbf{transition:} Retrieves the latest audio frame for processing.
+\end{itemize}
+
+\label{MIS:M19}
+
+\section{MIS of VADNoiseFilter --- M19}
+
+\textbf{Module:} VADNoiseFilter
+
+\subsection{Uses:}
+\begin{itemize}
+\item MicrophoneManager (M18) for raw audio frames.
+\item Speech-to-Text Engine (M4) for improved transcription accuracy.
+\item AuditLogger (M14) for tracking confidence drops or noise anomalies.
+\end{itemize}
+
+\subsection{Syntax:}
+
+\subsubsection{Exported Access Programs:}
+
+\begin{tabular}{|l|l|l|l|}
+\hline
+\textbf{Name} & \textbf{In} & \textbf{Out} & \textbf{Exceptions} \\ \hline
+\texttt{filterFrame} & audioFrame & cleanedFrame & - \\ \hline
+\texttt{detectSpeech} & audioFrame & isSpeech (bool) & - \\ \hline
+\texttt{resetState} & - & status & - \\ \hline
+\end{tabular}
+
+\subsection{Semantics}
+
+Supports Integrity Requirements (IR2) by reducing background noise prior to transcription.
+Provides binary VAD detections for downstream timing and segmentation.
+
+\subsubsection{Access Routine Semantics:}
+
+\noindent\texttt{filterFrame(frame)}:
+\begin{itemize}
+\item \textbf{transition:} Updates internal noise profile and returns processed audio.
+\end{itemize}
+
+\noindent\texttt{detectSpeech(frame)}:
+\begin{itemize}
+\item \textbf{transition:} Computes speech probability using configured thresholds.
+\end{itemize}
+
+\label{MIS:M20}
+
+\section{MIS of PromptingModule --- M20}
+
+\textbf{Module:} PromptingModule
+
+\subsection{Uses:}
+\begin{itemize}
+\item Intent Interpreter (M5) for phrasing confirmations.
+\item Error Feedback (M8) for generating user-facing explanations.
+\item Accessibility Layer (M2) for formatting prompts according to accessibility rules.
+\end{itemize}
+
+\subsection{Syntax:}
+
+\subsubsection{Exported Access Programs:}
+
+\begin{tabular}{|l|l|l|l|}
+\hline
+\textbf{Name} & \textbf{In} & \textbf{Out} & \textbf{Exceptions} \\ \hline
+\texttt{makePrompt} & uiState & promptText & - \\ \hline
+\texttt{makeConfirm} & intent & promptText & - \\ \hline
+\texttt{makeErrorPrompt} & errorData & promptText & - \\ \hline
+\end{tabular}
+
+\subsection{Semantics}
+
+Supports usability requirements (UH-1, UH-4) and cultural neutrality (CUL-1).
+Ensures consistent phrasing across confirmations, errors, and system messages.
+
+\subsubsection{Access Routine Semantics:}
+
+\noindent\texttt{makeConfirm(intent)}:
+\begin{itemize}
+\item \textbf{transition:} Constructs a confirmation string based on target action.
+\end{itemize}
+
+\noindent\texttt{makeErrorPrompt(errorData)}:
+\begin{itemize}
+\item \textbf{transition:} Builds a polite, accessible error message.
+\end{itemize}
+
+\label{MIS:M21}
+
+\section{MIS of ModelTuner --- M21}
+
+\textbf{Module:} ModelTuner
+
+\subsection{Uses:}
+\begin{itemize}
+\item Data Management Layer (M12) for retrieving stored audio samples.
+\item ASR Engine (M4) for updating recognition parameters.
+\item AuditLogger (M14) for recording tuning events or failures.
+\end{itemize}
+
+\subsection{Syntax:}
+
+\subsubsection{Exported Access Programs:}
+
+\begin{tabular}{|l|l|l|l|}
+\hline
+\textbf{Name} & \textbf{In} & \textbf{Out} & \textbf{Exceptions} \\ \hline
+\texttt{scheduleTune} & userID, dataset & jobID & TunePolicyException \\ \hline
+\texttt{checkStatus} & jobID & status & NotFoundException \\ \hline
+\texttt{applyModel} & userID, jobID & success (bool) & ModelLoadException \\ \hline
+\end{tabular}
+
+\subsection{Semantics}
+
+Supports Accuracy Requirements (PF-3) by enabling adaptive personalization for impaired speech.
+Updates the user's model profile upon successful tuning.
+
+\subsubsection{Access Routine Semantics:}
+
+\noindent\texttt{scheduleTune(userID, dataset)}:
+\begin{itemize}
+\item \textbf{transition:} Registers a tuning job with the training backend.
+\end{itemize}
+
+\noindent\texttt{applyModel(userID, jobID)}:
+\begin{itemize}
+\item \textbf{transition:} Loads and activates the newly tuned ASR parameters.
+\end{itemize}
+
+\label{MIS:M22}
+
+\section{MIS of InstructionRegistry --- M22}
+
+\textbf{Module:} InstructionRegistry
+
+\subsection{Uses:}
+\begin{itemize}
+\item Command Mapping Module (M6) for resolving intent-to-command mappings.
+\item Data Management Layer (M12) for persistent storage of registered instructions.
+\item AuditLogger (M14) for tracking updates to command schemas.
+\end{itemize}
+
+\subsection{Syntax:}
+
+\subsubsection{Exported Access Programs:}
+
+\begin{tabular}{|l|l|l|l|}
+\hline
+\textbf{Name} & \textbf{In} & \textbf{Out} & \textbf{Exceptions} \\ \hline
+\texttt{lookup} & intent & instruction & NotFoundException \\ \hline
+\texttt{registerInstr} & instruction & status & StoreException \\ \hline
+\texttt{updateInstr} & id, instruction & status & StoreException \\ \hline
+\end{tabular}
+
+\subsection{Semantics}
+
+Supports command mapping requirements (FR4) and safety guardrails (SEC-2).
+Maintains the authoritative index of allowed command definitions.
+
+\subsubsection{Access Routine Semantics:}
+
+\noindent\texttt{lookup(intent)}:
+\begin{itemize}
+\item \textbf{transition:} Retrieves matching instruction from registry.
+\end{itemize}
+
+\noindent\texttt{updateInstr(id, instruction)}:
+\begin{itemize}
+\item \textbf{transition:} Overwrites stored schema with the updated definition.
+\end{itemize}
+
+
+
+
+
+
+
+
+
+
 \bibliographystyle {plainnat}
 \bibliography {../../../refs/References}
 
