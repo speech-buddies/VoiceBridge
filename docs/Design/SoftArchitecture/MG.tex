@@ -8,6 +8,8 @@
 \usepackage{graphicx}
 \usepackage{float}
 \usepackage{hyperref}
+\usepackage{array}
+
 \hypersetup{
     colorlinks,
     citecolor=blue,
@@ -48,6 +50,8 @@
 \midrule
 Nov 11, 2025 & 1.0 & Added modules and Traceability Matrix\\
 Nov 12, 2025 & 1.0 & Added Modules M6-M11\\
+Nov 12, 2025 & 1.0 & Added Intro, Hierarchy Table, AC and UC\\
+
 \bottomrule
 \end{tabularx}
 
@@ -101,12 +105,9 @@ This section records information for easy reference.
 
 Decomposing a system into modules is a commonly accepted approach to developing
 software.  A module is a work assignment for a programmer or programming
-team~\citep{ParnasEtAl1984}.  We advocate a decomposition
-based on the principle of information hiding~\citep{Parnas1972a}.  This
+team~\citep{ParnasEtAl1984}.   For VoiceBridge, we adopt this decomposition based fundamentally on Parnas’s principle of information hiding~\citep{Parnas1972a}.  This
 principle supports design for change, because the ``secrets'' that each module
-hides represent likely future changes.  Design for change is valuable in SC,
-where modifications are frequent, especially during initial development as the
-solution space is explored.  
+hides represent likely future changes.  This approach supports design for change, a critical concern in assistive technologies where adaptation to evolving user needs and cutting-edge speech recognition improvements frequently occur, especially in early development phases.
 
 Our design follows the rules layed out by \citet{ParnasEtAl1984}, as follows:
 \begin{itemize}
@@ -164,16 +165,49 @@ adapted here is called design for
 change.
 
 \begin{description}
-\item[\refstepcounter{acnum} \actheacnum \label{acHardware}:] The specific
-  hardware on which the software is running.
-\item[\refstepcounter{acnum} \actheacnum \label{acInput}:] The format of the
-  initial input data.
-\item ...
+
+\item[\refstepcounter{acnum} \actheacnum \label{acHardware}:]
+Hardware platform and input devices. \\
+Advancements in microphone technology, such as arrays or new form factors, alongside evolving processing hardware, may improve audio quality, reduce costs, and enable integration with wearable devices. These changes influence audio acquisition and preprocessing modules.
+
+\item[\refstepcounter{acnum} \actheacnum \label{acSpeechModel}:]
+Speech-to-text engine and language support. \\
+The system might expand to support additional languages and dialects beyond English requiring adaptations in ASR models and intent interpretation logic. Continuous improvements in speech recognition accuracy and noise filtering will also necessitate regular updates.
+
+\item[\refstepcounter{acnum} \actheacnum \label{acUserPersonalization}:]
+User profile and personalization management. \\
+Personalization features may evolve to accommodate changing user speech patterns and preferences, demanding updates in model fine-tuning, adaptive prompting based on confidence, and profile management strategies.
+
+\item[\refstepcounter{acnum} \actheacnum \label{acCommandSupport}:]
+Command mapping and browser automation protocols. \\
+Updates may introduce new commands, integrate with emerging browser APIs, or improve error detection and recovery in command execution modules.
+
+\item[\refstepcounter{acnum} \actheacnum \label{acUIAndAccessibility}:]
+User interface and accessibility compliance. \\
+Responsive adjustments to UI designs and accessibility layers will be required to stay compliant with evolving WCAG guidelines and to address user feedback for improved usability.
+
+\item[\refstepcounter{acnum} \actheacnum \label{acErrorHandling}:]
+Error handling and recovery policies. \\
+Classification schemes, messaging protocols, retry/backoff strategies, and compensation mechanisms may be enhanced to increase robustness and user experience quality.
+
+\item[\refstepcounter{acnum} \actheacnum \label{acSessionManagement}:]
+Session lifecycle and interaction flow. \\
+Changes may extend session duration limits, improve state persistence, and better handle asynchronous or interrupted user interactions.
+
+\item[\refstepcounter{acnum} \actheacnum \label{acDataPrivacyLogging}:]
+Data privacy, audit logging, and security. \\
+Adaptations will be necessary to comply with evolving data privacy laws and security best practices, affecting encryption, audit trail formats, and consent mechanisms.
+
+\item[\refstepcounter{acnum} \actheacnum \label{acPersonalizationLayer}:]
+Personalization and prompting enhancements. \\
+Enhancements aiming at more context-aware and confidence-driven user assistance will continually refine prompting and instruction modules.
+
 \end{description}
 
-\wss{Anticipated changes relate to changes that would be made in requirements,
-design or implementation choices.  They are not related to changes that are made
-at run-time, like the values of parameters.}
+
+% \wss{Anticipated changes relate to changes that would be made in requirements,
+% design or implementation choices.  They are not related to changes that are made
+% at run-time, like the values of parameters.}
 
 \subsection{Unlikely Changes} \label{SecUchange}
 
@@ -185,20 +219,34 @@ will potentially need to be modified. Hence, it is not intended that these
 decisions will be changed.
 
 \begin{description}
-\item[\refstepcounter{ucnum} \uctheucnum \label{ucIO}:] Input/Output devices
-  (Input: File and/or Keyboard, Output: File, Memory, and/or Screen).
-\item ...
+
+\item[\refstepcounter{ucnum} \uctheucnum \label{ucHardwarePlatform}:]
+Switching to specialized or high-end microphones and audio hardware. \\
+VoiceBridge targets consumer-grade devices using standard microphones, ensuring affordability and accessibility. Moving to uncommon or costly hardware is outside the project scope and is therefore unlikely.
+
+\item[\refstepcounter{ucnum} \uctheucnum \label{ucProcessingOffload}:]
+Offloading speech processing or command execution to external or cloud systems. \\
+To protect user privacy and maintain responsiveness, VoiceBridge performs all key processing locally. Changing this would require major architecture redesign and is not planned.
+
+\item[\refstepcounter{ucnum} \uctheucnum \label{ucASRMethod}:]
+Fundamental changes to the speech recognition approach. \\
+The system uses specialized ASR models tuned for speech impairments based on proven models. Major shifts in ASR methodology would be disruptive and are therefore improbable.
+
+\item[\refstepcounter{ucnum} \uctheucnum \label{ucCommandSystem}:]
+Complete redesign of command mapping and browser control modules. \\
+These modules are tightly coupled with browser APIs and OS functions for stability and usability. Major rewrites would cause extensive system impact and are unlikely.
+
+\item[\refstepcounter{ucnum} \uctheucnum \label{ucArchitecture}:]
+Abandoning modular design for a monolithic or radically different architecture. \\
+Modularity was chosen for maintainability and scalability. Changing to a less modular approach would increase complexity and reduce flexibility.
+
 \end{description}
 
 \section{Module Hierarchy} \label{SecMH}
 
-This section provides an overview of the module design. Modules are summarized
-in a hierarchy decomposed by secrets in Table \ref{TblMH}. The modules listed
-below, which are leaves in the hierarchy tree, are the modules that will
-actually be implemented.
+This section provides an overview of the module design. The system is organized into architectural layers, each containing modules that encapsulate specific responsibilities. Table~\ref{TblMH} presents the hierarchy of modules by their layers, including their primary purposes and responsibilities. The modules listed below, which are leaves in the hierarchy tree, are the modules that will be implemented.
 
 \begin{description}
-
 \item [\refstepcounter{mnum} \mthemnum \label{m1}:] User Interface Module
 \item [\refstepcounter{mnum} \mthemnum \label{m2}:] Accessibility Layer
 \item [\refstepcounter{mnum} \mthemnum \label{m3}:] Feedback Display Module
@@ -221,35 +269,79 @@ actually be implemented.
 \item [\refstepcounter{mnum} \mthemnum \label{m20}:] Prompting Module
 \item [\refstepcounter{mnum} \mthemnum \label{m21}:] Model Tuner
 \item [\refstepcounter{mnum} \mthemnum \label{m22}:] Instruction Registry
-
 \end{description}
 
+\section{Connection Between Requirements and Design}
 
-\begin{table}[h!]
+The design of the system is intended to satisfy the requirements developed in the 
+(\href{https://github.com/speech-buddies/VoiceBridge/blob/main/docs/SRS-Volere/SRS.pdf}{SRS}).
+In this stage, the system is decomposed into modules. The connection between requirements and modules is listed in Table~\ref{TblMH}.
+
+\begin{table}[htbp]
 \centering
-\begin{tabular}{p{0.3\textwidth} p{0.6\textwidth}}
+\small
+\renewcommand{\arraystretch}{1.1} % row height
+\setlength{\tabcolsep}{6pt}       % column spacing
+\begin{tabular}{
+    >{\raggedright\arraybackslash}p{3cm}
+    >{\raggedright\arraybackslash}p{4.8cm}
+    >{\raggedright\arraybackslash}p{8.2cm}
+}
+
 \toprule
-\textbf{Level 1} & \textbf{Level 2}\\
+\textbf{Architectural Layer} & \textbf{Included Modules} & \textbf{Purpose / Responsibilities} \\
 \midrule
 
-{Hardware-Hiding Module} & ~ \\
+\textbf{Presentation Layer} &
+User Interface Module \newline
+Accessibility Layer \newline
+Feedback Display Module &
+Manages direct user interaction and feedback presentation. Displays transcribed text, confirmations, feedback messages, and status indicators. Ensures compliance with WCAG accessibility standards including contrast, font, and color. \\
 \midrule
 
-\multirow{7}{0.3\textwidth}{Behaviour-Hiding Module} & ?\\
-& ?\\
-& ?\\
-& ?\\
-& ?\\
-& ?\\
-& ?\\ 
-& ?\\
+\textbf{Application (Processing) Layer} &
+Speech-to-Text Engine \newline
+Intent Interpreter \newline
+Command Mapping Module \newline
+Command Execution Layer \newline
+Error Feedback Module &
+Performs speech recognition and intent processing. Converts speech audio to text, interprets user intent, maps intent to browser or OS commands, executes commands, and handles error feedback. \\
 \midrule
 
-\multirow{3}{0.3\textwidth}{Software Decision Module} & {?}\\
-& ?\\
-& ?\\
+\textbf{Control (Orchestration) Layer} &
+Browser Controller \newline
+Session Manager \newline
+Error Handling and Recovery Module &
+Coordinates and manages flow between modules. Tracks session states such as capture, transcribe, confirm, and execute. Manages events, exceptions, retries, and cancellations to ensure smooth operation. \\
+\midrule
+
+\textbf{Data Management Layer} &
+Data Storage Manager \newline
+User Profile Manager \newline
+Audit Logger &
+Maintains persistent data and user personalization. Stores user speech samples, preferences, command mappings, transcripts, and logs. Supports diagnostics and evaluation. \\
+\midrule
+
+\textbf{Security Layer} &
+Credential Manager \newline
+Encryption Manager \newline
+Out-of-Scope Handler &
+Manages authentication, encryption, and system boundaries. Ensures secure integration with external APIs and operating system interfaces. Handles login confirmations. \\
+\midrule
+
+\textbf{Input Processing Layer} &
+Microphone Manager \newline
+VAD and Noise Filter &
+Controls microphone hardware and audio capture. Filters noise to improve voice input quality. \\
+\midrule
+
+\textbf{Personalization Layer} &
+Prompting Module \newline
+Model Tuner \newline
+Instruction Registry &
+Provides user prompting, model fine-tuning, and instruction management. Supports optional personalization based on confidence scores and usage history. \\
+
 \bottomrule
-
 \end{tabular}
 \caption{Module Hierarchy}
 \label{TblMH}
