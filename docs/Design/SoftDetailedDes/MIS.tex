@@ -53,7 +53,7 @@ urlcolor=cyan          % color of external links
 \begin{tabularx}{\textwidth}{p{3cm}p{2cm}X}
 \toprule {\bf Date} & {\bf Version} & {\bf Notes}\\
 \midrule
-Nov 12, 2025 & 1.0 & Added Modules M6-M11\\
+Nov 12, 2025 & 1.0 & Added Modules M6-M17\\
 Date 2 & 1.1 & Notes\\
 \bottomrule
 \end{tabularx}
@@ -756,8 +756,291 @@ Compensation actions are idempotent or guarded.
   \item \texttt{is\_idempotent(cmd\_id)} — check compensation safety
 \end{itemize}
 
+\section{MIS of Storage Management Module  --- M12}
+\label{MIS:M12}
+
+\textbf{Module:} Storage Management Module 
+
+\subsection{Uses:}
+\begin{itemize}
+  \item Encryption Manager (M16) for encryption/decryption at rest and in transit (R16.3).
+  \item Credential Manager (M15) for authenticated access to user-specific data (R16.1).
+  \item AuditLogger (M14) to record storage and retrieval events (R16.4).
+  \item UserProfileManager (M13) for storing personalized ASR profiles and preferences.
+\end{itemize}
+
+\subsection{Syntax:}
+
+\subsubsection{Exported Constants:}
+\begin{itemize}
+  \item \texttt{MAX\_STORAGE\_LIMIT} = 5GB per user session (configurable).
+  \item \texttt{BACKUP\_INTERVAL} = 24 hours.
+  \item \texttt{RETENTION\_PERIOD} = 90 days (per R16.3 Privacy Requirements).
+\end{itemize}
+
+\subsubsection{Exported Access Programs:}
+
+\begin{tabular}{|l|l|l|l|}
+\hline
+\textbf{Name} & \textbf{In} & \textbf{Out} & \textbf{Exceptions} \\ \hline
+\texttt{storeTranscript} & transcriptData, userID & confirmationID & StorageWriteException \\ \hline
+\texttt{retrieveTranscript} & transcriptID, userID & transcriptData & DataNotFoundException \\ \hline
+\texttt{backupData} & userID & backupStatus & BackupFailureException \\ \hline
+\texttt{enforceRetentionRules} & policyConfig & summaryReport & RetentionException \\ \hline
+\end{tabular}
+
+\subsection{Semantics}
+\subsubsection{State Variables:}
+\begin{itemize}
+  \item \texttt{storageRegistry}: maps user data identifiers to file metadata and encryption state.
+  \item \texttt{backupSchedule}: list of active backups per user.
+  \item \texttt{retentionPolicies}: retention rules derived from privacy configuration (R16.3).
+\end{itemize}
+
+\subsubsection{Environment Variables:}
+\begin{itemize}
+  \item \texttt{DATABASE\_URL}: location of secure storage database.
+  \item \texttt{CLOUD\_STORAGE\_API}: API endpoint for encrypted cloud backups.
+\end{itemize}
+
+\subsubsection{Assumptions:}
+\begin{itemize}
+  \item Encryption Manager (M16) is available for encrypting all stored data.
+  \item User authentication is validated by Credential Manager (M15) before access.
+\end{itemize}
+
+\subsubsection{Access Routine Semantics:}
+
+\noindent\texttt{storeTranscript(transcriptData, userID)}:
+\begin{itemize}
+  \item \textbf{transition:} Adds a new entry to \texttt{storageRegistry}, encrypts transcript data via M16, and logs the event via M14.
+  \item \textbf{output:} Returns confirmation ID.
+  \item \textbf{exception:} \texttt{StorageWriteException} if quota exceeded or encryption fails.
+\end{itemize}
+
+\noindent\texttt{retrieveTranscript(transcriptID, userID)}:
+\begin{itemize}
+  \item \textbf{output:} Returns decrypted transcript data.
+  \item \textbf{exception:} \texttt{DataNotFoundException} if transcriptID not found or access denied.
+\end{itemize}
+
+\noindent\texttt{backupData(userID)}:
+\begin{itemize}
+  \item \textbf{transition:} Performs encrypted backup of stored data to cloud (per R16.3).
+  \item \textbf{output:} Backup status (success/failure).
+\end{itemize}
+
+\noindent\texttt{enforceRetentionRules(policyConfig)}:
+\begin{itemize}
+  \item \textbf{transition:} Deletes expired or policy-violating entries from storage.
+  \item \textbf{output:} Summary of removed or archived files.
+\end{itemize}
+
+\subsubsection{Local Functions:}
+\begin{itemize}
+  \item \texttt{verifyBackupIntegrity(backupID)}
+  \item \texttt{applyRetentionRule(fileMeta)}
+\end{itemize}
+
+\section{MIS of User Profile Manager --- M13}
+
+\textbf{Module:} UserProfileManager
+
+\subsection{Uses:}
+\begin{itemize}
+\item Credential Manager (M15) for token validation and secure login (R16.1).
+\item Encryption Manager (M16) for encrypting stored profiles (R16.3).
+\item Storage Management Module (M12) for persistence.
+\end{itemize}
+
+\subsection{Syntax:}
+
+\subsubsection{Exported Access Programs:}
+
+\begin{tabular}{|l|l|l|l|}
+\hline
+\textbf{Name} & \textbf{In} & \textbf{Out} & \textbf{Exceptions} \\ \hline
+\texttt{createProfile} & userToken, initData & profileID & ProfileCreationException \\ \hline
+\texttt{loadPreferences} & userID & preferenceData & DataNotFoundException \\ \hline
+\texttt{saveConsent} & userID, consentFlags & status & ConsentException \\ \hline
+\end{tabular}
+
+\subsection{Semantics}
+
+\subsubsection{State Variables:}
+\begin{itemize}
+\item \texttt{profiles}: map of userID → profile metadata.
+\item \texttt{preferences}: user personalization data (R12.2).
+\item \texttt{consentLog}: record of consent actions (R16.3).
+\end{itemize}
+
+\subsubsection{Assumptions:}
+\begin{itemize}
+\item Consent is required prior to storing personalization data (R16.3 Privacy).
+\end{itemize}
+
+\subsubsection{Access Routine Semantics:}
+
+\noindent\texttt{createProfile(userToken, initData)}:
+\begin{itemize}
+\item \textbf{transition:} Creates encrypted user profile and saves to M12 storage.
+\item \textbf{exception:} \texttt{ProfileCreationException} on invalid token.
+\end{itemize}
+
+\noindent\texttt{saveConsent(userID, consentFlags)}:
+\begin{itemize}
+\item \textbf{transition:} Updates consentLog.
+\item \textbf{output:} Confirmation of saved consent (R16.3).
+\end{itemize}
 
 
+\section{MIS of AuditLogger --- M14}
+
+\textbf{Module:} AuditLogger
+
+\subsection{Uses:}
+\begin{itemize}
+\item Encryption Manager (M16) for log encryption.
+\item Credential Manager (M15) for secure log access.
+\end{itemize}
+
+\subsection{Syntax:}
+
+\subsubsection{Exported Access Programs:}
+
+\begin{tabular}{|l|l|l|l|}
+\hline
+\textbf{Name} & \textbf{In} & \textbf{Out} & \textbf{Exceptions} \\ \hline
+\texttt{logEvent} & eventData, severity & logID & LogWriteException \\ \hline
+\texttt{queryLogs} & filterParams, userRole & logRecords & UnauthorizedAccessException \\ \hline
+\texttt{detectAnomaly} & recentLogs & anomalyReport & DetectionException \\ \hline
+\end{tabular}
+
+\subsection{Semantics}
+
+\subsubsection{Access Routine Semantics:}
+
+\noindent\texttt{logEvent(eventData, severity)}:
+\begin{itemize}
+\item \textbf{transition:} Writes signed and encrypted log entry per R16.4.
+\end{itemize}
+
+\noindent\texttt{detectAnomaly(recentLogs)}:
+\begin{itemize}
+\item \textbf{output:} Triggers OutOfScopeHandler (M17) on suspicious events.
+\end{itemize}
+
+
+\label{MIS:M15}
+
+\section{MIS of Credential Manager --- M15}
+
+\textbf{Module:} Credential Manager (CredentialManagerImpl)
+
+\subsection{Uses:}
+\begin{itemize}
+\item Encryption Manager (M16) for secure key storage.
+\item AuditLogger (M14) to record authentication attempts (R16.4).
+\end{itemize}
+
+\subsection{Syntax:}
+
+\subsubsection{Exported Access Programs:}
+
+\begin{tabular}{|l|l|l|l|}
+\hline
+\textbf{Name} & \textbf{In} & \textbf{Out} & \textbf{Exceptions} \\ \hline
+\texttt{authenticateUser} & username, password & sessionToken & AuthException \\ \hline
+\texttt{validateToken} & sessionToken & validity & TokenException \\ \hline
+\texttt{rotateKeys} & scheduleID & status & KeyRotationException \\ \hline
+\end{tabular}
+
+\subsection{Semantics}
+
+\subsubsection{Access Routine Semantics:}
+
+\noindent\texttt{authenticateUser(username, password)}:
+\begin{itemize}
+\item \textbf{transition:} Validates credentials via password vault; issues signed token (R16.1).
+\end{itemize}
+
+\noindent\texttt{rotateKeys(scheduleID)}:
+\begin{itemize}
+\item \textbf{transition:} Calls M16 to rotate key pairs per R16.3.
+\end{itemize}
+
+
+\label{MIS:M16}
+
+\section{MIS of Encryption Manager --- M16}
+
+\textbf{Module:} Encryption Manager (EncryptionManagerImpl)
+
+\subsection{Uses:}
+\begin{itemize}
+\item None — foundational security service.
+\end{itemize}
+
+\subsection{Syntax:}
+
+\subsubsection{Exported Access Programs:}
+
+\begin{tabular}{|l|l|l|l|}
+\hline
+\textbf{Name} & \textbf{In} & \textbf{Out} & \textbf{Exceptions} \\ \hline
+\texttt{encryptData} & plainData, keyID & cipherData & EncryptionException \\ \hline
+\texttt{decryptData} & cipherData, keyID & plainData & DecryptionException \\ \hline
+\texttt{rotateKeys} & rotationPolicy & result & RotationFailureException \\ \hline
+\texttt{verifyIntegrity} & dataBlob, signature & validFlag & IntegrityException \\ \hline
+\end{tabular}
+
+\subsection{Semantics}
+
+Implements R16.3 (Privacy Requirements): ensures all data is encrypted at rest/in transit.
+Implements R16.2 (Integrity): validates message hashes before use.
+
+
+\label{MIS:M17}
+
+\section{MIS of OutOfScopeHandler --- M17}
+
+\textbf{Module:} OutOfScopeHandler
+
+\subsection{Uses:}
+\begin{itemize}
+\item AuditLogger (M14) for incident reporting (R16.4).
+\item Command Mapping Module (M6) for validation of user commands.
+\item Error Handling \& Recovery (M11) for rollback actions.
+\end{itemize}
+
+\subsection{Syntax:}
+
+\subsubsection{Exported Access Programs:}
+
+\begin{tabular}{|l|l|l|l|}
+\hline
+\textbf{Name} & \textbf{In} & \textbf{Out} & \textbf{Exceptions} \\ \hline
+\texttt{validateCommand} & commandText, context & validationResult & InvalidCommandException \\ \hline
+\texttt{reportIncident} & incidentData & reportID & ReportFailureException \\ \hline
+\texttt{recoverState} & sessionID & status & RecoveryException \\ \hline
+\end{tabular}
+
+\subsection{Semantics}
+
+Implements R16.5 (Immunity Requirements): ensures robustness against unsafe operations.
+Integrates with M14 to log anomaly-triggered safety events.
+
+\subsubsection{Access Routine Semantics:}
+
+\noindent\texttt{validateCommand(commandText)}:
+\begin{itemize}
+\item \textbf{transition:} Compares command against whitelist (policy from config).
+\end{itemize}
+
+\noindent\texttt{recoverState(sessionID)}:
+\begin{itemize}
+\item \textbf{transition:} Restores safe prior system state through M11.
+\end{itemize}
 \bibliographystyle {plainnat}
 \bibliography {../../../refs/References}
 

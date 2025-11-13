@@ -295,6 +295,106 @@ actually be implemented.
 \textbf{Services:} Handle error; retry; compensate; classify; record event. \\
 \textbf{Implemented By:} Orchestration runtime with policy store. \\
 
+\medskip
+\subsubsection*{M12: Storage Management Module}
+\textbf{Secrets:}
+\begin{itemize}
+  \item Database connection credentials
+  \item Cloud API tokens
+  \item Encryption keys
+\end{itemize}
+\textbf{Services:}
+\begin{itemize}
+  \item DataStorageService: Stores and retrieves transcripts, user data, and configuration files.
+  \item BackupService: Performs scheduled or manual backups to secure cloud storage.
+  \item DataRetrievalService: Provides indexed access to stored files for authorized modules.
+  \item DataRetentionService: Enforces deletion and retention rules based on time or policy.
+\end{itemize}
+\textbf{Implemented By:} DataStorageManager.
+
+\medskip
+\subsubsection*{M13: User Profile Management Module}
+\textbf{Secrets:}
+\begin{itemize}
+  \item User tokens and refresh keys
+  \item Profile encryption keys
+  \item Hashed user identifiers
+\end{itemize}
+\textbf{Services:}
+\begin{itemize}
+  \item ProfileCreationService: Initializes new user profiles with unique IDs.
+  \item PreferenceService: Saves and retrieves user preferences and personalization data.
+  \item ConsentManagementService: Records and verifies consent for data collection and personalization.
+\end{itemize}
+\textbf{Implemented By:} UserProfileManagerImpl.
+
+\medskip
+\subsubsection*{M14: Audit Logging Module}
+\textbf{Secrets:}
+\begin{itemize}
+  \item Log signing key
+  \item Audit database token
+  \item Log encryption key
+\end{itemize}
+\textbf{Services:}
+\begin{itemize}
+  \item ActivityLogService: Logs system and user activities for traceability.
+  \item LogQueryService: Provides authorized access to query and review logs.
+  \item AnomalyDetectionService: Detects suspicious activity and security anomalies.
+\end{itemize}
+\textbf{Implemented By:} AuditLoggerImpl.
+
+\medskip
+\subsubsection*{M15: Credential Management Module}
+\textbf{Secrets:}
+\begin{itemize}
+  \item Vault master key
+  \item Token signing keypair
+  \item OAuth client secrets
+\end{itemize}
+\textbf{Services:}
+\begin{itemize}
+  \item AuthenticationService: Validates user credentials during login.
+  \item SessionTokenService: Issues and validates secure access tokens (JWT/OAuth).
+  \item PasswordVaultService: Stores and retrieves hashed passwords securely.
+\end{itemize}
+\textbf{Implemented By:} CredentialManagerImpl.
+
+\medskip
+\subsubsection*{M16: Encryption Management Module}
+\textbf{Secrets:}
+\begin{itemize}
+  \item Private encryption keypair
+  \item TLS certificates for secure communication
+  \item Key rotation schedule metadata
+\end{itemize}
+\textbf{Services:}
+\begin{itemize}
+  \item DataEncryptionService: Encrypts data at rest and in transit.
+  \item KeyManagementService: Generates, rotates, and revokes cryptographic keys.
+  \item AnonymizationService: Removes identifiable data prior to model training or storage.
+  \item IntegrityVerificationService: Ensures stored or transmitted data has not been altered.
+\end{itemize}
+\textbf{Implemented By:} EncryptionManagerImpl.
+
+\medskip
+\subsubsection*{M17: Out-of-Scope Handling Module}
+\textbf{Secrets:}
+\begin{itemize}
+  \item Command whitelist/blacklist configuration
+  \item Safety policy file checksum
+  \item Secure incident reporting token
+\end{itemize}
+\textbf{Services:}
+\begin{itemize}
+  \item CommandValidationService: Validates command scope and prevents unsafe actions.
+  \item UserSafetyService: Provides safe fallback messages and cancel options.
+  \item RecoveryService: Rolls back partially executed or invalid operations.
+  \item IncidentReportingService: Reports anomalies and unsafe commands to the AuditLogger.
+\end{itemize}
+\textbf{Implemented By:} OutOfScopeHandlerImpl.
+
+
 
 \section{Connection Between Requirements and Design} \label{SecConnection}
 
