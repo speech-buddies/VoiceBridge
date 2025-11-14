@@ -177,13 +177,6 @@ Where relevant, imported functions (e.g., VAD filters, ASR decoders, encryption 
 \section{Module Decomposition}
 The high-level module decomposition of the system is summarized in Table 1 of the MG document. For a comprehensive and detailed breakdown, please refer to the Module Guide (MG) document available at \href{https://github.com/speech-buddies/VoiceBridge/blob/main/docs/Design/SoftArchitecture/MG.pdf}{MG document}.
 
-% \section{MIS of \wss{Module Name}} \label{Module} \wss{Use labels for
-%   cross-referencing}
-
-% \wss{You can reference SRS labels, such as R\ref{R_Inputs}.}
-
-% \wss{It is also possible to use \LaTeX for hypperlinks to external documents.}
-
 \newpage
 \section{MIS of User Interface Module} \label{M1}
 
@@ -708,14 +701,13 @@ audit logger; configuration store for timeouts and retries.
 None.
 
 \subsubsection{Exported Access Programs}
-
 \begin{center}
-\begin{tabular}{p{4cm} p{4cm} p{3cm} p{4cm}}
+\begin{tabular}{|l|l|l|l|}
 \hline
 \textbf{Name} & \textbf{In} & \textbf{Out} & \textbf{Exceptions} \\
 \hline
-\texttt{CommandExecLayer} & \texttt{backend: Client}, \texttt{timeout\_s: int} & self & - \\
-\texttt{execute} & \texttt{cmd: ExecCmd} & \texttt{Result} & \texttt{PermissionError}, \texttt{TimeoutError}, \texttt{ExecError} \\
+\texttt{CommandExecLayer} & \texttt{backend: Client},  & self & - \\
+\texttt{execute} & \texttt{cmd: ExecCmd} & \texttt{Result} & \texttt{PermissionError}, \texttt{TimeoutError} \\
 \texttt{cancel} & \texttt{cmd\_id: UUID} & \texttt{bool} & \texttt{NotFoundError} \\
 \texttt{status} & \texttt{cmd\_id: UUID} & \texttt{ExecStatus} & \texttt{NotFoundError} \\
 \texttt{validate} & \texttt{cmd: ExecCmd} & \texttt{bool} & - \\
@@ -829,7 +821,7 @@ None.
 \subsubsection{Exported Access Programs}
 
 \begin{center}
-\begin{tabular}{p{4cm} p{4cm} p{3cm} p{4cm}}
+\begin{tabular}{|l|l|l|l|}
 \hline
 \textbf{Name} & \textbf{In} & \textbf{Out} & \textbf{Exceptions} \\
 \hline
@@ -925,11 +917,11 @@ None.
 \subsubsection{Exported Access Programs}
 
 \begin{center}
-\begin{tabular}{p{4cm} p{4cm} p{3cm} p{4cm}}
+\begin{tabular}{|l|l|l|l|}
 \hline
 \textbf{Name} & \textbf{In} & \textbf{Out} & \textbf{Exceptions} \\
 \hline
-\texttt{BrowserController} & \texttt{bridge: Client}, \texttt{timeout\_s: int} & self & - \\
+\texttt{BrowserController} & \texttt{bridge: Client} & self & - \\
 \texttt{send} & \texttt{req: BackendReq} & \texttt{BackendResp} & \texttt{TimeoutError}, \texttt{TransportError} \\
 \texttt{get\_status} & \texttt{cmd\_id: UUID} & \texttt{ExecStatus} & \texttt{NotFoundError} \\
 \texttt{cancel} & \texttt{cmd\_id: UUID} & \texttt{bool} & \texttt{NotFoundError} \\
@@ -1028,16 +1020,16 @@ None.
 \subsubsection{Exported Access Programs}
 
 \begin{center}
-\begin{tabular}{p{4cm} p{4cm} p{3cm} p{4cm}}
+\begin{tabular}{|l|l|l|l|}
 \hline
 \textbf{Name} & \textbf{In} & \textbf{Out} & \textbf{Exceptions} \\
 \hline
 \texttt{SessionManager} & \texttt{store: Store}, \texttt{ttl\_s: int} & self & - \\
 \texttt{start} & \texttt{user\_id: UUID} & \texttt{SessionId} & \texttt{StoreError} \\
-\texttt{stop} & \texttt{session\_id: SessionId} & \texttt{bool} & \texttt{StoreError} \\
-\texttt{get} & \texttt{session\_id: SessionId} & \texttt{SessionState} & \texttt{NotFoundError} \\
-\texttt{attach\_command} & \texttt{session\_id: SessionId}, \texttt{cmd\_id: UUID} & \texttt{bool} & \texttt{NotFoundError} \\
-\texttt{set\_state} & \texttt{session\_id: SessionId}, \texttt{state: SessionState} & \texttt{bool} & \texttt{StoreError} \\
+\texttt{stop} & \texttt{SessionId} & \texttt{bool} & \texttt{StoreError} \\
+\texttt{get} & \texttt{SessionId} & \texttt{SessionState} & \texttt{NotFoundError} \\
+\texttt{attach\_command} & \texttt{SessionId}, \texttt{cmd\_id: UUID} & \texttt{bool} & \texttt{NotFoundError} \\
+\texttt{set\_state} & \texttt{SessionId}, \texttt{state: SessionState} & \texttt{bool} & \texttt{StoreError} \\
 \hline
 \end{tabular}
 \end{center}
@@ -1131,7 +1123,7 @@ None.
 \subsubsection{Exported Access Programs}
 
 \begin{center}
-\begin{tabular}{p{4cm} p{4cm} p{3cm} p{4cm}}
+\begin{tabular}{|l|l|l|l|}
 \hline
 \textbf{Name} & \textbf{In} & \textbf{Out} & \textbf{Exceptions} \\
 \hline
