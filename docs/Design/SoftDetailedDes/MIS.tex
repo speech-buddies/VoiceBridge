@@ -19,7 +19,7 @@
 \usepackage[section]{placeins}
 \usepackage{caption}
 \usepackage{fullpage}
-
+\usepackage{array}
 \hypersetup{
 bookmarks=true,     % show bookmarks bar?
 colorlinks=true,       % false: boxed links; true: colored links
@@ -61,8 +61,6 @@ Nov 12, 2025 & 1.0 & Added Modules M1-M22\\
 
 \section{Symbols, Abbreviations and Acronyms}
 
-See SRS Documentation at \href{https://github.com/speech-buddies/VoiceBridge/blob/main/docs/SRS-Volere/SRS.pdf}{SRS}
-
 \begin{tabular}{|l|l|}
 \hline
 \textbf{Acronym} & \textbf{Meaning} \\ \hline
@@ -70,6 +68,12 @@ DOM & Document Object Model \\ \hline
 ARIA & Accessible Rich Internet Applications \\ \hline
 \end{tabular}
 
+\vspace{1em}
+
+\noindent
+For previously defined acronyms, please refer to the SRS documentation at
+\href{https://github.com/speech-buddies/VoiceBridge/blob/main/docs/SRS-Volere/SRS.pdf}{SRS}.
+The acronyms listed above are newly introduced in this document.
 \newpage
 
 \tableofcontents
@@ -80,12 +84,26 @@ ARIA & Accessible Rich Internet Applications \\ \hline
 
 \section{Introduction}
 
-The following document details the Module Interface Specifications for
-\wss{Fill in your project name and description}
+This document presents the Module Interface Specifications (MIS) for VoiceBridge, a modular platform 
+designed to facilitate real-time voice interaction and transcription across diverse applications. 
+VoiceBridge integrates advanced speech-to-text processing, natural language understanding, 
+and command execution to enable intuitive voice-driven workflows.
+
+The system supports accessibility standards, personalized user settings, and feedback mechanisms, 
+allowing both developers and end-users to interact with software efficiently and securely. 
+Core capabilities include continuous audio streaming, intent interpretation, contextual command 
+mapping, and encrypted storage of transcripts and user profiles.
+
+The MIS provides detailed specifications for each module, outlining their interfaces, expected inputs 
+and outputs, state management, and interactions with other components. This document complements 
+the System Requirements Specification (SRS) and Module Guide (MG), offering a reference for 
+implementation, testing, and integration.
 
 Complementary documents include the System Requirement Specifications
 and Module Guide.  The full documentation and implementation can be
-found at \url{...}.  \wss{provide the url for your repo}
+found at {https://github.com/speech-buddies/VoiceBridge/blob/main/docs}
+
+
 
 \section{Notation}
 
@@ -126,40 +144,80 @@ described by giving their type signature followed by their specification.
 
 \section{Module Decomposition}
 
-The following table is taken directly from the Module Guide document for this project.
 
-\begin{table}[h!]
+The following table summarizes the high-level module decomposition of the system. 
+For a comprehensive breakdown, refer to the Module Guide (MG) document available at 
+\href{https://github.com/speech-buddies/VoiceBridge/blob/main/docs/Design/SoftArchitecture/MG.pdf}{MG document}.
+
+\begin{table}[htbp]
 \centering
-\begin{tabular}{p{0.3\textwidth} p{0.6\textwidth}}
+\small
+\renewcommand{\arraystretch}{1.1} % row height
+\setlength{\tabcolsep}{6pt}       % column spacing
+\begin{tabular}{
+    >{\raggedright\arraybackslash}p{3cm}
+    >{\raggedright\arraybackslash}p{4.8cm}
+    >{\raggedright\arraybackslash}p{8.2cm}
+}
+
 \toprule
-\textbf{Level 1} & \textbf{Level 2}\\
+\textbf{Architectural Layer} & \textbf{Included Modules} & \textbf{Purpose / Responsibilities} \\
 \midrule
 
-{Hardware-Hiding} & ~ \\
+\textbf{Presentation Layer} &
+User Interface Module \newline
+Accessibility Layer \newline
+Feedback Display Module &
+Manages direct user interaction and feedback presentation. Displays transcribed text, confirmations, feedback messages, and status indicators. Ensures compliance with WCAG accessibility standards including contrast, font, and color. \\
 \midrule
 
-\multirow{7}{0.3\textwidth}{Behaviour-Hiding} & Input Parameters\\
-& Output Format\\
-& Output Verification\\
-& Temperature ODEs\\
-& Energy Equations\\ 
-& Control Module\\
-& Specification Parameters Module\\
+\textbf{Application (Processing) Layer} &
+Speech-to-Text Engine \newline
+Intent Interpreter \newline
+Command Mapping Module \newline
+Command Execution Layer \newline
+Error Feedback Module &
+Performs speech recognition and intent processing. Converts speech audio to text, interprets user intent, maps intent to browser or OS commands, executes commands, and handles error feedback. \\
 \midrule
 
-\multirow{3}{0.3\textwidth}{Software Decision} & {Sequence Data Structure}\\
-& ODE Solver\\
-& Plotting\\
+\textbf{Control (Orchestration) Layer} &
+Browser Controller \newline
+Session Manager \newline
+Error Handling and Recovery Module &
+Coordinates and manages flow between modules. Tracks session states such as capture, transcribe, confirm, and execute. Manages events, exceptions, retries, and cancellations to ensure smooth operation. \\
+\midrule
+
+\textbf{Data Management Layer} &
+Data Storage Manager \newline
+User Profile Manager \newline
+Audit Logger &
+Maintains persistent data and user personalization. Stores user speech samples, preferences, command mappings, transcripts, and logs. Supports diagnostics and evaluation. \\
+\midrule
+
+\textbf{Security Layer} &
+Credential Manager \newline
+Encryption Manager \newline
+Out-of-Scope Handler &
+Manages authentication, encryption, and system boundaries. Ensures secure integration with external APIs and operating system interfaces. Handles login confirmations. \\
+\midrule
+
+\textbf{Input Processing Layer} &
+Microphone Manager \newline
+VAD and Noise Filter &
+Controls microphone hardware and audio capture. Filters noise to improve voice input quality. \\
+\midrule
+
+\textbf{Personalization Layer} &
+Prompting Module \newline
+Model Tuner \newline
+Instruction Registry &
+Provides user prompting, model fine-tuning, and instruction management. Supports optional personalization based on confidence scores and usage history. \\
+
 \bottomrule
-
 \end{tabular}
 \caption{Module Hierarchy}
 \label{TblMH}
 \end{table}
-
-\newpage
-~\newpage
-
 % \section{MIS of \wss{Module Name}} \label{Module} \wss{Use labels for
 %   cross-referencing}
 
@@ -1712,7 +1770,8 @@ Maintains the authoritative index of allowed command definitions.
 
 \section{Appendix} \label{Appendix}
 
-\wss{Extra information if required}
+Not applicable for this document.
+% \wss{Extra information if required}
 
 \newpage{}
 
@@ -1723,7 +1782,7 @@ Maintains the authoritative index of allowed command definitions.
 The information in this section will be used to evaluate the team members on the
 graduate attribute of Problem Analysis and Design.
 
-\input{../../Reflection.tex}
+\input{../MIS_Reflection.tex}
 
 \begin{enumerate}
   \item What went well while writing this deliverable? 
