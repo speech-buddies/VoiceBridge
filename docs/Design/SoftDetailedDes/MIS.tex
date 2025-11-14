@@ -143,81 +143,8 @@ are defined by the data types of their inputs and outputs. Local functions are
 described by giving their type signature followed by their specification.
 
 \section{Module Decomposition}
+The high-level module decomposition of the system is summarized in Table 1 of the MG document. For a comprehensive and detailed breakdown, please refer to the Module Guide (MG) document available at \href{https://github.com/speech-buddies/VoiceBridge/blob/main/docs/Design/SoftArchitecture/MG.pdf}{MG document}.
 
-
-The following table summarizes the high-level module decomposition of the system. 
-For a comprehensive breakdown, refer to the Module Guide (MG) document available at 
-\href{https://github.com/speech-buddies/VoiceBridge/blob/main/docs/Design/SoftArchitecture/MG.pdf}{MG document}.
-
-\begin{table}[htbp]
-\centering
-\small
-\renewcommand{\arraystretch}{1.1} % row height
-\setlength{\tabcolsep}{6pt}       % column spacing
-\begin{tabular}{
-    >{\raggedright\arraybackslash}p{3cm}
-    >{\raggedright\arraybackslash}p{4.8cm}
-    >{\raggedright\arraybackslash}p{8.2cm}
-}
-
-\toprule
-\textbf{Architectural Layer} & \textbf{Included Modules} & \textbf{Purpose / Responsibilities} \\
-\midrule
-
-\textbf{Presentation Layer} &
-User Interface Module \newline
-Accessibility Layer \newline
-Feedback Display Module &
-Manages direct user interaction and feedback presentation. Displays transcribed text, confirmations, feedback messages, and status indicators. Ensures compliance with WCAG accessibility standards including contrast, font, and color. \\
-\midrule
-
-\textbf{Application (Processing) Layer} &
-Speech-to-Text Engine \newline
-Intent Interpreter \newline
-Command Mapping Module \newline
-Command Execution Layer \newline
-Error Feedback Module &
-Performs speech recognition and intent processing. Converts speech audio to text, interprets user intent, maps intent to browser or OS commands, executes commands, and handles error feedback. \\
-\midrule
-
-\textbf{Control (Orchestration) Layer} &
-Browser Controller \newline
-Session Manager \newline
-Error Handling and Recovery Module &
-Coordinates and manages flow between modules. Tracks session states such as capture, transcribe, confirm, and execute. Manages events, exceptions, retries, and cancellations to ensure smooth operation. \\
-\midrule
-
-\textbf{Data Management Layer} &
-Data Storage Manager \newline
-User Profile Manager \newline
-Audit Logger &
-Maintains persistent data and user personalization. Stores user speech samples, preferences, command mappings, transcripts, and logs. Supports diagnostics and evaluation. \\
-\midrule
-
-\textbf{Security Layer} &
-Credential Manager \newline
-Encryption Manager \newline
-Out-of-Scope Handler &
-Manages authentication, encryption, and system boundaries. Ensures secure integration with external APIs and operating system interfaces. Handles login confirmations. \\
-\midrule
-
-\textbf{Input Processing Layer} &
-Microphone Manager \newline
-VAD and Noise Filter &
-Controls microphone hardware and audio capture. Filters noise to improve voice input quality. \\
-\midrule
-
-\textbf{Personalization Layer} &
-Prompting Module \newline
-Model Tuner \newline
-Instruction Registry &
-Provides user prompting, model fine-tuning, and instruction management. Supports optional personalization based on confidence scores and usage history. \\
-
-\bottomrule
-\end{tabular}
-\caption{Module Hierarchy}
-\label{TblMH}
-\end{table}
 % \section{MIS of \wss{Module Name}} \label{Module} \wss{Use labels for
 %   cross-referencing}
 
@@ -1782,24 +1709,25 @@ Not applicable for this document.
 The information in this section will be used to evaluate the team members on the
 graduate attribute of Problem Analysis and Design.
 
-\input{../MIS_Reflection.tex}
-
+% \input{../MIS_Reflection.tex}
 \begin{enumerate}
-  \item What went well while writing this deliverable? 
-  \item What pain points did you experience during this deliverable, and how
-    did you resolve them?
-  \item Which of your design decisions stemmed from speaking to your client(s)
-  or a proxy (e.g. your peers, stakeholders, potential users)? For those that
-  were not, why, and where did they come from?
-  \item While creating the design doc, what parts of your other documents (e.g.
-  requirements, hazard analysis, etc), it any, needed to be changed, and why?
-  \item What are the limitations of your solution?  Put another way, given
-  unlimited resources, what could you do to make the project better? (LO\_ProbSolutions)
-  \item Give a brief overview of other design solutions you considered.  What
-  are the benefits and tradeoffs of those other designs compared with the chosen
-  design?  From all the potential options, why did you select the documented design?
-  (LO\_Explores)
-\end{enumerate}
+  \item \textbf{What went well while writing this deliverable?}  
+  Writing this deliverable progressed smoothly due to effective collaboration and clear communication among team members. The team successfully maintained consistency in formatting and terminology throughout the document, resulting in a cohesive and professional presentation. Peer reviews helped identify and resolve ambiguities early, which enhanced the overall quality and clarity of the deliverable.
 
+  \item \textbf{What pain points did you experience during this deliverable, and how did you resolve them?}  
+  Some challenges arose in maintaining consistent LaTeX formatting, especially with complex tables and detailed semantic descriptions. To resolve these issues, the team adopted established LaTeX best practices and created templates to ensure uniformity. Additionally, scheduled review meetings allowed the team to discuss and fix formatting inconsistencies collaboratively.
+
+  \item \textbf{Which of your design decisions stemmed from speaking to your client(s) or a proxy (e.g., your peers, stakeholders, potential users)? For those that were not, why, and where did they come from?}  
+  Many design decisions, particularly those related to user interface and accessibility, were influenced by discussions with potential users and stakeholders. Their feedback emphasized the importance of compliance with accessibility standards and intuitive user workflows. Decisions not directly influenced by client input were grounded in recognized industry standards, prior project experience, and academic literature.
+
+  \item \textbf{While creating the design doc, what parts of your other documents (e.g., requirements, hazard analysis, etc), if any, needed to be changed, and why?}  
+  During the design process, updates were made to the requirements and hazard analysis documents to reflect clarified module responsibilities and interface definitions. For example, some interface details were refined to improve modularity and error handling based on design insights. These changes ensured alignment and consistency across all project documentation.
+
+  \item \textbf{What are the limitations of your solution? Put another way, given unlimited resources, what could you do to make the project better? (LO\_ProbSolutions)}  
+  The current solution has limitations regarding scalability and adaptability in diverse deployment scenarios. With unlimited resources, we would invest in extensive automated testing frameworks and incorporate advanced machine learning techniques for improved personalization and robustness. Additionally, comprehensive accessibility audits and user testing would be expanded to further enhance usability.
+
+  \item \textbf{Give a brief overview of other design solutions you considered. What are the benefits and tradeoffs of those other designs compared with the chosen design? From all the potential options, why did you select the documented design? (LO\_Explores)}  
+  Alternative designs considered included monolithic architectures and different modular breakdowns. Monolithic design offered simplicity but reduced maintainability and scalability. Various modular structures were explored; the chosen modular design balances separation of concerns, ease of integration, and parallel development capability. This approach was selected to optimize maintainability and accommodate future enhancements efficiently.
+\end{enumerate}
 
 \end{document}
