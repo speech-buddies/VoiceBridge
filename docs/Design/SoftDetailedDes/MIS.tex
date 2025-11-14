@@ -19,7 +19,7 @@
 \usepackage[section]{placeins}
 \usepackage{caption}
 \usepackage{fullpage}
-
+\usepackage{array}
 \hypersetup{
 bookmarks=true,     % show bookmarks bar?
 colorlinks=true,       % false: boxed links; true: colored links
@@ -46,15 +46,14 @@ urlcolor=cyan          % color of external links
 
 \maketitle
 
-\pagenumbering{roman}
+\pagenumbering{arabic}
 
 \section{Revision History}
 
 \begin{tabularx}{\textwidth}{p{3cm}p{2cm}X}
 \toprule {\bf Date} & {\bf Version} & {\bf Notes}\\
 \midrule
-Nov 12, 2025 & 1.0 & Added Modules M6-M17\\
-Nov 12, 2025 & 1.1 & Added Modules M18-M22\\
+Nov 12, 2025 & 1.0 & Added Modules M1-M22\\
 \bottomrule
 \end{tabularx}
 
@@ -62,10 +61,19 @@ Nov 12, 2025 & 1.1 & Added Modules M18-M22\\
 
 \section{Symbols, Abbreviations and Acronyms}
 
-See SRS Documentation at \wss{give url}
+\begin{tabular}{|l|l|}
+\hline
+\textbf{Acronym} & \textbf{Meaning} \\ \hline
+DOM & Document Object Model \\ \hline
+ARIA & Accessible Rich Internet Applications \\ \hline
+\end{tabular}
 
-\wss{Also add any additional symbols, abbreviations or acronyms}
+\vspace{1em}
 
+\noindent
+For previously defined acronyms, please refer to the SRS documentation at
+\href{https://github.com/speech-buddies/VoiceBridge/blob/main/docs/SRS-Volere/SRS.pdf}{SRS}.
+The acronyms listed above are newly introduced in this document.
 \newpage
 
 \tableofcontents
@@ -76,156 +84,609 @@ See SRS Documentation at \wss{give url}
 
 \section{Introduction}
 
-The following document details the Module Interface Specifications for
-\wss{Fill in your project name and description}
+This document presents the Module Interface Specifications (MIS) for VoiceBridge, a modular platform 
+designed to facilitate real-time voice interaction and transcription across diverse applications. 
+VoiceBridge integrates advanced speech-to-text processing, natural language understanding, 
+and command execution to enable intuitive voice-driven workflows.
+
+The system supports accessibility standards, personalized user settings, and feedback mechanisms, 
+allowing both developers and end-users to interact with software efficiently and securely. 
+Core capabilities include continuous audio streaming, intent interpretation, contextual command 
+mapping, and encrypted storage of transcripts and user profiles.
+
+The MIS provides detailed specifications for each module, outlining their interfaces, expected inputs 
+and outputs, state management, and interactions with other components. This document complements 
+the System Requirements Specification (SRS) and Module Guide (MG), offering a reference for 
+implementation, testing, and integration.
 
 Complementary documents include the System Requirement Specifications
 and Module Guide.  The full documentation and implementation can be
-found at \url{...}.  \wss{provide the url for your repo}
+found at {https://github.com/speech-buddies/VoiceBridge/blob/main/docs}
+
+
 
 \section{Notation}
 
-\wss{You should describe your notation.  You can use what is below as
-  a starting point.}
+The structure of the MIS for modules follows \citet{HoffmanAndStrooper1995},
+with template adaptations from \citet{GhezziEtAl2003}.  
+The mathematical notation used throughout this document is consistent with the
+formal conventions presented in Chapter 3 of \citet{HoffmanAndStrooper1995}.
+For example, the symbol := denotes multiple assignment, and conditional rules
+appear in the form $(c_1 \Rightarrow r_1 \mid c_2 \Rightarrow r_2 \mid \dots \mid c_n \Rightarrow r_n)$.
 
-The structure of the MIS for modules comes from \citet{HoffmanAndStrooper1995},
-with the addition that template modules have been adapted from
-\cite{GhezziEtAl2003}.  The mathematical notation comes from Chapter 3 of
-\citet{HoffmanAndStrooper1995}.  For instance, the symbol := is used for a
-multiple assignment statement and conditional rules follow the form $(c_1
-\Rightarrow r_1 | c_2 \Rightarrow r_2 | ... | c_n \Rightarrow r_n )$.
-
-The following table summarizes the primitive data types used by \progname. 
+This section summarizes the primitive and derived data types used by
+\progname, the VoiceBridge system.
 
 \begin{center}
 \renewcommand{\arraystretch}{1.2}
-\noindent 
-\begin{tabular}{l l p{7.5cm}} 
-\toprule 
-\textbf{Data Type} & \textbf{Notation} & \textbf{Description}\\ 
+\noindent
+\begin{tabular}{l l p{7.5cm}}
+\toprule
+\textbf{Data Type} & \textbf{Notation} & \textbf{Description} \\
 \midrule
-character & char & a single symbol or digit\\
-integer & $\mathbb{Z}$ & a number without a fractional component in (-$\infty$, $\infty$) \\
-natural number & $\mathbb{N}$ & a number without a fractional component in [1, $\infty$) \\
-real & $\mathbb{R}$ & any number in (-$\infty$, $\infty$)\\
+character & char & A single UTF--8 encoded character. Used for transcript tokens, UI labels, and encoded metadata fields.\\
+integer & $\mathbb{Z}$ & Integer values used for counters, timestamps, retry counts, audio frame lengths, and configuration parameters. \\
+natural number & $\mathbb{N}$ & Positive integer values used for unique identifiers, session IDs, buffer sizes, and timeout values. \\
+real & $\mathbb{R}$ & Numerical values used for confidence scores, normalized audio energy, contrast ratios, and timing measurements (seconds).\\
+boolean & bool & Logical value in \{true, false\}. Used frequently across validation, VAD detections, policy checks, etc.\\
 \bottomrule
-\end{tabular} 
+\end{tabular}
 \end{center}
 
 \noindent
-The specification of \progname \ uses some derived data types: sequences, strings, and
-tuples. Sequences are lists filled with elements of the same data type. Strings
-are sequences of characters. Tuples contain a list of values, potentially of
-different types. In addition, \progname \ uses functions, which
-are defined by the data types of their inputs and outputs. Local functions are
-described by giving their type signature followed by their specification.
+In addition to these primitive types, \progname\ uses several derived types relevant
+to speech processing, browser automation, and interaction workflows:
+
+\begin{itemize}
+    \item \textbf{Sequence} — an ordered list of elements of the same type.  
+    Used for sequences of audio frames, transcripts, UI messages, or system logs.
+
+    \item \textbf{String} — a sequence of characters (UTF--8).  
+    Used for transcripts, command text, error messages, ARIA labels, and browser actions.
+
+    \item \textbf{Tuple} — fixed-length heterogeneous group of values.  
+    Used for configuration records, model parameters, recognized intents, and command mappings.
+
+    \item \textbf{Map / Dictionary} — key–value associations.  
+    Commonly used for storing UI elements, active sessions, VAD states, feedback items, command registries, and structured metadata.
+
+    \item \textbf{UUID} — universally unique identifier.  
+    Used for session IDs, command IDs, feedback items, error events, and audit log entries.
+
+    \item \textbf{AudioFrame} — a fixed-duration slice of PCM audio sampled at the engine’s operating rate (typically 16 kHz).  
+    Used by MicrophoneManager, VADNoiseFilter, and SpeechToTextEngine.
+
+    \item \textbf{Transcript} — structured object containing recognized text and confidence metadata.  
+    Produced by the Speech-to-Text Engine and consumed by the Intent Interpreter.
+
+    \item \textbf{Intent} — structured semantic representation of a user command.  
+    Contains interpreted intent name, slots, and confidence score.
+
+    \item \textbf{Command} — validated, executable instruction produced by CommandMapping and consumed by the Execution Layer.
+
+    \item \textbf{BackendReq / BackendResp} — typed request/response objects exchanged with the BrowserController and automation bridge.
+\end{itemize}
+
+\noindent
+Functions used by \progname\ are typed by input and output domains.  
+Local functions are documented in each module by listing their type signatures followed by their specification.
+Where relevant, imported functions (e.g., VAD filters, ASR decoders, encryption routines, browser automation calls) are abstracted using their formal types rather than implementation details.
+
+
 
 \section{Module Decomposition}
+The high-level module decomposition of the system is summarized in Table 1 of the MG document. For a comprehensive and detailed breakdown, please refer to the Module Guide (MG) document available at \href{https://github.com/speech-buddies/VoiceBridge/blob/main/docs/Design/SoftArchitecture/MG.pdf}{MG document}.
 
-The following table is taken directly from the Module Guide document for this project.
+% \section{MIS of \wss{Module Name}} \label{Module} \wss{Use labels for
+%   cross-referencing}
 
-\begin{table}[h!]
-\centering
-\begin{tabular}{p{0.3\textwidth} p{0.6\textwidth}}
-\toprule
-\textbf{Level 1} & \textbf{Level 2}\\
-\midrule
+% \wss{You can reference SRS labels, such as R\ref{R_Inputs}.}
 
-{Hardware-Hiding} & ~ \\
-\midrule
-
-\multirow{7}{0.3\textwidth}{Behaviour-Hiding} & Input Parameters\\
-& Output Format\\
-& Output Verification\\
-& Temperature ODEs\\
-& Energy Equations\\ 
-& Control Module\\
-& Specification Parameters Module\\
-\midrule
-
-\multirow{3}{0.3\textwidth}{Software Decision} & {Sequence Data Structure}\\
-& ODE Solver\\
-& Plotting\\
-\bottomrule
-
-\end{tabular}
-\caption{Module Hierarchy}
-\label{TblMH}
-\end{table}
+% \wss{It is also possible to use \LaTeX for hypperlinks to external documents.}
 
 \newpage
-~\newpage
-
-\section{MIS of \wss{Module Name}} \label{Module} \wss{Use labels for
-  cross-referencing}
-
-\wss{You can reference SRS labels, such as R\ref{R_Inputs}.}
-
-\wss{It is also possible to use \LaTeX for hypperlinks to external documents.}
-
-\subsection{Module}
-
-\wss{Short name for the module}
-
-\subsection{Uses}
+\section{MIS of User Interface Module} \label{M1}
 
 
-\subsection{Syntax}
+\textbf{Module:} UserInterface
 
-\subsubsection{Exported Constants}
+\subsection{Uses:}
+\begin{itemize}
+  \item Accessibility Layer (M2) to ensure UI semantics, ARIA roles, and announcements.
+  \item Feedback Display Module (M3) to present messages, prompts, and recovery options.
+  \item Intent Interpreter (M5) and Command Mapping (M6) for forwarding validated user events.
+  \item BrowserController / rendering engine to perform DOM updates and capture input events.
+\end{itemize}
 
-\subsubsection{Exported Access Programs}
+\subsection{Syntax:}
 
-\begin{center}
-\begin{tabular}{p{2cm} p{4cm} p{4cm} p{2cm}}
+\subsubsection{Exported Constants:}
+\begin{itemize}
+  \item None.
+\end{itemize}
+
+\subsubsection{Exported Access Programs:}
+
+\begin{tabular}{|l|l|l|l|}
 \hline
-\textbf{Name} & \textbf{In} & \textbf{Out} & \textbf{Exceptions} \\
-\hline
-\wss{accessProg} & - & - & - \\
-\hline
+\textbf{Name} & \textbf{In} & \textbf{Out} & \textbf{Exceptions} \\ \hline
+\texttt{UserInterface} & \texttt{config: UiConfig} & self & InitializationError \\ \hline
+\texttt{receiveInput} & \texttt{event: UiEvent} & - & \texttt{InputError} \\ \hline
+\texttt{render} & \texttt{state: UiState} & - & RenderError \\ \hline
+\texttt{showFeedback} & \texttt{msg: FeedbackItem} & - & - \\ \hline
+\texttt{setFocus} & \texttt{elem\_id: string} & - & - \\ \hline
 \end{tabular}
-\end{center}
 
 \subsection{Semantics}
 
-\subsubsection{State Variables}
-
-\wss{Not all modules will have state variables.  State variables give the module
-  a memory.}
-
-\subsubsection{Environment Variables}
-
-\wss{This section is not necessary for all modules.  Its purpose is to capture
-  when the module has external interaction with the environment, such as for a
-  device driver, screen interface, keyboard, file, etc.}
-
-\subsubsection{Assumptions}
-
-\wss{Try to minimize assumptions and anticipate programmer errors via
-  exceptions, but for practical purposes assumptions are sometimes appropriate.}
-
-\subsubsection{Access Routine Semantics}
-
-\noindent \wss{accessProg}():
+\subsubsection{State Variables:}
 \begin{itemize}
-\item transition: \wss{if appropriate} 
-\item output: \wss{if appropriate} 
-\item exception: \wss{if appropriate} 
+  \item \texttt{currentState}: \texttt{UiState} — current layout, visible components, and active feedback.
+  \item \texttt{config}: \texttt{UiConfig} — persisted UI preferences (theme, verbosity).
+  \item \texttt{focus\_target}: \texttt{string | null} — element currently targeted for keyboard/screen-reader focus.
 \end{itemize}
 
-\wss{A module without environment variables or state variables is unlikely to
-  have a state transition.  In this case a state transition can only occur if
-  the module is changing the state of another module.}
+\subsubsection{Environment Variables:}
+\begin{itemize}
+  \item \texttt{UI\_THEME} — runtime theme selection (light/dark).
+  \item \texttt{LANG} — active locale.
+\end{itemize}
 
-\wss{Modules rarely have both a transition and an output.  In most cases you
-  will have one or the other.}
+\subsubsection{Assumptions:}
+\begin{itemize}
+  \item Browser rendering engine and event APIs are available and conform to expected semantics.
+  \item Downstream modules (M4–M6) accept events in the documented formats.
+\end{itemize}
+\subsubsection{Access Routine Semantics}
+
+\noindent\texttt{UserInterface(config)}:
+\begin{itemize}
+\item \textbf{transition:} Initialize \texttt{currentState} and \texttt{config}; bind to Accessibility Layer (M2) and Feedback Display (M3).
+\item \textbf{output:} Initialized UI instance.
+\item \textbf{exception:} \texttt{InitializationError} if required resources are unavailable.
+\end{itemize}
+
+\noindent\texttt{receiveInput(event)}:
+\begin{itemize}
+\item \textbf{transition:} Validate \texttt{event}; update \texttt{currentState} or forward to Intent Interpreter (M5) / Command Mapping (M6) where appropriate.
+\item \textbf{output:} -
+\item \textbf{exception:} \texttt{InputError} if \texttt{event} is malformed or unsupported.
+\end{itemize}
+
+\noindent\texttt{render(state)}:
+\begin{itemize}
+\item \textbf{transition:} Reconcile \texttt{currentState} with \texttt{state}; update DOM/renderer; notify Accessibility Layer (M2) of attribute changes.
+\item \textbf{output:} -
+\item \textbf{exception:} \texttt{RenderError} on failure.
+\end{itemize}
+
+\noindent\texttt{showFeedback(msg)}:
+\begin{itemize}
+  \item \textbf{transition:} Delegate presentation to Feedback Display Module (M3); ensure accessible announcement via Accessibility Layer (M2).
+  \item \textbf{output:} -
+  \item \textbf{exception:} -
+\end{itemize}
+
+\noindent\texttt{setFocus(elem\_id)}:
+\begin{itemize}
+  \item \textbf{transition:} Set keyboard and screen-reader focus to element identified by \texttt{elem\_id}; update \texttt{focus\_target} state.
+  \item \textbf{output:} -
+  \item \textbf{exception:} \texttt{InputError} if \texttt{elem\_id} does not exist.
+\end{itemize}
 
 \subsubsection{Local Functions}
 
-\wss{As appropriate} \wss{These functions are for the purpose of specification.
-  They are not necessarily something that is going to be implemented
-  explicitly.  Even if they are implemented, they are not exported; they only
-  have local scope.}
+\begin{itemize}
+  \item \texttt{apply\_config()} — Persist \texttt{config} and apply runtime settings.
+  \item \texttt{normalize\_event(event)} — Normalize raw input events into \texttt{UiEvent} format.
+\end{itemize}
+
+
+\newpage
+\section{MIS of Accessibility Layer} \label{M2}
+\textbf{Module:} AccessibilityLayer
+
+\subsection{Uses:}
+\begin{itemize}
+  \item User Interface (M1) to read and modify UI elements and attributes.
+  \item WCAG guidance / accessibility utilities to verify contrast, labeling, and keyboard support.
+  \item Feedback Display (M3) to coordinate announcements for user messages.
+\end{itemize}
+
+\subsection{Syntax:}
+
+\subsubsection{Exported Constants:}
+\begin{itemize}
+  \item None.
+\end{itemize}
+
+\subsubsection{Exported Access Programs:}
+
+\begin{tabular}{|l|l|l|l|}
+\hline
+\textbf{Name} & \textbf{In} & \textbf{Out} & \textbf{Exceptions} \\ \hline
+\texttt{AccessibilityLayer} & \texttt{parent: UserInterface} & self & - \\ \hline
+\texttt{applySettings} & \texttt{settings: AccessConfig} & - & - \\ \hline
+\texttt{announce} & \texttt{msg: string} & - & - \\ \hline
+\texttt{validateElement} & \texttt{elem\_id: string} & \texttt{ValidationReport} & - \\ \hline
+\end{tabular}
+
+\subsection{Semantics}
+
+\subsubsection{State Variables:}
+\begin{itemize}
+  \item \texttt{settings: AccessConfig} — active accessibility options (font scale, contrast overrides, ARIA mappings).
+  \item \texttt{live\_region\_id: string} — identifier for announcement region.
+\end{itemize}
+
+\subsubsection{Environment Variables:}
+\begin{itemize}
+  \item \texttt{WCAG\_LEVEL} — target conformance level (e.g., AA).
+\end{itemize}
+
+\subsubsection{Assumptions:}
+\begin{itemize}
+  \item Parent UI (M1) exposes element identifiers and supports attribute updates.
+  \item Localization resources exist for accessible labels when required.
+\end{itemize}
+\subsubsection{Access Routine Semantics}
+
+\noindent\texttt{applySettings(settings)}:
+\begin{itemize}
+\item \textbf{transition:} Merge provided \texttt{settings} with defaults; apply text scaling, contrast adjustments, and ARIA attribute mappings via \texttt{parent}.
+\item \textbf{output:} Boolean success status indicating whether settings were applied successfully.
+\item \textbf{exception:} -.
+\end{itemize}
+
+\noindent\texttt{announce(msg)}:
+\begin{itemize}
+\item \textbf{transition:} Post \texttt{msg} to the live region and/or invoke screen-reader API for immediate announcement.
+\item \textbf{output:} Confirmation token or status indicating the announcement was successfully scheduled or posted.
+\item \textbf{exception:} -.
+\end{itemize}
+
+\noindent\texttt{validateElement(elem\_id)}:
+\begin{itemize}
+  \item \textbf{transition:} Inspect UI element attributes (role, label, states); compute a \texttt{ValidationReport} capturing compliance with accessibility standards.
+  \item \textbf{output:} \texttt{ValidationReport} object detailing any missing roles, labels, or contrast issues.
+  \item \textbf{exception:} -.
+\end{itemize}
+
+\subsubsection{Local Functions}
+
+\begin{itemize}
+  \item \texttt{check\_contrast(rgb\_fg, rgb\_bg)} — Compute contrast ratio based on WCAG formula \(\frac{L_1 + 0.05}{L_2 + 0.05}\), where \(L_1\) and \(L_2\) are relative luminances of foreground and background; returns Boolean pass/fail against \texttt{WCAG\_LEVEL}.
+  \item \texttt{aria\_set(elem\_id, metadata)} — Apply ARIA role, label, and state attributes to UI elements; returns Boolean indicating success.
+\end{itemize}
+
+\newpage
+\section{MIS of Feedback Display Module}
+\label{M3}
+
+\textbf{Module:} FeedbackDisplay
+
+\subsection{Uses:}
+\begin{itemize}
+  \item User Interface (M1) to render feedback content.
+  \item Accessibility Layer (M2) to ensure feedback is announced to assistive technologies.
+  \item Localization/configuration store for templated messages and user preferences.
+\end{itemize}
+
+\subsection{Syntax:}
+
+\subsubsection{Exported Constants:}
+\begin{itemize}
+  \item None.
+\end{itemize}
+
+\subsubsection{Exported Access Programs:}
+
+\begin{tabular}{|l|l|l|l|}
+\hline
+\textbf{Name} & \textbf{In} & \textbf{Out} & \textbf{Exceptions} \\ \hline
+\texttt{FeedbackDisplay} & \texttt{parent: UserInterface} & self & - \\ \hline
+\texttt{showMessage} & \texttt{msg: string}, \texttt{type: MsgType} & \texttt{feedbackId: UUID} & - \\ \hline
+\texttt{clear} & - & - & - \\ \hline
+\texttt{makeRecovery} & \texttt{feedbackId: UUID} & \texttt{RecoveryOptions} & - \\ \hline
+\end{tabular}
+
+\subsection{Semantics}
+
+\subsubsection{State Variables:}
+\begin{itemize}
+  \item \texttt{messages: map[UUID] to FeedbackItem} — active feedback items keyed by id.
+  \item \texttt{parent: UserInterface} — reference to UI for rendering.
+\end{itemize}
+
+\subsubsection{Assumptions:}
+\begin{itemize}
+  \item Parent UI is capable of rendering message templates and interactive recovery prompts.
+\end{itemize}
+
+\subsubsection{Access Routine Semantics:}
+
+\noindent\texttt{FeedbackDisplay(parent)}:
+\begin{itemize}
+  \item \textbf{transition:} attach to \texttt{parent}; initialize \texttt{messages}.
+  \item \textbf{output:} initialized feedback display instance.
+  \item \textbf{exception:} -.
+\end{itemize}
+
+\noindent\texttt{showMessage(msg, type)}:
+\begin{itemize}
+  \item \textbf{transition:} create \texttt{FeedbackItem}, store in \texttt{messages}, render via \texttt{parent}, and trigger Accessibility (M2) announcement if type requires.
+  \item \textbf{output:} \texttt{feedbackId} for later reference.
+  \item \textbf{exception:} -.
+\end{itemize}
+
+\noindent\texttt{clear()}:
+\begin{itemize}
+  \item \textbf{transition:} remove all entries from \texttt{messages} and update UI.
+  \item \textbf{output:} -.
+  \item \textbf{exception:} -.
+\end{itemize}
+
+\noindent\texttt{makeRecovery(feedbackId)}:
+\begin{itemize}
+  \item \textbf{transition:} build interactive recovery options (buttons, suggested actions) for the feedback item.
+  \item \textbf{output:} \texttt{RecoveryOptions}.
+  \item \textbf{exception:} -.
+\end{itemize}
+
+\subsubsection{Local Functions:}
+\begin{itemize}
+  \item \texttt{format\_message(msg, type)} — apply template, icons, and localization.
+  \item \texttt{schedule\_dismiss(feedbackId, ttl\_s)} — auto-dismiss transient messages.
+\end{itemize}
+
+\newpage
+\section{MIS of Speech-to-Text Engine}
+\label{M4}
+
+\textbf{Module:} SpeechToTextEngine
+
+\subsection{Uses:}
+\begin{itemize}
+  \item Audio capture interface to receive microphone streams.
+  \item Noise filtering and Voice Activity Detection (VAD) for preprocessing.
+  \item Personalization/Profile store for per-user adaptation.
+  \item Error Feedback (M8) and AuditLogger (M14) for reporting processing failures.
+\end{itemize}
+
+\subsection{Syntax:}
+
+\subsubsection{Exported Constants:}
+\begin{itemize}
+  \item None.
+\end{itemize}
+
+\subsubsection{Exported Access Programs:}
+
+\begin{tabular}{|l|l|l|l|}
+\hline
+\textbf{Name} & \textbf{In} & \textbf{Out} & \textbf{Exceptions} \\ \hline
+\texttt{SpeechToTextEngine} & \texttt{config: AsrConfig} & self & InitializationError \\ \hline
+\texttt{processAudio} & \texttt{audioData: AudioStream} & \texttt{Transcript} & \texttt{ProcessingError} \\ \hline
+\texttt{reset} & - & - & - \\ \hline
+\end{tabular}
+
+\subsection{Semantics}
+
+\subsubsection{State Variables:}
+\begin{itemize}
+  \item \texttt{config: AsrConfig} — engine parameters (sample rate, frame size, thresholds).
+  \item \texttt{model: AsrModel} — loaded acoustic/language models and decoder state.
+  \item \texttt{audio\_buffer: AudioBuffer} — buffered input audio awaiting processing.
+\end{itemize}
+
+\subsubsection{Environment Variables:}
+\begin{itemize}
+  \item None.
+\end{itemize}
+
+\subsubsection{Assumptions:}
+\begin{itemize}
+  \item Input audio meets expected format and sample rate.
+  \item Model artifacts are present and validated at initialization.
+\end{itemize}
+
+\subsubsection{Access Routine Semantics:}
+
+\noindent\texttt{SpeechToTextEngine(config)}:
+\begin{itemize}
+  \item \textbf{transition:} initialize engine internals, allocate \texttt{audio\_buffer}, and load \texttt{model}.
+  \item \textbf{output:} initialized engine instance.
+  \item \textbf{exception:} \texttt{InitializationError} if models or resources are missing.
+\end{itemize}
+
+\noindent\texttt{processAudio(audioData)}:
+\begin{itemize}
+  \item \textbf{transition:} preprocess (VAD, noise suppression), extract features, decode with models, and apply personalization.
+  \item \textbf{output:} \texttt{Transcript} containing recognized text and confidence metadata.
+  \item \textbf{exception:} \texttt{ProcessingError} on unrecoverable failure.
+\end{itemize}
+
+\noindent\texttt{reset()}:
+\begin{itemize}
+  \item \textbf{transition:} clear \texttt{audio\_buffer} and reset decoder/model state.
+  \item \textbf{output:} -.
+  \item \textbf{exception:} -.
+\end{itemize}
+
+\subsubsection{Local Functions:}
+\begin{itemize}
+  \item \texttt{extract\_features(audio)} — compute model inputs (spectrogram, MFCCs).
+  \item \texttt{decode(features)} — run acoustic and language decoding to produce candidate transcripts.
+  \item \texttt{apply\_personalization(profile)} — adapt decoder priors using user profile.
+\end{itemize}
+
+
+\newpage
+\section{MIS of Intent Interpreter}
+\label{M5}
+
+\textbf{Module:} IntentInterpreter
+
+\subsection{Uses:}
+\begin{itemize}
+  \item Speech-to-Text Engine (M4) for input transcripts.
+  \item Intent Schema Registry for parsing and intent extraction.
+  \item Error Feedback (M8) for reporting ambiguous or failed interpretations.
+\end{itemize}
+
+\subsection{Syntax:}
+
+\subsubsection{Exported Constants:}
+\begin{itemize}
+  \item None.
+\end{itemize}
+
+\subsubsection{Exported Access Programs:}
+
+\begin{tabular}{|l|l|l|l|}
+\hline
+\textbf{Name} & \textbf{In} & \textbf{Out} & \textbf{Exceptions} \\ \hline
+\texttt{IntentInterpreter} & - & self & InitializationError \\ \hline
+\texttt{interpret} & \texttt{transcript: Transcript} & \texttt{Intent} & \texttt{InterpretationError} \\ \hline
+\texttt{reset} & - & - & - \\ \hline
+\end{tabular}
+
+\subsection{Semantics}
+
+\subsubsection{State Variables:}
+\begin{itemize}
+  \item \texttt{intent\_schemas: IntentSchemaRegistry} — canonical intent definitions and slot schemas.
+  \item \texttt{context: DialogContext} — context for multi-turn dialog and disambiguation.
+\end{itemize}
+
+\subsubsection{Environment Variables:}
+\begin{itemize}
+  \item None.
+\end{itemize}
+
+\subsubsection{Assumptions:}
+\begin{itemize}
+  \item Transcripts are syntactically valid and provide sufficient information for intent resolution in typical cases.
+\end{itemize}
+\subsubsection{Access Routine Semantics}
+
+\noindent\texttt{IntentInterpreter()}:
+\begin{itemize}
+    \item \textbf{Transition:} Load \texttt{intent\_schemas} and initialize \texttt{context} for dialog state.
+    \item \textbf{Output:} Initialized interpreter instance ready to process transcripts.
+    \item \textbf{Exception:} \texttt{InitializationError} if required schema resources are missing or invalid.
+\end{itemize}
+
+
+\noindent\texttt{interpret(transcript)}:
+\begin{itemize}
+\item \textbf{transition:} Parse input \texttt{transcript}; match it against intent schemas; extract and normalize slots; consult \texttt{context} for multi-turn resolution.
+\item \textbf{output:} \texttt{Intent} object containing intent name, parameter slots, and confidence score.
+\item \textbf{exception:} \texttt{InterpretationError} if no confident intent mapping can be produced.
+\end{itemize}
+
+\noindent\texttt{reset()}:
+\begin{itemize}
+\item \textbf{transition:} Clear \texttt{context} and reset transient parsing caches.
+\item \textbf{output:} Boolean flag indicating success of reset operation.
+\item \textbf{exception:} -
+\end{itemize}
+
+\subsubsection{Local Functions:}
+\begin{itemize}
+  \item \texttt{match\_intent(text)} — score candidate intents and return best match.
+  \item \texttt{extract\_slots(intent, text)} — extract and normalize parameter values for the matched intent.
+\end{itemize}
+
+\newpage
+\section{MIS of Command Mapping Module}
+\label{M6}
+
+\textbf{Module:} CommandMapping
+
+\subsection{Uses:}
+\begin{itemize}
+  \item Intent Interpreter (M5) for structured intents.
+  \item Command Registry for available executable actions and metadata.
+  \item User Preferences / Policy store to apply customization and guardrails.
+  \item Error Feedback (M8) for reporting mapping or policy failures.
+\end{itemize}
+
+\subsection{Syntax:}
+
+\subsubsection{Exported Constants:}
+\begin{itemize}
+  \item None.
+\end{itemize}
+
+\subsubsection{Exported Access Programs:}
+
+\begin{tabular}{|l|l|l|l|}
+\hline
+\textbf{Name} & \textbf{In} & \textbf{Out} & \textbf{Exceptions} \\ \hline
+\texttt{CommandMapping} & - & self & InitializationError \\ \hline
+\texttt{mapIntent} & \texttt{intent: Intent} & \texttt{Command} & \texttt{MappingError} \\ \hline
+\texttt{validate} & \texttt{command: Command} & \texttt{bool} & - \\ \hline
+\texttt{reset} & - & - & - \\ \hline
+\end{tabular}
+
+\subsection{Semantics}
+
+\subsubsection{State Variables:}
+\begin{itemize}
+  \item \texttt{command\_registry: CommandRegistry} — available commands, parameter schemas, and metadata.
+  \item \texttt{preferences: UserPreferences} — mapping rules and user-specific overrides.
+  \item \texttt{policy: Policy} — mapping guardrails and authorization rules.
+\end{itemize}
+
+\subsubsection{Environment Variables:}
+\begin{itemize}
+  \item None.
+\end{itemize}
+
+\subsubsection{Assumptions:}
+\begin{itemize}
+  \item Intent objects conform to the registered schema; command registry is current and authoritative.
+\end{itemize}
+
+\subsubsection{Access Routine Semantics}
+
+\noindent\texttt{CommandMapping()}:
+\begin{itemize}
+  \item \textbf{transition:} Load \texttt{command\_registry}, \texttt{preferences}, and \texttt{policy} configurations.
+  \item \textbf{output:} Initialized mapping instance ready to process intents.
+  \item \textbf{exception:} \texttt{InitializationError} if registry or policy resources are missing or invalid.
+\end{itemize}
+
+
+\noindent\texttt{mapIntent(intent)}:
+\begin{itemize}
+\item \textbf{transition:} Select candidate commands matching the \texttt{intent}; apply \texttt{preferences} and enforce \texttt{policy} constraints; produce a validated \texttt{Command}.
+\item \textbf{output:} Executable \texttt{Command} object representing the mapped device or browser action.
+\item \textbf{exception:} \texttt{MappingError} if no suitable mapping exists or policy prevents execution.
+\end{itemize}
+
+\noindent\texttt{validate(command)}:
+\begin{itemize}
+\item \textbf{transition:} Execute guardrail checks (authorization, confirmation) against \texttt{command}.
+\item \textbf{output:} \texttt{true} if \texttt{command} passes all validation criteria; otherwise \texttt{false}.
+\item \textbf{exception:} -.
+\end{itemize}
+
+\noindent\texttt{reset()}:
+\begin{itemize}
+\item \textbf{transition:} Clear internal caches and reload default configuration.
+\item \textbf{output:} Boolean indicating success of the reset operation.
+\item \textbf{exception:} -.
+\end{itemize}
+
+\subsubsection{Local Functions:}
+\begin{itemize}
+  \item \texttt{find\_command(intent)} — return candidate commands and ranking.
+  \item \texttt{apply\_preferences(command)} — adapt parameters per user preferences.
+  \item \texttt{enforce\_policy(command)} — apply policy and authorization constraints.
+\end{itemize}
+
 
 \newpage
 \section{MIS of Command Execution Layer} \label{M7}
@@ -756,8 +1217,7 @@ Compensation actions are idempotent or guarded.
   \item \texttt{is\_idempotent(cmd\_id)} — check compensation safety
 \end{itemize}
 
-\section{MIS of Storage Management Module  --- M12}
-\label{MIS:M12}
+\section{MIS of Storage Management Module}\label{M12}
 
 \textbf{Module:} Storage Management Module 
 
@@ -842,7 +1302,7 @@ Compensation actions are idempotent or guarded.
   \item \texttt{applyRetentionRule(fileMeta)}
 \end{itemize}
 
-\section{MIS of User Profile Manager --- M13}
+\section{MIS of User Profile Manager} \label{M13}
 
 \textbf{Module:} UserProfileManager
 
@@ -894,7 +1354,7 @@ Compensation actions are idempotent or guarded.
 \end{itemize}
 
 
-\section{MIS of AuditLogger --- M14}
+\section{MIS of AuditLogger} \label{M14}
 
 \textbf{Module:} AuditLogger
 
@@ -933,7 +1393,7 @@ Compensation actions are idempotent or guarded.
 
 \label{MIS:M15}
 
-\section{MIS of Credential Manager --- M15}
+\section{MIS of Credential Manager} \label{M15}
 
 \textbf{Module:} Credential Manager (CredentialManagerImpl)
 
@@ -972,7 +1432,7 @@ Compensation actions are idempotent or guarded.
 
 \label{MIS:M16}
 
-\section{MIS of Encryption Manager --- M16}
+\section{MIS of Encryption Manager} \label{M16}
 
 \textbf{Module:} Encryption Manager (EncryptionManagerImpl)
 
@@ -1000,9 +1460,7 @@ Implements R16.3 (Privacy Requirements): ensures all data is encrypted at rest/i
 Implements R16.2 (Integrity): validates message hashes before use.
 
 
-\label{MIS:M17}
-
-\section{MIS of OutOfScopeHandler --- M17}
+\section{MIS of OutOfScopeHandler}\label{M17}
 
 \textbf{Module:} OutOfScopeHandler
 
@@ -1042,9 +1500,9 @@ Integrates with M14 to log anomaly-triggered safety events.
 \item \textbf{transition:} Restores safe prior system state through M11.
 \end{itemize}
 
-\label{MIS:M18}
 
-\section{MIS of MicrophoneManager --- M18}
+
+\section{MIS of MicrophoneManager} \label{M18}
 
 \textbf{Module:} MicrophoneManager
 
@@ -1086,7 +1544,7 @@ input to subsequent modules. Integrates with M10 to maintain session continuity.
 
 \label{MIS:M19}
 
-\section{MIS of VADNoiseFilter --- M19}
+\section{MIS of VADNoiseFilter} \label{M19}
 
 \textbf{Module:} VADNoiseFilter
 
@@ -1128,7 +1586,7 @@ Provides binary VAD detections for downstream timing and segmentation.
 
 \label{MIS:M20}
 
-\section{MIS of PromptingModule --- M20}
+\section{MIS of PromptingModule} \label{M20}
 
 \textbf{Module:} PromptingModule
 
@@ -1170,7 +1628,7 @@ Ensures consistent phrasing across confirmations, errors, and system messages.
 
 \label{MIS:M21}
 
-\section{MIS of ModelTuner --- M21}
+\section{MIS of ModelTuner} \label{M21}
 
 \textbf{Module:} ModelTuner
 
@@ -1212,7 +1670,7 @@ Updates the user's model profile upon successful tuning.
 
 \label{MIS:M22}
 
-\section{MIS of InstructionRegistry --- M22}
+\section{MIS of InstructionRegistry} \label{M22}
 
 \textbf{Module:} InstructionRegistry
 
@@ -1268,35 +1726,37 @@ Maintains the authoritative index of allowed command definitions.
 
 \section{Appendix} \label{Appendix}
 
-\wss{Extra information if required}
+Not applicable for this document.
+% \wss{Extra information if required}
 
 \newpage{}
 
 \section*{Appendix --- Reflection}
 
-\wss{Not required for CAS 741 projects}
+% \wss{Not required for CAS 741 projects}
 
 The information in this section will be used to evaluate the team members on the
 graduate attribute of Problem Analysis and Design.
 
-\input{../../Reflection.tex}
-
+% \input{../MIS_Reflection.tex}
 \begin{enumerate}
-  \item What went well while writing this deliverable? 
-  \item What pain points did you experience during this deliverable, and how
-    did you resolve them?
-  \item Which of your design decisions stemmed from speaking to your client(s)
-  or a proxy (e.g. your peers, stakeholders, potential users)? For those that
-  were not, why, and where did they come from?
-  \item While creating the design doc, what parts of your other documents (e.g.
-  requirements, hazard analysis, etc), it any, needed to be changed, and why?
-  \item What are the limitations of your solution?  Put another way, given
-  unlimited resources, what could you do to make the project better? (LO\_ProbSolutions)
-  \item Give a brief overview of other design solutions you considered.  What
-  are the benefits and tradeoffs of those other designs compared with the chosen
-  design?  From all the potential options, why did you select the documented design?
-  (LO\_Explores)
-\end{enumerate}
+  \item \textbf{What went well while writing this deliverable?}  
+  Writing this deliverable progressed smoothly due to effective collaboration and clear communication among team members. The team successfully maintained consistency in formatting and terminology throughout the document, resulting in a cohesive and professional presentation. Peer reviews helped identify and resolve ambiguities early, which enhanced the overall quality and clarity of the deliverable.
 
+  \item \textbf{What pain points did you experience during this deliverable, and how did you resolve them?}  
+  Some challenges arose in maintaining consistent LaTeX formatting, especially with complex tables and detailed semantic descriptions. To resolve these issues, the team adopted established LaTeX best practices and created templates to ensure uniformity. Additionally, scheduled review meetings allowed the team to discuss and fix formatting inconsistencies collaboratively.
+
+  \item \textbf{Which of your design decisions stemmed from speaking to your client(s) or a proxy (e.g., your peers, stakeholders, potential users)? For those that were not, why, and where did they come from?}  
+  Many design decisions, particularly those related to user interface and accessibility, were influenced by discussions with potential users and stakeholders. Their feedback emphasized the importance of compliance with accessibility standards and intuitive user workflows. Decisions not directly influenced by client input were grounded in recognized industry standards, prior project experience, and academic literature.
+
+  \item \textbf{While creating the design doc, what parts of your other documents (e.g., requirements, hazard analysis, etc), if any, needed to be changed, and why?}  
+  During the design process, updates were made to the requirements and hazard analysis documents to reflect clarified module responsibilities and interface definitions. For example, some interface details were refined to improve modularity and error handling based on design insights. These changes ensured alignment and consistency across all project documentation.
+
+  \item \textbf{What are the limitations of your solution? Put another way, given unlimited resources, what could you do to make the project better? (LO\_ProbSolutions)}  
+  The current solution has limitations regarding scalability and adaptability in diverse deployment scenarios. With unlimited resources, we would invest in extensive automated testing frameworks and incorporate advanced machine learning techniques for improved personalization and robustness. Additionally, comprehensive accessibility audits and user testing would be expanded to further enhance usability.
+
+  \item \textbf{Give a brief overview of other design solutions you considered. What are the benefits and tradeoffs of those other designs compared with the chosen design? From all the potential options, why did you select the documented design? (LO\_Explores)}  
+  Alternative designs considered included monolithic architectures and different modular breakdowns. Monolithic design offered simplicity but reduced maintainability and scalability. Various modular structures were explored; the chosen modular design balances separation of concerns, ease of integration, and parallel development capability. This approach was selected to optimize maintainability and accommodate future enhancements efficiently.
+\end{enumerate}
 
 \end{document}
