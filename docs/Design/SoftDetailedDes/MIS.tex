@@ -107,40 +107,72 @@ found at {https://github.com/speech-buddies/VoiceBridge/blob/main/docs}
 
 \section{Notation}
 
-\wss{You should describe your notation.  You can use what is below as
-  a starting point.}
+The structure of the MIS for modules follows \citet{HoffmanAndStrooper1995},
+with template adaptations from \citet{GhezziEtAl2003}.  
+The mathematical notation used throughout this document is consistent with the
+formal conventions presented in Chapter 3 of \citet{HoffmanAndStrooper1995}.
+For example, the symbol := denotes multiple assignment, and conditional rules
+appear in the form $(c_1 \Rightarrow r_1 \mid c_2 \Rightarrow r_2 \mid \dots \mid c_n \Rightarrow r_n)$.
 
-The structure of the MIS for modules comes from \citet{HoffmanAndStrooper1995},
-with the addition that template modules have been adapted from
-\cite{GhezziEtAl2003}.  The mathematical notation comes from Chapter 3 of
-\citet{HoffmanAndStrooper1995}.  For instance, the symbol := is used for a
-multiple assignment statement and conditional rules follow the form $(c_1
-\Rightarrow r_1 | c_2 \Rightarrow r_2 | ... | c_n \Rightarrow r_n )$.
-
-The following table summarizes the primitive data types used by \progname. 
+This section summarizes the primitive and derived data types used by
+\progname, the VoiceBridge system.
 
 \begin{center}
 \renewcommand{\arraystretch}{1.2}
-\noindent 
-\begin{tabular}{l l p{7.5cm}} 
-\toprule 
-\textbf{Data Type} & \textbf{Notation} & \textbf{Description}\\ 
+\noindent
+\begin{tabular}{l l p{7.5cm}}
+\toprule
+\textbf{Data Type} & \textbf{Notation} & \textbf{Description} \\
 \midrule
-character & char & a single symbol or digit\\
-integer & $\mathbb{Z}$ & a number without a fractional component in (-$\infty$, $\infty$) \\
-natural number & $\mathbb{N}$ & a number without a fractional component in [1, $\infty$) \\
-real & $\mathbb{R}$ & any number in (-$\infty$, $\infty$)\\
+character & char & A single UTF--8 encoded character. Used for transcript tokens, UI labels, and encoded metadata fields.\\
+integer & $\mathbb{Z}$ & Integer values used for counters, timestamps, retry counts, audio frame lengths, and configuration parameters. \\
+natural number & $\mathbb{N}$ & Positive integer values used for unique identifiers, session IDs, buffer sizes, and timeout values. \\
+real & $\mathbb{R}$ & Numerical values used for confidence scores, normalized audio energy, contrast ratios, and timing measurements (seconds).\\
+boolean & bool & Logical value in \{true, false\}. Used frequently across validation, VAD detections, policy checks, etc.\\
 \bottomrule
-\end{tabular} 
+\end{tabular}
 \end{center}
 
 \noindent
-The specification of \progname \ uses some derived data types: sequences, strings, and
-tuples. Sequences are lists filled with elements of the same data type. Strings
-are sequences of characters. Tuples contain a list of values, potentially of
-different types. In addition, \progname \ uses functions, which
-are defined by the data types of their inputs and outputs. Local functions are
-described by giving their type signature followed by their specification.
+In addition to these primitive types, \progname\ uses several derived types relevant
+to speech processing, browser automation, and interaction workflows:
+
+\begin{itemize}
+    \item \textbf{Sequence} — an ordered list of elements of the same type.  
+    Used for sequences of audio frames, transcripts, UI messages, or system logs.
+
+    \item \textbf{String} — a sequence of characters (UTF--8).  
+    Used for transcripts, command text, error messages, ARIA labels, and browser actions.
+
+    \item \textbf{Tuple} — fixed-length heterogeneous group of values.  
+    Used for configuration records, model parameters, recognized intents, and command mappings.
+
+    \item \textbf{Map / Dictionary} — key–value associations.  
+    Commonly used for storing UI elements, active sessions, VAD states, feedback items, command registries, and structured metadata.
+
+    \item \textbf{UUID} — universally unique identifier.  
+    Used for session IDs, command IDs, feedback items, error events, and audit log entries.
+
+    \item \textbf{AudioFrame} — a fixed-duration slice of PCM audio sampled at the engine’s operating rate (typically 16 kHz).  
+    Used by MicrophoneManager, VADNoiseFilter, and SpeechToTextEngine.
+
+    \item \textbf{Transcript} — structured object containing recognized text and confidence metadata.  
+    Produced by the Speech-to-Text Engine and consumed by the Intent Interpreter.
+
+    \item \textbf{Intent} — structured semantic representation of a user command.  
+    Contains interpreted intent name, slots, and confidence score.
+
+    \item \textbf{Command} — validated, executable instruction produced by CommandMapping and consumed by the Execution Layer.
+
+    \item \textbf{BackendReq / BackendResp} — typed request/response objects exchanged with the BrowserController and automation bridge.
+\end{itemize}
+
+\noindent
+Functions used by \progname\ are typed by input and output domains.  
+Local functions are documented in each module by listing their type signatures followed by their specification.
+Where relevant, imported functions (e.g., VAD filters, ASR decoders, encryption routines, browser automation calls) are abstracted using their formal types rather than implementation details.
+
+
 
 \section{Module Decomposition}
 The high-level module decomposition of the system is summarized in Table 1 of the MG document. For a comprehensive and detailed breakdown, please refer to the Module Guide (MG) document available at \href{https://github.com/speech-buddies/VoiceBridge/blob/main/docs/Design/SoftArchitecture/MG.pdf}{MG document}.
@@ -1185,8 +1217,7 @@ Compensation actions are idempotent or guarded.
   \item \texttt{is\_idempotent(cmd\_id)} — check compensation safety
 \end{itemize}
 
-\section{MIS of Storage Management Module  --- M12}
-\label{MIS:M12}
+\section{MIS of Storage Management Module}\label{M12}
 
 \textbf{Module:} Storage Management Module 
 
@@ -1271,7 +1302,7 @@ Compensation actions are idempotent or guarded.
   \item \texttt{applyRetentionRule(fileMeta)}
 \end{itemize}
 
-\section{MIS of User Profile Manager --- M13}
+\section{MIS of User Profile Manager} \label{M13}
 
 \textbf{Module:} UserProfileManager
 
@@ -1323,7 +1354,7 @@ Compensation actions are idempotent or guarded.
 \end{itemize}
 
 
-\section{MIS of AuditLogger --- M14}
+\section{MIS of AuditLogger} \label{M14}
 
 \textbf{Module:} AuditLogger
 
@@ -1362,7 +1393,7 @@ Compensation actions are idempotent or guarded.
 
 \label{MIS:M15}
 
-\section{MIS of Credential Manager --- M15}
+\section{MIS of Credential Manager} \label{M15}
 
 \textbf{Module:} Credential Manager (CredentialManagerImpl)
 
@@ -1401,7 +1432,7 @@ Compensation actions are idempotent or guarded.
 
 \label{MIS:M16}
 
-\section{MIS of Encryption Manager --- M16}
+\section{MIS of Encryption Manager} \label{M16}
 
 \textbf{Module:} Encryption Manager (EncryptionManagerImpl)
 
@@ -1429,9 +1460,7 @@ Implements R16.3 (Privacy Requirements): ensures all data is encrypted at rest/i
 Implements R16.2 (Integrity): validates message hashes before use.
 
 
-\label{MIS:M17}
-
-\section{MIS of OutOfScopeHandler --- M17}
+\section{MIS of OutOfScopeHandler}\label{M17}
 
 \textbf{Module:} OutOfScopeHandler
 
@@ -1471,9 +1500,9 @@ Integrates with M14 to log anomaly-triggered safety events.
 \item \textbf{transition:} Restores safe prior system state through M11.
 \end{itemize}
 
-\label{MIS:M18}
 
-\section{MIS of MicrophoneManager --- M18}
+
+\section{MIS of MicrophoneManager} \label{M18}
 
 \textbf{Module:} MicrophoneManager
 
@@ -1515,7 +1544,7 @@ input to subsequent modules. Integrates with M10 to maintain session continuity.
 
 \label{MIS:M19}
 
-\section{MIS of VADNoiseFilter --- M19}
+\section{MIS of VADNoiseFilter} \label{M19}
 
 \textbf{Module:} VADNoiseFilter
 
@@ -1557,7 +1586,7 @@ Provides binary VAD detections for downstream timing and segmentation.
 
 \label{MIS:M20}
 
-\section{MIS of PromptingModule --- M20}
+\section{MIS of PromptingModule} \label{M20}
 
 \textbf{Module:} PromptingModule
 
@@ -1599,7 +1628,7 @@ Ensures consistent phrasing across confirmations, errors, and system messages.
 
 \label{MIS:M21}
 
-\section{MIS of ModelTuner --- M21}
+\section{MIS of ModelTuner} \label{M21}
 
 \textbf{Module:} ModelTuner
 
@@ -1641,7 +1670,7 @@ Updates the user's model profile upon successful tuning.
 
 \label{MIS:M22}
 
-\section{MIS of InstructionRegistry --- M22}
+\section{MIS of InstructionRegistry} \label{M22}
 
 \textbf{Module:} InstructionRegistry
 
@@ -1704,7 +1733,7 @@ Not applicable for this document.
 
 \section*{Appendix --- Reflection}
 
-\wss{Not required for CAS 741 projects}
+% \wss{Not required for CAS 741 projects}
 
 The information in this section will be used to evaluate the team members on the
 graduate attribute of Problem Analysis and Design.
