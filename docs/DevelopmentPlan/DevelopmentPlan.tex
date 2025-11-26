@@ -238,9 +238,6 @@ Link to GitHub project: \url{https://github.com/orgs/speech-buddies/projects/1}
 
 \section{Proof of Concept Demonstration Plan}
 
-% What is the main risk, or risks, for the success of your project?  What will you
-% demonstrate during your proof of concept demonstration to convince yourself that
-% you will be able to overcome this risk?
 
 The purpose of the Proof of Concept (PoC) plan is to outline how our team will validate the success of the project by demonstrating the feasibility of complex and problematic technical elements of the project. 
 
@@ -254,7 +251,7 @@ The objective of our PoC is to demonstrate the feasibility of using machine lear
     \item \textbf{Core Deliverable:} A working prototype that:
     \begin{itemize}
         \item Accepts impaired/slurred speech input (from held out testing data).
-        \item Produces transcribed text output in near-real time (does not need to be fully optimized).
+        \item Produces transcribed text output (does not need to be real time).
     \end{itemize}
     
     \item \textbf{Exploratory Nature:} Compare at least two ASR approaches:
@@ -272,17 +269,17 @@ The objective of our PoC is to demonstrate the feasibility of using machine lear
 \toprule
 Week & Activities \\
 \midrule
-1 & \textbf{Systematic Review:} Perform a systematic review of current state-of-the-art models and methods relating to ASR for atypical speech. Summarize in Literature Review document under Extras. \\
+1 & \textbf{Systematic Review:} Perform a systematic review of current state-of-the-art models and methods relating to ASR for atypical speech. \\
 \hline
 2 & \textbf{Setup:} Select frameworks (PyTorch, Hugging Face, SpeechBrain, or OpenSeq2Seq). Collect small impaired-speech dataset (e.g., TORGO, UASpeech, or synthetic augmentations). Define evaluation \textbf{metrics} (WER, CER). \\
 \hline
-3 & \textbf{Baseline System:} Run selected pre-trained ASR (e.g., Whisper small, wav2vec2.0, or SpeechBrain pretrained) directly on impaired speech samples. Measure baseline error rates. \\
+3 & \textbf{Baseline System:} Run selected pre-trained ASR (e.g., Whisper small, wav2vec2.0, or other popular models) directly on impaired speech samples. Measure baseline error rates. \\
 \hline
-4 & \textbf{Adaptation Phase 1:} Fine-tune a small model (ideally the model selected in previous step) on subset of impaired speech data using transfer learning. Track overfitting and improvements. \\
+4 & \textbf{Adaptation Phase 1:} Fine-tune a small model (ideally the model selected in previous step) on subset of impaired speech data using transfer learning. Track loss and improvements. \\
 \hline
-5 & \textbf{Adaptation Phase 2:} Experiment with data augmentation (speed perturbation, SpecAugment, simulated slurred speech) to test robustness. Evaluate again. \\
+5 & \textbf{Adaptation Phase 2:} Experiment with data augmentation (speed perturbation, gap reduction) to test robustness. Evaluate again. \\
 \hline
-6 & \textbf{Comparison \& Refinement:} Compare baseline vs. fine-tuned performance. Select best performing model/hybrid architectures. Integrate simple demo app (held out test data $\rightarrow$ ASR $\rightarrow$ text box). \\
+6 & \textbf{Comparison \& Refinement:} Compare baseline vs. fine-tuned performance. Select best performing model/hybrid architectures. Integrate simple demo (held out test data $\rightarrow$ ASR $\rightarrow$ text box). \\
 \hline
 7 & \textbf{Wrap-Up:} Define limitations and constraints through performance \& boundary testing. Document findings (strengths, limitations, next steps). Prepare demo for capstone evaluation. \\
 \bottomrule
@@ -294,9 +291,10 @@ Week & Activities \\
 \subsubsection{Datasets}
 
 \begin{itemize}
-    \item \textbf{Primary:} Public impaired speech datasets:
+    \item \textbf{Primary:} One or multiple impaired speech datasets:
     \begin{itemize}
         \item TORGO (Parkinson's, ALS patients)
+        \item SAP (large dataset of dysarthric speakers)
         \item UASpeech (dysarthric speakers)
         \item Mozilla CommonVoice (healthy-speech baseline)
     \end{itemize}
