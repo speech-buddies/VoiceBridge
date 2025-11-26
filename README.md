@@ -4,7 +4,7 @@
   <img src="docs/imgs/transparent-logo.svg" alt="VoiceBridge Logo" width="200" />
 </div>
 
-VoiceBridge is an accessibility interface that helps individuals with dysarthric or atypical speech interact with technology using ASR. The system converts speech to text, confirms user intent, and executes browser/device commands to support independent, hands-free use.
+VoiceBridge is an accessibility interface that helps individuals with dysarthric or atypical speech interact with technology using Automatic Speech Recognition. The system converts speech to text, confirms user intent, and executes browser/device commands to support independent, hands-free use.
 
 ---
 
