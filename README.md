@@ -1,15 +1,31 @@
-# VoiceBridge
+# **VoiceBridge**
 
-Developer Names: Kelvin Yu, Luna Aljammal, Mazen Youssef Rawan Mahdi
+<p align="center">
+  <img src="docs/imgs/transparent-logo.svg" width="200" alt="VoiceBridge Logo">
+</p>
 
-Date of project start: September 2nd, 2025
+VoiceBridge is an accessibility interface that helps individuals with dysarthric or atypical speech interact with technology using Automatic Speech Recognition. The system converts speech to text, confirms user intent, and executes browser/device commands to support independent, hands-free use.
 
-VoiceBridge is an accessibility interface for individuals with dysarthric speech to easily interact with technology via ASR.
+---
+
+## **Project Logistics**
+
+- **Date of project start:** 2025-09-02
+- **Team Name:** _Speech Buddies_
+- **Developer Names:**
+  - Kelvin Yu
+  - Luna Aljammal
+  - Mazen Youssef
+  - Rawan Mahdi
+
+---
+
+## **Project Structure**
 
 The folders and files for this project are as follows:
 
-docs - Documentation for the project
-refs - Reference material used for the project, including papers
-src - Source code
-test - Test cases
-etc.
+    .
+    ├── docs        # Project documentation (SRS, Hazard Analysis, etc.)
+    ├── refs        # Reference materials and research sources
+    ├── src         # Core system code
+    └── test        #  Tests for components
