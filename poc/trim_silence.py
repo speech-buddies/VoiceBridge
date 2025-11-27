@@ -99,8 +99,8 @@ def remove_long_pauses(
 
 
 
-INPUT_ROOT = Path("./SpeechAccessibility_2025-09-30_022_extracted")
-OUTPUT_ROOT = INPUT_ROOT.with_name("SpeechAccessibility_2025-09-30_022_extracted_trimmed")
+INPUT_ROOT = Path("./VoiceBridge_SAP_sample")
+OUTPUT_ROOT = INPUT_ROOT.with_name("VoiceBridge_SAP_sample_trimmed")
 PAUSE_LENGTH_SECONDS = 0.2  # adjust here if you ever need to
 
 def _safe_extract_all(tar_obj: tarfile.TarFile, dest: Path) -> None:
