@@ -1,8 +1,8 @@
 # **VoiceBridge**
 
-<div style="text-align: center;">
-  <img src="docs/imgs/transparent-logo.svg" alt="VoiceBridge Logo" width="200" />
-</div>
+<p align="center">
+  <img src="docs/imgs/transparent-logo.svg" width="200" alt="VoiceBridge Logo">
+</p>
 
 VoiceBridge is an accessibility interface that helps individuals with dysarthric or atypical speech interact with technology using Automatic Speech Recognition. The system converts speech to text, confirms user intent, and executes browser/device commands to support independent, hands-free use.
 
