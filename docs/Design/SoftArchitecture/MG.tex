@@ -51,6 +51,7 @@
 Nov 11, 2025 & 1.0 & Added modules and Traceability Matrix\\
 Nov 12, 2025 & 1.1 & Added Modules M6-M11\\
 Nov 12, 2025 & 1.2 & Added Modules M18-M22\\
+Nov 26, 2025 & 1.3 & Added Modules M1-M6\\
 \bottomrule
 \end{tabularx}
 
@@ -352,6 +353,45 @@ Provides user prompting, model fine-tuning, and instruction management. Supports
 % Module Decomposition
 % =========================
 \section{Module Decomposition}
+% ---------- Presentation Layer ----------
+\subsection*{Presentation Layer Modules}
+
+\subsubsection*{M1: User Interface Module}
+\textbf{Secrets:} How UI state, layout, and visible components are represented, including the mapping from raw browser events into UiEvents and management of keyboard and screen-reader focus. \\
+\textbf{Services:} Initialize and render UI; receive and normalize input events into UiEvents; route feedback items; update keyboard/screen-reader focus. \\
+\textbf{Implemented By:} UserInterface module using the browser rendering engine and DOM/event APIs. \\
+
+\medskip
+\subsubsection*{M2: Accessibility Layer}
+\textbf{Secrets:} Encoding of accessibility configuration (AccessConfig), ARIA attribute mappings, and validation rules for UI elements against WCAG standards. \\
+\textbf{Services:} Apply accessibility settings; post announcements via live region or screen-reader API; validate UI elements, producing ValidationReports. \\
+\textbf{Implemented By:} AccessibilityLayer module operating on UI elements exposed by UserInterface. \\
+
+\medskip
+\subsubsection*{M3: Feedback Display Module}
+\textbf{Secrets:} Internal representation of FeedbackItems keyed by UUID, and policies for creation, clearance, and recovery options of feedback messages. \\
+\textbf{Services:} Attach to parent UI; show messages of given types; clear messages; create recovery options for feedback items. \\
+\textbf{Implemented By:} FeedbackDisplay module rendering via UserInterface and coordinating with AccessibilityLayer. \\
+
+% ---------- Application Processing Layer ----------
+\subsection*{Application (Processing) Modules}
+
+\subsubsection*{M4: Speech-to-Text Engine}
+\textbf{Secrets:} ASR configuration (AsrConfig), model state, buffering strategy, and decoding pipeline producing Transcripts. \\
+\textbf{Services:} Initialize engine; process audio to produce transcripts with confidence metadata; reset internal state. \\
+\textbf{Implemented By:} SpeechToTextEngine module wrapping acoustic and language models. \\
+
+\medskip
+\subsubsection*{M5: Intent Interpreter}
+\textbf{Secrets:} Intent schema registry (IntentSchemaRegistry), dialog context management, and intent matching and slot extraction logic. \\
+\textbf{Services:} Initialize interpreter; map Transcripts to Intents with slots and confidence scores; reset parsing context. \\
+\textbf{Implemented By:} IntentInterpreter module using registered schemas and dialog state. \\
+
+\medskip
+\subsubsection*{M6: Command Mapping Module}
+\textbf{Secrets:} Command registry structure, user preferences, and policy application for mapping intents to executable commands. \\
+\textbf{Services:} Initialize mapping; map Intents to validated Commands; validate commands against guardrails; reset internal state. \\
+\textbf{Implemented By:} CommandMapping module using command registry, preferences, and policy configurations. \\
 
 % ---------- Application (Processing) ----------
 \subsection*{Application (Processing) Modules}
