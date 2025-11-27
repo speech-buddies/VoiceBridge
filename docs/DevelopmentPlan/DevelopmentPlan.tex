@@ -34,6 +34,7 @@ September 22, 2025 & Luna Aljammal & Added sections 7,8,10,11 and parts of chart
 September 29, 2025 & Rawan Mahdi & Updated PoC plan with new roadmap discussed with supervisor\\
 September 30, 2025 & Luna Aljammal & Updated deadlines, naming conventions, and team charter to address peer feedback \\
 November 4, 2025 & Rawan Mahdi & Implemented TA feedback: Rephrased section 1 for clarity on participant consent, added details to section 6 on how work will be partitioned, introductory paragraph for section 9, \& minor fixes to links and acronyms \\
+November 26, 2025 & Luna Aljammal & Updated PoC Details and Implemented TA feedback: added table descriptions, added hyperlinks, improved sections 9–11, and aligned technology details with PoC\\
 \bottomrule
 \end{tabularx}
 \end{table}
@@ -262,13 +263,14 @@ The objective of our PoC is to demonstrate the feasibility of using machine lear
     \item \textbf{Core Deliverable:} A working prototype that:
     \begin{itemize}
         \item Accepts impaired/slurred speech input (from held out testing data).
-        \item Produces transcribed text output in near-real time (does not need to be fully optimized).
+        \item Produces transcribed text output (does not need to be fully optimized).
     \end{itemize}
     
-    \item \textbf{Exploratory Nature:} Compare at least two ASR approaches:
+    \item \textbf{Exploratory Nature:} %Compare at least two ASR approaches:
     \begin{enumerate}
         \item Fine-tuned pre-trained ASR model to baseline.
-        \item Atypical speech data augmentation strategy for improving accuracy.
+        \item Pre-processing techniques to improve performance.
+        %Atypical speech data augmentation strategy for improving accuracy.
     \end{enumerate}
     
     \item \textbf{Not Included:} Full device control integration, user interface (UI), or environment development/deployment.
@@ -287,11 +289,11 @@ Week & Activities \\
 \hline
 1 & Systematic Review: Review state-of-the-art ASR models and methods for atypical speech. Summarize in the Literature Review document under Extras. \\
 \hline
-2 & \textbf{Setup:} Select frameworks (\href{https://pytorch.org}{PyTorch}, \href{https://huggingface.co}{Hugging Face}). Collect small impaired-speech dataset (e.g., \href{https://speechaccessibilityproject.beckman.illinois.edu/}{SAP}, \href{https://www.cs.toronto.edu/~complingweb/data/TORGO/torgo.html}{TORGO}, or synthetic augmentations). Define evaluation \textbf{metrics} (WER, CER). \\
+2 & \textbf{Setup:} Select frameworks (\href{https://pytorch.org}{PyTorch}, \href{https://huggingface.co}{Hugging Face}). Collect impaired-speech dataset (e.g., \href{https://speechaccessibilityproject.beckman.illinois.edu/}{SAP}. Define evaluation \textbf{metrics} (WER, CER). \\
 \hline
 3 & \textbf{Baseline System:} Run selected pre-trained ASR models (\href{https://github.com/openai/whisper}{Whisper}, \href{https://github.com/pytorch/fairseq/tree/main/examples/wav2vec}{wav2vec2.0}) directly on impaired speech samples. Measure baseline error rates. \\
 \hline
-4 & \textbf{Adaptation Phase 1:} Fine-tune selected model on subset of impaired speech data using transfer learning. Consider using LoRA (Low-Rank Adaptation) for efficient fine-tuning. Track overfitting and improvements. \\
+4 & \textbf{Adaptation Phase 1:} Fine-tune selected model on subset of impaired speech data using transfer learning. Consider using LoRA (Low-Rank Adaptation) for efficient fine-tuning. Track improvements. \\
 \hline
 5 & \textbf{Adaptation Phase 2:} Experiment with data augmentation (speed perturbation, SpecAugment, simulated slurred speech) to test robustness. Evaluate again. \\
 \hline
@@ -313,8 +315,8 @@ This section describes the datasets used for the PoC and the evaluation metrics 
     \begin{itemize}
         \item \textbf{Primary:} Public impaired speech datasets:
         \begin{itemize}
-            \item \href{https://www.cs.toronto.edu/~complingweb/data/TORGO/torgo.html}{TORGO} (Parkinson's, ALS patients)
-            \item \href{https://speechaccessibilityproject.beckman.illinois.edu/}{SAP} (dysarthric speakers)
+            % \item \href{https://www.cs.toronto.edu/~complingweb/data/TORGO/torgo.html}{TORGO} (Parkinson's, ALS patients)
+            \item \href{https://speechaccessibilityproject.beckman.illinois.edu/}{SAP} (Dysarthric speakers)
             \item Mozilla CommonVoice (healthy-speech baseline)
         \end{itemize}
         \item \textbf{Fallback:} If data access is limited, generate synthetic impaired speech (TTS + perturbation)
@@ -391,7 +393,6 @@ Topics to discuss include the following:
 
 We expect to use \textbf{Python} as the programming language. 
 
-We plan to use \textbf{PyTorch} or \textbf{TensorFlow} for model fine-tuning. 
 We plan to use \href{https://pytorch.org}{\textbf{PyTorch}} or \href{https://www.tensorflow.org/}{\textbf{TensorFlow}} for model fine-tuning. We will consider using \textbf{LoRA (Low-Rank Adaptation)}, a fine-tuning technique that updates only a small subset of model parameters. We will extend and fine-tune existing models trained on standard speech, adapting them to accurately process dysarthric speech.
 
 
