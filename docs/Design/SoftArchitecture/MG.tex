@@ -364,7 +364,7 @@ Provides user prompting, model fine-tuning, and instruction management. Supports
 \medskip
 \subsubsection*{M2: Accessibility Layer}
 \textbf{Secrets:} Encoding of accessibility configuration (AccessConfig), ARIA attribute mappings, and validation rules for UI elements against WCAG standards. \\
-\textbf{Services:} Apply accessibility settings; post announcements via live region or screen-reader API; validate UI elements, producing ValidationReports. \\
+\textbf{Services:} Apply accessibility options; announce messages; check UI elements and report any problems using ValidationReports. \\
 \textbf{Implemented By:} AccessibilityLayer module operating on UI elements exposed by UserInterface. \\
 
 \medskip
@@ -377,15 +377,15 @@ Provides user prompting, model fine-tuning, and instruction management. Supports
 \subsection*{Application (Processing) Modules}
 
 \subsubsection*{M4: Speech-to-Text Engine}
-\textbf{Secrets:} ASR configuration (AsrConfig), model state, buffering strategy, and decoding pipeline producing Transcripts. \\
+\textbf{Secrets:} Configuration (AsrConfig) and internal processing details of the speech-to-text engine that converts audio input into accurate text transcript. \\
 \textbf{Services:} Initialize engine; process audio to produce transcripts with confidence metadata; reset internal state. \\
 \textbf{Implemented By:} SpeechToTextEngine module wrapping acoustic and language models. \\
 
 \medskip
 \subsubsection*{M5: Intent Interpreter}
-\textbf{Secrets:} Intent schema registry (IntentSchemaRegistry), dialog context management, and intent matching and slot extraction logic. \\
-\textbf{Services:} Initialize interpreter; map Transcripts to Intents with slots and confidence scores; reset parsing context. \\
-\textbf{Implemented By:} IntentInterpreter module using registered schemas and dialog state. \\
+\textbf{Secrets:} How the system recognizes user intentions by using stored intent templates, managing conversation context, and extracting key details (slots) from the user’s speech. \\
+\textbf{Services:} Initialize the interpreter; convert speech transcripts into structured intentions, including important details and confidence levels; reset the interpreter’s context when needed. \\
+\textbf{Implemented By:} IntentInterpreter module using registered intent templates and dialog state management. \\
 
 \medskip
 \subsubsection*{M6: Command Mapping Module}
