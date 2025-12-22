@@ -851,24 +851,54 @@ The product shall provide an accessible Help Page and a Frequently Asked Questio
 The system must run on common workplace platforms via a web browser, including Windows 10 or later, macOS 12 Monterey or later, and Linux distributions such as Ubuntu 20.04 LTS or later, supporting modern web browsers.
 
 \section{Security Requirements}
+The following security/safety requirements are derived from the project Hazard Analysis (see \href{https://github.com/speech-buddies/VoiceBridge/blob/main/docs/HazardAnalysis/HazardAnalysis.pdf}{Hazard Analysis Section 6}.) Each item is traceable to hazards in the FMEA table and is included here to ensure consistency.
+We group VoiceBridge’s security requirements into five categories—\textbf{Access (ACR)}, \textbf{Integrity (IR)}, \textbf{Privacy (PRR)}, \textbf{Audit (ADR)}, and \textbf{Immunity (IMR)}.
+
 \subsection{Access Requirements}
-Only authorized end users shall be able to access personalized ASR features, voice command execution, and saved transcripts. Access shall be role-based:
 
-\begin{itemize}
-    \item \textbf{Primary users (end users):} can access their own data.
-    \item \textbf{Secondary users (supervisors/SMEs):} may have read-only access to assist with support or troubleshooting.
-    \item \textbf{Tertiary users (caregivers):} may have limited access to assist the end user, can view basic usage history and transcripts but cannot modify settings.
-\end{itemize}
+\begin{description}
+  \item[ACR1:] Important actions (like sending data or external messages) must use a clear, two-step confirmation to prevent mistakes. \emph{(links to IR5/IMR7 — unclear confirmation)}
+  \item[ACR2:] Access to stored audio or transcripts is restricted by role-based permissions so only authorized users can view or edit sensitive data. \emph{(links to Storage — Private data leaked)}
+  \item[ACR3:] Multi-factor authentication (MFA) is required for all administrator or privileged logins to prevent unauthorized entry. \emph{(links to Auth/Access — Unauthorized entry)}
+\end{description}
 
-Access to external services (e.g., LLM APIs) shall be rate-limited to ensure system stability, control costs, and prevent abuse.
 \subsection{Integrity Requirements}
-The system must provide real-time confirmation and validation of commands before execution to ensure they match user intent. 
+
+\begin{description}
+  \item[IR1:] VoiceBridge auto-detects microphone devices and alerts users if permissions are missing, offering a quick way to select a new device. \emph{(links to Input Devices — Wrong mic chosen)}
+  \item[IR2:] Noise suppression must run before recognition; when confidence is low, users must confirm results. \emph{(links to Input Devices — Too much background noise)}
+  \item[IR3:] The system tracks model accuracy and prompts retraining or calibration when accuracy drops below a set level. \emph{(links to ML Model — Doesn’t adapt to accent or changes)}
+  \item[IR4:] If the connection is lost, the app shows an offline message, pauses risky actions, and retries once the network returns. \emph{(links to Communication — Weak or lost network)}
+  \item[IR5:] Confirmation screens and the overall user interface must be clear, accessible, and perceivable by text, audio, and assistive tools. \emph{(links to Front-end Interface — Confirmation not clear)}
+\end{description}
+
 \subsection{Privacy Requirements}
-The system must gather explicity user consent for storing voice and personal data. All user data used for model improvement must be anonymized. Database and personalized ASR models must maintain integrity through secure, versioned backups. Unauthorized changes or corruption of user data must be prevented. 
+
+\begin{description}
+  \item[PRR1:] All stored data is encrypted with restricted access to protect privacy. \emph{(links to Storage — Private data leaked)}
+  \item[PRR2:] Logs never store personal or raw speech data; only anonymized and redacted information is kept. \emph{(supports IR2, PRR2)}
+  \item[PRR3:] Sessions expire automatically and are revoked if suspicious activity is detected. \emph{(extends ACR3 — unauthorized access)}
+  \item[PRR4:] Users can request deletion of stored data; the system removes it after a defined time. \emph{(future privacy maintenance)}
+\end{description}
+
 \subsection{Audit Requirements}
-The system shall maintain secure logs of major actions and commands, including loging events, access to profile and personal data, and command execution failures. Logs shall be protected and retained in a secure database. 
+
+\begin{description}
+  \item[ADR1:] The system records recognition accuracy over time and flags when results decline. \emph{(links to ML Model — Accuracy drops)}
+  \item[ADR2:] Keep structured, redacted logs for reviews and debugging. \emph{(links to Storage — Sensitive logging)}
+  \item[ADR3:] Create a Software Bill of Materials (SBOM) and block unsafe dependencies. \emph{(links to library risk, supports IMR6)}
+  \item[ADR4:] Provide regular privacy reports showing data deletion and retention. \emph{(future extension)}
+\end{description}
+
 \subsection{Immunity Requirements}
-The system must be resilient to accidental misuse. It shall handle noisy input robustly, avoid executing unintended commands, and operate safely within rate limits to prevent resource overload. 
+
+\begin{description}
+  \item[IMR1:] The app recovers smoothly from device or permission changes without restarting. \emph{(links to Input Devices — Wrong mic chosen)}
+  \item[IMR2:] Maintain good recognition accuracy even with background noise at normal levels. \emph{(links to Input Devices — Too much noise)}
+  \item[IMR3:] The app retries failed network actions and cancels incomplete ones to handle weak connections gracefully. \emph{(links to Communication — Weak or lost network)}
+  \item[IMR4:] Detect and drop repeated or expired requests to avoid replay attacks. \emph{(future enhancement)}
+  \item[IMR5:] Ensure all confirmations can be seen or heard, including through screen readers. \emph{(links to Front-end Interface — not perceivable)}
+\end{description}
 
 \section{Cultural Requirements}
 \subsection{Cultural Requirements}
