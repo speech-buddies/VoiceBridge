@@ -790,37 +790,37 @@ UE-10 & User Cancels Ongoing Command & User says “cancel” or “stop.” & I
 
 \section{Functional Requirements}
 
-\subsection{FR1: Accept Speech Audio via Microphone}
+\subsection{FR1: Accept Speech Audio via Microphone}\label{fr:FR1}
 \textbf{Description:} The system must capture live speech input from the user through a standard built-in or external microphone.\\
 \textbf{Rationale:} Without microphone input, the system cannot acquire the user’s speech for transcription. Requiring only standard/built-in microphones keeps the solution accessible and affordable.\\
 \textbf{Fit Criterion:} The system reliably detects and records audio from default OS microphone devices across Windows, macOS, iOS, and Android, with a minimum 16 kHz sampling rate.
 
 \bigskip
-\subsection{FR2: Convert Impaired Speech to Text with greater than or equal to 80\% Accuracy (MVP)}
+\subsection{FR2: Convert Impaired Speech to Text with greater than or equal to 80\% Accuracy (MVP)}\label{fr:FR2}
 \textbf{Description:} The system must process the captured audio and output a textual representation of the spoken utterance.\\
 \textbf{Rationale:} Accurate transcription is the core functionality that enables communication and command execution. Without acceptable accuracy, the product fails its purpose.\\
 \textbf{Fit Criterion:} In evaluation on a test dataset of impaired speech, transcription accuracy must reach at least 80\% Word Error Rate (WER) reduction compared to baseline models, and achieve greater than or equal to 80\% accuracy for common commands.
 
 \bigskip
-\subsection{FR3: Display Transcription for Verification}
+\subsection{FR3: Display Transcription for Verification}\label{fr:FR3}
 \textbf{Description:} The transcribed text must be displayed in real time on the user’s device interface.\\
 \textbf{Rationale:} Transparent feedback allows the user to verify correctness, catch errors, and build trust in the system.\\
 \textbf{Fit Criterion:} Every spoken input is displayed within 2 seconds as text on the UI, with at least 95\% consistency across trials.
 
 \bigskip
-\subsection{FR4: Map Text to Arbitrary Device Commands}
+\subsection{FR4: Map Text to Arbitrary Device Commands}\label{fr:FR4}
 \textbf{Description:} The system must recognize when transcribed text corresponds to a predefined device action (e.g., “open amazon.ca,” “draft a new email”) and translate it into the appropriate command representation (API, CLI, or accessibility call).\\
 \textbf{Rationale:} Mapping allows the system to extend beyond communication into real device control, empowering user independence.\\
 \textbf{Fit Criterion:} For a test set of 50 predefined commands, the system maps user input to the correct command representation in at least 90\% of cases.
 
 \bigskip
-\subsection{FR5: Execute Commands on the Host Device}
+\subsection{FR5: Execute Commands on the Host Device}\label{fr:FR5}
 \textbf{Description:} The system must execute the mapped commands through the host device’s accessibility framework or APIs, resulting in visible user action (e.g., app launch, scrolling, text entry).\\
 \textbf{Rationale:} Without execution, the system remains a transcription tool only. Execution closes the loop between speech input and device interaction.\\
 \textbf{Fit Criterion:} For each correctly recognized command, the intended system action occurs on the device within 2 seconds, with greater than or equal to 95\% reliability across test scenarios.
 
 \bigskip
-\subsection{FR6: Handle Security Software Interference}
+\subsection{FR6: Handle Security Software Interference}\label{fr:FR6}
 \textbf{Description:} The system must detect when browser, operating system, or antivirus security controls block or restrict automated actions and provide clear feedback to the user, including the affected command and available fallback options.\\
 \textbf{Rationale:} Security software may prevent automated execution, which could otherwise result in silent failures and unsafe user assumptions about task completion. User awareness preserves safety and usability.\\
 \textbf{Fit Criterion:} In test scenarios where automation is blocked, the system correctly detects the restriction and notifies the user in greater than or equal to 95\% of cases within 2 seconds of the failed action.
@@ -1299,11 +1299,11 @@ Error \rightarrow \text{Error or retry prompt}
 This formal model represents the main workflow of VoiceBridge and aligns with the following functional requirements:
 
 \begin{itemize}
-    \item FR1: Accept Speech Input ($Idle \rightarrow Listening$)
-    \item FR2: Convert Speech to Text ($Listening \rightarrow Processing$)
-    \item FR3: Confirm Transcription ($Processing \rightarrow Confirming$)
-    \item FR4: Map Intent to Command ($Confirming \rightarrow Executing$)
-    \item FR5: Execute Command ($Executing \rightarrow Idle$)
+    \item \hyperref[fr:FR1]{FR1}: Accept Speech Input ($Idle \rightarrow Listening$)
+    \item \hyperref[fr:FR2]{FR2}: Convert Speech to Text ($Listening \rightarrow Processing$)
+    \item \hyperref[fr:FR3]{FR3}: Confirm Transcription ($Processing \rightarrow Confirming$)
+    \item \hyperref[fr:FR4]{FR4}: Map Intent to Command ($Confirming \rightarrow Executing$)
+    \item \hyperref[fr:FR5]{FR5}: Execute Command ($Executing \rightarrow Idle$)
 \end{itemize}
 
 This simplified formalization shows how user input moves through each stage of the system in a predictable, testable way, ensuring clarity and correctness of behavior.
