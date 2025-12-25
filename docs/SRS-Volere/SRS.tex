@@ -792,7 +792,7 @@ UE-10 & User Cancels Ongoing Command & User says “cancel” or “stop.” & I
 
 \subsection{FR1: Accept Speech Audio via Microphone}
 \textbf{Description:} The system must capture live speech input from the user through a standard built-in or external microphone.\\
-\textbf{Rationale:} Speech audio contains frequency components up to approximately 8 kHz. To capture this audio accurately without distortion, the sampling rate must be at least twice the maximum frequency, resulting in a minimum required rate of 16 kHz. This ensures reliable speech transcription and is supported by standard built-in and external microphone hardware.\\
+\textbf{Rationale:} Without microphone input, the system cannot acquire the user’s speech for transcription. Requiring only standard/built-in microphones keeps the solution accessible and affordable.\\
 \textbf{Fit Criterion:} The system reliably detects and records audio from default OS microphone devices across Windows, macOS, iOS, and Android, with a minimum 16 kHz sampling rate.
 
 \subsection{FR1: Accept Speech Audio via Microphone}
