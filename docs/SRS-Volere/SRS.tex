@@ -63,6 +63,7 @@ November 3, 2025 & Luna & Addressed SRS Glossary TA and Peer Feedback, added cus
 December 19, 2025 & Rawan & Addressing peer feedback on caregivers as stakeholders, and addition of C5 and FR6\\
 December 19, 2025 & Rawan & Addressing TA feedback: adding section descriptions, figure/table descriptions, and clarification to varying TA questions, removing duplicate constraint (C1), UML description, and other minor fixes\\
 December 24, 2025 & Luna & Addressing TA feedback: adding requirement names, hyperlinks and minor fixes\\
+December 25, 2025 & Luna & Addressing Peer feedback: expanding rationale behind choice of 16Hz in FR1\\
 
 \bottomrule
 \caption{Revision History for SRS Document}
@@ -792,9 +793,9 @@ UE-10 & User Cancels Ongoing Command & User says “cancel” or “stop.” & I
 
 \section{Functional Requirements}
 
-\subsection{FR1: Accept Speech Audio via Microphone}\label{fr:FR1}
+\subsection{FR1: Accept Speech Audio via Microphone}
 \textbf{Description:} The system must capture live speech input from the user through a standard built-in or external microphone.\\
-\textbf{Rationale:} Without microphone input, the system cannot acquire the user’s speech for transcription. Requiring only standard/built-in microphones keeps the solution accessible and affordable.\\
+\textbf{Rationale:} Speech audio contains frequency components up to approximately 8 kHz. To capture this audio accurately without distortion, the sampling rate must be at least 2× the maximum frequency, resulting in a minimum required rate of 16 kHz. This ensures reliable speech transcription and is supported by standard built-in and external microphone hardware.\\
 \textbf{Fit Criterion:} The system reliably detects and records audio from default OS microphone devices across Windows, macOS, iOS, and Android, with a minimum 16 kHz sampling rate.
 
 \bigskip
