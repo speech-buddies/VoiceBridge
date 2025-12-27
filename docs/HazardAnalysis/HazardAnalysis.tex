@@ -41,7 +41,7 @@
 October 7, 2025 & Kelvin Yu & Added Sections 1-4\\
 October 7, 2025 & Mazen Youssef & Added Sections 5-7 (excl. fmea table)\\
 October 8, 2025 & Kelvin Yu & Added FMEA Table\\
-... & ... & ...\\
+December 13, 2025 & Kelvin Yu & Added TA Feedback\\
 \bottomrule
 \end{tabularx}
 \end{table}
@@ -50,6 +50,11 @@ October 8, 2025 & Kelvin Yu & Added FMEA Table\\
 
 \tableofcontents
 
+~\newpage
+
+\listoftables
+~\newpage
+\listoffigures
 ~\newpage
 
 \pagenumbering{arabic}
@@ -112,6 +117,8 @@ The following assumptions define the environment in which VoiceBridge operates a
 
 
 \section{Failure Mode and Effect Analysis}
+This section presents a Failure Mode and Effects Analysis (FMEA) for the VoiceBridge system, identifying potential failure points and their impacts on users and system behavior. 
+
 
 \subsection{Hazards Out of Scope}
 
@@ -120,9 +127,11 @@ The following systems are important for VoiceBridge to work properly, but are no
 \begin{itemize}
     \item \textbf{User devices and operating systems}: Microphones, drivers, or the computer's audio stack may fail or limit access. We mitigate via device detection and clear user prompts.
     \item \textbf{Cloud services and internet connection}: Model or network outages may affect availability. We use retry and queueing to reduce disruption.
-    \item \textbf{Third-party services (e.g., login, hosting)}: External authentication or model-serving infrastructure may go down. The app should rely on cached state and switch to a safe, reduced-functionality mode.
+    \item \textbf{Third-party services (e.g., login, hosting)}: External authentication or model-serving infrastructure may go down. The application should rely on cached state and switch to a safe, reduced-functionality mode.
 \end{itemize}
 \subsection{Failure Modes and Effects Table}
+We group VoiceBridge’s requirements into five categories. Access (ACR), Integrity (IR), Privacy (PRR), Audit (ADR), and Immunity (IMR).
+
 
 \begin{table}[h!]
 \centering
@@ -143,24 +152,24 @@ The following systems are important for VoiceBridge to work properly, but are no
 \hline
 \textbf{Component} & \textbf{What Can Go Wrong} & \textbf{What Happens} & \textbf{Why It Happens} & \textbf{How We Reduce the Risk} & \textbf{Ref.} \\
 \hline
-Input Devices & Wrong mic chosen / permissions removed & No audio; session unusable & OS switched input; user denied access & Auto-detect device changes; show clear error messages & IR1, IMR1 \\
+Input Devices & Wrong microphone chosen / permissions removed & No audio; session unusable & OS switched input; user denied access & Auto-detect device changes; show clear error messages & IR1, IMR1 \\
 \hline
 Input Devices & Too much background noise & Poor accuracy / wrong commands & Loud space; gain too high & Noise suppression; confirm low-confidence results; keep use to medium–low background environments & IR2, IMR2 \\
 \hline
 ML Model & Model doesn’t adapt to accent or changes & Accuracy slowly drops; user loses trust & Low-quality datasets; poor fine-tuning & Provide re-training when accuracy drops below a threshold & IR3, ADR1 \\
 \hline
-Communication & Weak or lost network & Delays; partial results & Poor Wi-Fi; server timeout & Show offline message & IR4, IMR3 \\
+Communication & Weak or lost network & Delays; partial results & Poor Wi-Fi; server timeout & Show poor connection message & IR4, IMR3 \\
 \hline
 Storage & Private data leaked & Privacy breach & Wrong permissions & Encrypt data; limit access & PRR1, ACR1 \\
 \hline
-Auth / Access & Unauthorized entry & Data exposure; impersonation & Stolen credentials & MFA for admin; session limits & ACR2, ACR3, PRR2 \\
+Auth / Access & Unauthorized entry & Data exposure; impersonation & Stolen credentials & Multi-factor authentication for admin; session limits & ACR2, ACR3, PRR2 \\
 \hline
 Front-end Interface & Confirmation not clear or accessible & User acts by mistake & Poor contrast; missing cues & Visual + audio feedback; clear icons & IR5, IMR5, ACR1 \\
 \hline
 \end{tabular}
 }
 \caption{\hyphenpenalty=10000\exhyphenpenalty=10000
-Hazard Identification and Risk Mitigation Table for VoiceBridge System}
+Hazard Identification \& Risk Mitigation Table}
 
 \end{table}
 
