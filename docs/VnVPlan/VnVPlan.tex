@@ -37,7 +37,7 @@ Oct 26, 2025 & 1.0 & Added Section 3 \\
 Oct 27, 2025 & 1.0 & Added Sections 1,2, and 4.1\\
 Oct 27, 2025 & 1.0 & Added Sections 4.2, 4.3, and 4.4\\
 Dec 20, 2025 & 1.1 & Implemented TA feedback\\
-
+Dec 25, 2025 & 1.2 & Implemented Peer feedback in Sections 2.2 and 2.3\\
 \bottomrule
 \end{tabularx}
 
@@ -78,11 +78,21 @@ The V\&V (Verification and Validation) plan described in this document applies t
 
 \subsection{Objectives}
 
-The primary objective of VoiceBridge is to accurately capture and interpret the intended meaning of speech from users with impaired or atypical articulation, ensuring that their spoken input is reliably translated into the correct text or device actions. To ensure these safeguards are not just designed but proven effective, a V\&V plan will define the test procedures, measurable success criteria, and safety checks used to confirm VoiceBridge consistently maps user intent correctly and prevents unsafe actions across real-world scenarios. A critical focus is the safe and precise mapping of user intent, particularly when controlling web browsers and other general-purpose software environments where unintended or harmful actions could have significant consequences. Because the system is dependent on non-deterministic AI models, robust safeguards, validation layers, and command verification mechanisms will be implemented to prevent misinterpretation, accidental activation, or malicious exploitation. The project also strives to maintain usability and accessibility by operating on standard consumer hardware and providing clear, transparent feedback to the user. Ultimately, the goal is to empower users with meaningful autonomy while maintaining strict control, reliability, and safety in all system interactions.
+\subsection{Objectives}
+
+The primary objective of VoiceBridge is to accurately capture and interpret the intended meaning of speech from users with impaired or atypical articulation, ensuring that spoken input is reliably translated into correct text or device actions. From a verification and validation (V\&V) perspective, this objective is met only if the system’s key qualities, including accuracy, safety, reliability, and usability, can be objectively measured and confirmed through testing.
+
+To support this objective, the V\&V plan will define clear test procedures and measurable success criteria to validate the system’s ability to transcribe impaired speech with acceptable accuracy, correctly map recognized text to intended commands, and prevent unsafe or unintended actions through confirmation and safeguard mechanisms. Transcription accuracy will be evaluated using controlled speech datasets, while command execution will be validated through scenario-based tests under both normal and error-prone conditions.
+
+A critical focus of validation is the safe mapping of user intent when controlling web browsers and other general-purpose software, where unintended actions could have significant consequences. Because VoiceBridge relies on non-deterministic AI models, the V\&V activities will assess whether validation layers, confirmation prompts, and fallback behaviors reduce misinterpretation and unsafe execution.
+
+Usability and accessibility are also treated as verifiable objectives. The system must demonstrate that users can complete core tasks with minimal effort on standard consumer hardware and receive clear feedback during both successful and failed interactions. The goal of empowering users with meaningful autonomy is validated by showing that users can reliably and safely achieve intended outcomes using VoiceBridge without external assistance.
 
 \subsection{Challenge Level}
 
-Challenges not applicable to V\&V plan.
+In addition to baseline verification and validation activities, limited challenge-level evaluations may be performed to further assess system robustness. These may include performance testing under increased background noise, basic accessibility checks using assistive tools, and exploratory evaluation of safeguard behavior under ambiguous or low-confidence inputs.
+
+These challenge-level activities are optional and intended to provide additional insight into system behavior beyond baseline validation.
 
 \subsection{Relevant Documentation}
 
