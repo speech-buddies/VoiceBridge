@@ -36,7 +36,8 @@
 Oct 26, 2025 & 1.0 & Added Section 3 \\
 Oct 27, 2025 & 1.0 & Added Sections 1,2, and 4.1\\
 Oct 27, 2025 & 1.0 & Added Sections 4.2, 4.3, and 4.4\\
-
+Dec 20, 2025 & 1.1 & Implemented TA feedback\\
+Dec 25, 2025 & 1.2 & Implemented Peer feedback in Sections 2.2 and 2.3\\
 \bottomrule
 \end{tabularx}
 
@@ -55,13 +56,14 @@ Oct 27, 2025 & 1.0 & Added Sections 4.2, 4.3, and 4.4\\
 \section{Symbols, Abbreviations, and Acronyms}
 
 \renewcommand{\arraystretch}{1.2}
-\begin{tabular}{l l} 
-  \toprule		
+\begin{tabular}{@{} l p{0.78\textwidth} @{}}
+  \toprule
   \textbf{Symbol / Acronym} & \textbf{Description}\\
-  \midrule 
+  \midrule
   OOD & Out-of-Domain: input or data that falls outside the system's trained or expected domain.\\
+  V\&V & Verification and Validation: processes to ensure a system meets requirements and fulfills its intended purpose.\\
   \bottomrule
-\end{tabular}\\
+\end{tabular}
 
 \newpage
 
@@ -72,15 +74,25 @@ Oct 27, 2025 & 1.0 & Added Sections 4.2, 4.3, and 4.4\\
 
 \subsection{Summary}
 
-The V\&V plan described in this document applies to the VoiceBridge application. VoiceBridge is an accessibility tool designed for individuals with impaired speech, typically as a result of motor speech disorders. Using a customizable speech-to-text model, it converts slurred or non-standard speech into accurate text and control commands on standard consumer devices. The system integrates seamlessly with commonly used technology, including web browsers, enabling open-ended, customizable control for tasks such as online shopping, browsing, and digital communication. By allowing users to operate everyday applications with their own speech patterns, the product promotes greater autonomy, accessibility, and independence.
+The V\&V (Verification and Validation) plan described in this document applies to the VoiceBridge application. VoiceBridge is an accessibility tool designed for individuals with impaired speech, typically as a result of motor speech disorders. Using a customizable speech-to-text model, it converts slurred or non-standard speech into accurate text and control commands on standard consumer devices. The system integrates seamlessly with commonly used technology, including web browsers, enabling open-ended, customizable control for tasks such as online shopping, browsing, and digital communication. By allowing users to operate everyday applications with their own speech patterns, the product promotes greater autonomy, accessibility, and independence.
 
 \subsection{Objectives}
 
-The primary objective of VoiceBridge is to accurately capture and interpret the intended meaning of speech from users with impaired or atypical articulation, ensuring that their spoken input is reliably translated into the correct text or device actions. A critical focus is the safe and precise mapping of user intent, particularly when controlling web browsers and other general-purpose software environments where unintended or harmful actions could have significant consequences. Because the system is dependent on non-deterministic AI models, robust safeguards, validation layers, and command verification mechanisms will be implemented to prevent misinterpretation, accidental activation, or malicious exploitation. The project also strives to maintain usability and accessibility by operating on standard consumer hardware and providing clear, transparent feedback to the user. Ultimately, the goal is to empower users with meaningful autonomy while maintaining strict control, reliability, and safety in all system interactions.
+\subsection{Objectives}
 
-\subsection{Challenge Level and Extras}
+The primary objective of VoiceBridge is to accurately capture and interpret the intended meaning of speech from users with impaired or atypical articulation, ensuring that spoken input is reliably translated into correct text or device actions. From a verification and validation (V\&V) perspective, this objective is met only if the system’s key qualities, including accuracy, safety, reliability, and usability, can be objectively measured and confirmed through testing.
 
-Challenges not applicable to V\&V plan.
+To support this objective, the V\&V plan will define clear test procedures and measurable success criteria to validate the system’s ability to transcribe impaired speech with acceptable accuracy, correctly map recognized text to intended commands, and prevent unsafe or unintended actions through confirmation and safeguard mechanisms. Transcription accuracy will be evaluated using controlled speech datasets, while command execution will be validated through scenario-based tests under both normal and error-prone conditions.
+
+A critical focus of validation is the safe mapping of user intent when controlling web browsers and other general-purpose software, where unintended actions could have significant consequences. Because VoiceBridge relies on non-deterministic AI models, the V\&V activities will assess whether validation layers, confirmation prompts, and fallback behaviors reduce misinterpretation and unsafe execution.
+
+Usability and accessibility are also treated as verifiable objectives. The system must demonstrate that users can complete core tasks with minimal effort on standard consumer hardware and receive clear feedback during both successful and failed interactions. The goal of empowering users with meaningful autonomy is validated by showing that users can reliably and safely achieve intended outcomes using VoiceBridge without external assistance.
+
+\subsection{Challenge Level}
+
+In addition to baseline verification and validation activities, limited challenge-level evaluations may be performed to further assess system robustness. These may include performance testing under increased background noise, basic accessibility checks using assistive tools, and exploratory evaluation of safeguard behavior under ambiguous or low-confidence inputs.
+
+These challenge-level activities are optional and intended to provide additional insight into system behavior beyond baseline validation.
 
 \subsection{Relevant Documentation}
 
@@ -122,13 +134,14 @@ This section describes how the VoiceBridge team will verify and validate the sys
 \subsection{SRS Verification}
 
 \subsubsection*{3.2.1 Requirements Validation}
-Each functional and non-functional requirement will be verified for clarity, feasibility, and measurability. A formal SRS Review Checklist will be applied to Sections~10--16, focusing on fit criteria, ambiguity, and traceability. Automated verification will be performed for measurable criteria (e.g., transcription latency, confidence scores) using \texttt{PyTest}, while manual validation will confirm qualitative attributes such as user feedback clarity.
+Each functional and non-functional requirement will be verified for clarity, feasibility, and measurability. A formal SRS Review Checklist will be applied to 
+\href{https://github.com/speech-buddies/VoiceBridge/blob/main/docs/SRS-Volere/SRS.pdf}{Sections~10--16} of the SRS document, focusing on fit criteria, ambiguity, and traceability. Automated verification will be performed for measurable criteria (e.g., transcription latency, confidence scores) using \texttt{PyTest}, while manual validation will confirm qualitative attributes such as user feedback clarity.
 
 \subsubsection*{3.2.2 Supervisor Review}
 A structured review session will be held with Dr.~Christian Brodbeck. The meeting will consist of:
 
 \begin{enumerate}
-    \item A concise summary of all functional and safety-related requirements (IR, PRR, ACR, IMR).
+    \item A concise summary of all functional and safety-related requirements.
     \item System and use case diagrams for visual reference.
     \item Specific discussion prompts on potentially ambiguous or high-risk requirements.
 \end{enumerate}
@@ -179,7 +192,7 @@ Continuous Verification &
 
 \subsection{Design Verification}
 
-Design verification confirms that the VoiceBridge architecture and modules meet all verified requirements from the SRS. Planned Verification Activities:
+Design verification (including MIS and MG documents) confirms that the VoiceBridge architecture and modules meet all verified requirements from the SRS. Planned Verification Activities:
 
 \begin{itemize}
     \item Design Review Meeting: \\
@@ -261,7 +274,6 @@ Implementation verification ensures that VoiceBridge’s source code correctly i
 
 \begin{table}[H]
 \centering
-\caption{Implementation Verification Checklist}
 \renewcommand{\arraystretch}{1.3}
 \begin{tabular}{|p{6cm}|p{8cm}|}
 \hline
@@ -375,7 +387,7 @@ Initial State: Multiple audio devices present (laptop microphone + USB microphon
 
 Input: Unplug/plug devices while capturing.
 
-Output: The system selects the current default audio input device. If the device disconnects, it automatically falls back to another available microphone and notifies the user.
+Output: The system selects the current default audio input device. If the device disconnects, it automatically falls back to another available microphone and notifies the user. If it cannot find any, it shows an error.
 
 How test will be performed: Start capture $\rightarrow$ unplug active microphone $\rightarrow$ observe fallback notice $\rightarrow$ confirm continued capture.
 \end{enumerate}
@@ -399,7 +411,7 @@ Test Case Derivation: Directly tests Fit Criterion’s WER reduction expectation
 How test will be performed: Evaluation script computes WER, CER; export CSV; assert threshold met.
 \end{enumerate}
 
-\paragraph{test-FR2-ASR-2 Common Command Accuracy $\geq$80\%}
+\paragraph{test-FR2-ASR-2 Common Command Recognition (Acceptance Threshold)}
 
 \begin{enumerate}
 \item{test-FR2-ASR-2\\}
@@ -409,7 +421,7 @@ Initial State: Command list of 50+ common intents; audio variants (different spe
 
 Input: Play each command sample to the system.
 
-Output: $\geq$80\% correct textual outputs (exact or accepted synonyms).
+Output: System produces an acceptable transcription for each command (exact or accepted synonyms); overall acceptance threshold $\geq$80\% on the command set.
 
 Test Case Derivation: Meets “$\geq$80\% accuracy for common commands.”
 
@@ -660,13 +672,13 @@ Type: Manual, Dynamic
 
 Test Case Derivation: UHR-12.2
 
-Initial State: Preferences (e.g., language, microphone, confirmation style) changed.
+Initial State: User has a defined preference profile (language, mic, confirmation style).
 
 Input/Condition: Switch browser profile, sign-out/in.
 
-Output/Result: Preferences persist across sessions/devices when a user has an account.
+Output/Result: Personalized interaction remains consistent and predictable after re-authentication (no unexpected resets; confirmation style/language match the user’s expected configuration).
 
-How test will be performed: User fills out their preferences such as language, confirmation style. Then logs out and logs in on a different device and check if behavior is saved after logging in again.
+How test will be performed: Configure preferences → log out → log in elsewhere → confirm the system’s interaction style matches expectations and loads without confusing changes or delays.
 \end{enumerate}
 
 \paragraph{test-UH-4 Message Clarity \& Politeness}
@@ -764,7 +776,7 @@ How test will be performed: Run sample audios with the different levels of backg
 \emph{Why not tested now:} Horizontal scaling is an \textbf{infrastructure} concern that isn’t meaningfully exercised without real or simulated multi-tenant traffic. Extensibility is largely an \textbf{architecture/code-structure} attribute rather than a runtime metric.\\
 \emph{How it’s handled instead:} Verified via \textbf{architecture/code review} and maintainability checks (see \textbf{test-MS-1} for modularity and extension points).
 \item \textbf{PRF-13.7 Longevity (reliable operations $\geq$ 5 years) — Out of Scope (PoC)}\\
-\emph{Why not tested now:} Longevity cannot be validated with a short-cycle \textbf{system test}; it requires years of operation data. Running a 5-year endurance test is infeasible at this stag
+\emph{Why not tested now:} Longevity cannot be validated with a short-cycle \textbf{system test}; it requires years of operation data. Running a 5-year endurance test is infeasible at this stage.
 \end{itemize}
 
 \subsubsection{Operational \& Environmental}
