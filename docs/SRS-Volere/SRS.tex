@@ -60,6 +60,10 @@ October 2, 2025 & Rawan and Luna & Filled-In Initial Draft of SRS Document\\
 October 10, 2025 & Rawan and Luna & Completed SRS Document\\
 October 10, 2025 & Mazen and Kelvin & Reviewed and Edited SRS Document\\
 November 3, 2025 & Luna & Addressed SRS Glossary TA and Peer Feedback, added customer to glossary for clarity, minor glossary organization improvements\\
+December 19, 2025 & Rawan & Addressing peer feedback on caregivers as stakeholders, and addition of C5 and FR6\\
+December 19, 2025 & Rawan & Addressing TA feedback: adding section descriptions, figure/table descriptions, and clarification to varying TA questions, removing duplicate constraint (C1), UML description, and other minor fixes\\
+December 24, 2025 & Luna & Addressing TA feedback: adding requirement names, hyperlinks and minor fixes\\
+December 25, 2025 & Luna & Addressing Peer feedback: expanding rationale behind choice of 16Hz in FR1\\
 
 \bottomrule
 \caption{Revision History for SRS Document}
@@ -736,7 +740,7 @@ UE-7 & System Crash / Model Process Failure & Unexpected error during ML inferen
 \hline
 UE-8 & Data Privacy Breach Attempt & Unauthorized access to stored speech logs or transcripts. & Encrypts all local logs; triggers security alert, terminates unauthorized session, and notifies user. & Critical & “Security alert — your data is protected and the session has been closed.” \\
 \hline
-UE-9 & Latency Exceeds Threshold & Inference or browser response exceeds acceptable delay (e.g., > 2 s). & Display progress indicator; optionally degrade to simplified model or local processing fallback. & Low & Spinner with “Processing…” message. \\
+UE-9 & Latency Exceeds Threshold & Inference or browser response exceeds acceptable delay (e.g., $> 2$ s). & Display progress indicator; optionally degrade to simplified model or local processing fallback. & Low & Spinner with “Processing…” message. \\
 \hline
 UE-10 & User Cancels Ongoing Command & User says “cancel” or “stop.” & Immediately halts current command execution and clears pending queue. & Low & Confirmation sound or text “Cancelled.” \\
 \bottomrule
@@ -751,166 +755,228 @@ UE-10 & User Cancels Ongoing Command & User says “cancel” or “stop.” & I
 
 \subsection{FR1: Accept Speech Audio via Microphone}
 \textbf{Description:} The system must capture live speech input from the user through a standard built-in or external microphone.\\
-\textbf{Rationale:} Without microphone input, the system cannot acquire the user’s speech for transcription. Requiring only standard/built-in microphones keeps the solution accessible and affordable.\\
+\textbf{Rationale:} Speech audio contains frequency components up to approximately 8 kHz. To capture this audio accurately without distortion, the sampling rate must be at least 2× the maximum frequency, resulting in a minimum required rate of 16 kHz. This ensures reliable speech transcription and is supported by standard built-in and external microphone hardware.\\
 \textbf{Fit Criterion:} The system reliably detects and records audio from default OS microphone devices across Windows, macOS, iOS, and Android, with a minimum 16 kHz sampling rate.
 
 \bigskip
-\subsection{FR2: Convert Impaired Speech to Text with greater than or equal to 80\% Accuracy (MVP)}
+\subsection{FR2: Convert Impaired Speech to Text with greater than or equal to 80\% Accuracy (MVP)}\label{fr:FR2}
 \textbf{Description:} The system must process the captured audio and output a textual representation of the spoken utterance.\\
 \textbf{Rationale:} Accurate transcription is the core functionality that enables communication and command execution. Without acceptable accuracy, the product fails its purpose.\\
 \textbf{Fit Criterion:} In evaluation on a test dataset of impaired speech, transcription accuracy must reach at least 80\% word error rate (WER) reduction compared to baseline models, and achieve greater than or equal to 80\% accuracy for common commands.
 
 \bigskip
-\subsection{FR3: Display Transcription for Verification}
+\subsection{FR3: Display Transcription for Verification}\label{fr:FR3}
 \textbf{Description:} The transcribed text must be displayed in real time on the user’s device interface.\\
 \textbf{Rationale:} Transparent feedback allows the user to verify correctness, catch errors, and build trust in the system.\\
 \textbf{Fit Criterion:} Every spoken input is displayed within 2 seconds as text on the UI, with at least 95\% consistency across trials.
 
 \bigskip
-\subsection{FR4: Map Text to Arbitrary Device Commands}
+\subsection{FR4: Map Text to Arbitrary Device Commands}\label{fr:FR4}
 \textbf{Description:} The system must recognize when transcribed text corresponds to a predefined device action (e.g., “open amazon.ca,” “draft a new email”) and translate it into the appropriate command representation (API, CLI, or accessibility call).\\
 \textbf{Rationale:} Mapping allows the system to extend beyond communication into real device control, empowering user independence.\\
 \textbf{Fit Criterion:} For a test set of 50 predefined commands, the system maps user input to the correct command representation in at least 90\% of cases.
 
 \bigskip
-\subsection{FR5: Execute Commands on the Host Device}
+\subsection{FR5: Execute Commands on the Host Device}\label{fr:FR5}
 \textbf{Description:} The system must execute the mapped commands through the host device’s accessibility framework or APIs, resulting in visible user action (e.g., app launch, scrolling, text entry).\\
 \textbf{Rationale:} Without execution, the system remains a transcription tool only. Execution closes the loop between speech input and device interaction.\\
 \textbf{Fit Criterion:} For each correctly recognized command, the intended system action occurs on the device within 2 seconds, with greater than or equal to 95\% reliability across test scenarios.
 
+\bigskip
+\subsection{FR6: Handle Security Software Interference}\label{fr:FR6}
+\textbf{Description:} The system must detect when browser, operating system, or antivirus security controls block or restrict automated actions and provide clear feedback to the user, including the affected command and available fallback options.\\
+\textbf{Rationale:} Security software may prevent automated execution, which could otherwise result in silent failures and unsafe user assumptions about task completion. User awareness preserves safety and usability.\\
+\textbf{Fit Criterion:} In test scenarios where automation is blocked, the system correctly detects the restriction and notifies the user in greater than or equal to 95\% of cases within 2 seconds of the failed action.
 
-\section{Look and Feel Requirements}
-\subsection{Appearance Requirements}
+\section{Look and Feel Requirements}\label{sec:look-feel}
+\subsection{Appearance Requirements}\label{subsec:appearance}
+
+\textbf{AR1: Minimal and Non-Intrusive Interface}\label{req:AR1}
+
 The interface shall have a clean and minimal design to reduce cognitive load. Key elements should be visually distinct, with consistent spacing, and color usage to support quick recognition of actions.
 
 Since it’s a browser integration, the user interface should minimally interfere with the visibility of the content on the page. The interface should only capture the user’s attention as functionally needed (i.e., listening to user prompts, confirming user intent), but should otherwise blend in with the browser interface.
 
-\subsection{Style Requirements}
+\subsection{Style Requirements}\label{subsec:style}
+
+\textbf{SR1: Professional Visual Style}\label{req:SR1}
+
 The system shall maintain a professional and neutral visual style suitable for general workplace use. Colors, icons, and fonts should prioritize clarity over branding at this stage. Future iterations may incorporate custom styling or theming.
 
 
-\section{Usability and Humanity Requirements}
-\subsection{Ease of Use Requirements}
+\section{Usability and Humanity Requirements}\label{sec:usability-humanity}
+\subsection{Ease of Use Requirements}\label{subsec:ease-of-use}
+\textbf{EU1: Low Interaction Effort}\label{req:EU1}
+
 The system should minimize user effort by providing a simple, intuitive interface. Key actions should be accessible within 3-4 interactions, with clear feedback after each action.
-\subsection{Personalization and Internationalization Requirements}
+\subsection{Personalization and Internationalization Requirements}\label{subsec:personalization}
+
+\textbf{PI1: Personalization and Language Support}\label{req:PI1}
+
 The system should support basic personalization (e.g., remembering user preferences) and allow easy adaptation for different languages or regions at a later stage. For the PoC, English support is sufficient.
-\subsection{Learning Requirements}
+\subsection{Learning Requirements}\label{subsec:learning}
+
+\textbf{LR1: Rapid Learnability}\label{req:LR1}
+
 The system should be learnable within 10 minutes without prior training or documentation. Users should be able to complete core tasks on their first attempt through the interfaces navigation tutorial upon first time launch. Additional documentation should be supplemental but not necessary. 
-\subsection{Understandability and Politeness Requirements}
+\subsection{Understandability and Politeness Requirements}\label{subsec:understandability}
+
+\textbf{UP1: Clear System Communication}\label{req:UP1}
+
 The system should use clear, direct, and neutral language in responses. Error messages or clarifications should remain polite and informative.
-\subsection{Accessibility Requirements}
+\subsection{Accessibility Requirements}\label{subsec:accessibility}
+
+\textbf{AC1: Assistive Tool Compatibility}\label{req:AC1}
+
 The interface should be navigable using standard assistive tools and offer clear text contrast and legible font sizes. Full accessibility compliance is not required at the PoC stage but should be feasible for future iterations.
 
-\section{Performance Requirements}
-\subsection{Speed and Latency Requirements}
+\section{Performance Requirements}\label{sec:performance}
+
+\subsection{Speed and Latency Requirements}\label{subsec:speed-latency}
+
+\textbf{PR1: Bounded Speech-to-Action Latency}\label{req:PR1}
+
 Under normal operating conditions, latency requirements can be broken down into:
 
 Speech interpretation: 5 s after end of utterance
 
 Command generation \& execution: 10-15 seconds after end of speech interpretation
-\subsection{Safety-Critical Requirements}
+\subsection{Safety-Critical Requirements}\label{subsec:safety}
+
+\textbf{PR2: Prevention of Unsafe Actions}\label{req:PR2}
+
 The system shall enforce guardrails to prevent unsafe or unintended actions, requiring validation and user confirmation for potentially disruptive operations, and provide warnings or fail-safes for errors.
-\subsection{Precision or Accuracy Requirements}
+\subsection{Precision or Accuracy Requirements}\label{subsec:accuracy}
+
+\textbf{PR3: Minimum Recognition Accuracy}\label{req:PR3}
+
 ASR accuracy shall be at least 70\% in stationary noise conditions. The system shall achieve at least 80\% command recognition precision under stationary noise conditions for the PoC.
-\subsection{Robustness or Fault-Tolerance Requirements}
+\subsection{Robustness or Fault-Tolerance Requirements}\label{subsec:robustness}
+
+\textbf{PR4: Degradation Under Failure}\label{req:PR4}
+
 The system shall remain stable under fluctuating network conditions and noisy input. Fallback mechanisms (e.g., retry logic, error messaging) shall ensure graceful issue handling.
-\subsection{Capacity Requirements}
+\subsection{Capacity Requirements}\label{subsec:capacity}
+
+\textbf{PR5: Concurrent User Support}\label{req:PR5}
+
 The system shall support at least 20 concurrent users without service degradation if the product is commercialized.
-\subsection{Scalability or Extensibility Requirements}
+\subsection{Scalability or Extensibility Requirements}\label{subsec:scalability}
+
+\textbf{PR6: Scalable Architecture}\label{req:PR6}
+
 The system architecture shall allow horizontal scaling to handle increased traffic and modular extensions fo new interaction capabilities. 
-\subsection{Longevity Requirements}
+\subsection{Longevity Requirements}\label{subsec:longevity}
+
+\textbf{PR7: Long-Term Operability}\label{req:PR7}
+
 The system shall be designed to operate reliably over a minimum of 5 years, with maintainable and updatable components to support long-term product evolution.
 
-\section{Operational and Environmental Requirements}
-\subsection{Expected Physical Environment}
+\section{Operational and Environmental Requirements}\label{sec:operational}
+\subsection{Expected Physical Environment}\label{subsec:physical-env}
+
+\textbf{OE1: Operation in Typical Work Environments}\label{req:OE1}
+
 The product shall be operable in a variety of typical office, home, or institutional environments where users perform their daily tasks. The system shall be robust to stationary background noise such as air conditioning, computer fans, and ambient hum. It is not required to reliably handle non-stationary noise, including multiple people speaking or sudden loud interruptions. No modifications to the host operating system, browser, or network configuration shall be required.
-\subsection{Wider Environment Requirements}
+\subsection{Wider Environment Requirements}\label{subsec:wider-env}
+
+\textbf{OE2: Web-Based Deployment Environment}\label{req:OE2}
+
 The primary interface shall be web-based, accessible via standard web browsers, to maximize user accessibility and support flexible use cases.
-\subsection{Requirements for Interfacing with Adjacent Systems}
+\subsection{Requirements for Interfacing with Adjacent Systems}\label{subsec:adjacent-systems}
+
+\textbf{OE3: Integration with External Systems}\label{req:OE3}
 \begin{enumerate}
     \item The system shall integrate with existing browser-based platforms and may interface with external language interpreter modules.
     \item Open-source components (e.g., browser interaction agents and libraries) may be incorporated, ensuring compatibility and maintainability.
 \end{enumerate}
 
-\subsection{Productization Requirements}
+\subsection{Productization Requirements}\label{subsec:productization}
+
+\textbf{OE4: Multi-User Deployment and Distribution}\label{req:OE4}
 \begin{enumerate}
     \item The product shall be deployable for multiple users within an organization, supporting secure user accounts and personalized ASR profiles.
     \item The design shall allow packaging and distribution without requiring technical setup by end users. The product shall have straightforward installation or access via pre-configured web access and automatic model initialization.
     \item Productization shall include logging suitable for monitoring performance and usage in a hosted environment.
     \item The system shall include mechanisms for updates to features with minimal disruption to users.
 \end{enumerate}
-\subsection{Release Requirements}
+\subsection{Release Requirements}\label{subsec:release}
+
+\textbf{OE5: Defined Release Cycle}\label{req:OE5}
+
 The product shall follow a defined release cycle, providing minor updates quarterly and major updates semi-annually. Each release must maintain backward compatibility with user data, personalization settings, and existing features. Release planning will account for maintenance effort, compute resources, and compliance obligations.
 
-\section{Maintainability and Support Requirements}
-\subsection{Maintenance Requirements}
+\section{Maintainability and Support Requirements}\label{sec:maintainability}
+\subsection{Maintenance Requirements}\label{subsec:maintenance}
+
+\textbf{MS1: Maintainable Codebase}\label{req:MS1}
+
 Code must be modular, documented, and testable to support scalability, debugging, and future updates. Maintenance must be possible by developers who were not the original authors. 
-\subsection{Supportability Requirements}
+\subsection{Supportability Requirements}\label{subsec:supportability}
+
+\textbf{MS2: User Support Resources}\label{req:MS2}
+
 The product shall provide an accessible Help Page and a Frequently Asked Questions (FAQ) section with clear instructions. It shall be displayed with high-contrast visuals, simple language, and auditory and visual aids. 
-\subsection{Adaptability Requirements}
+\subsection{Adaptability Requirements}\label{subsec:adaptability}
+\textbf{MS3: Platform Compatibility}\label{req:MS3}
+
 The system must run on common workplace platforms via a web browser, including Windows 10 or later, macOS 12 Monterey or later, and Linux distributions such as Ubuntu 20.04 LTS or later, supporting modern web browsers.
 
-\section{Security Requirements}
-The following security/safety requirements are derived from the project Hazard Analysis (see \href{https://github.com/speech-buddies/VoiceBridge/blob/main/docs/HazardAnalysis/HazardAnalysis.pdf}{Hazard Analysis Section 6}.) Each item is traceable to hazards in the FMEA table and is included here to ensure consistency.
-We group VoiceBridge’s security requirements into five categories—\textbf{Access (ACR)}, \textbf{Integrity (IR)}, \textbf{Privacy (PRR)}, \textbf{Audit (ADR)}, and \textbf{Immunity (IMR)}.
+\section{Security Requirements}\label{sec:security}
+\subsection{Access Requirements}\label{subsec:access}
 
-\subsection{Access Requirements}
+\textbf{SEC1: Role-Based Access Control}\label{req:SEC1}
 
-\begin{description}
-  \item[ACR1:] Important actions (like sending data or external messages) must use a clear, two-step confirmation to prevent mistakes. \emph{(links to IR5/IMR7 — unclear confirmation)}
-  \item[ACR2:] Access to stored audio or transcripts is restricted by role-based permissions so only authorized users can view or edit sensitive data. \emph{(links to Storage — Private data leaked)}
-  \item[ACR3:] Multi-factor authentication (MFA) is required for all administrator or privileged logins to prevent unauthorized entry. \emph{(links to Auth/Access — Unauthorized entry)}
-\end{description}
+Only authorized end users shall be able to access personalized ASR features, voice command execution, and saved transcripts. Access shall be role-based:
 
-\subsection{Integrity Requirements}
+\begin{itemize}
+    \item \textbf{Primary users (end users):} can access their own data.
+    \item \textbf{Secondary users (supervisors/SMEs):} may have read-only access to assist with support or troubleshooting.
+    \item \textbf{Tertiary users (caregivers):} may have limited access to assist the end user, can view basic usage history and transcripts but cannot modify settings.
+\end{itemize}
 
-\begin{description}
-  \item[IR1:] VoiceBridge auto-detects microphone devices and alerts users if permissions are missing, offering a quick way to select a new device. \emph{(links to Input Devices — Wrong mic chosen)}
-  \item[IR2:] Noise suppression must run before recognition; when confidence is low, users must confirm results. \emph{(links to Input Devices — Too much background noise)}
-  \item[IR3:] The system tracks model accuracy and prompts retraining or calibration when accuracy drops below a set level. \emph{(links to ML Model — Doesn’t adapt to accent or changes)}
-  \item[IR4:] If the connection is lost, the app shows an offline message, pauses risky actions, and retries once the network returns. \emph{(links to Communication — Weak or lost network)}
-  \item[IR5:] Confirmation screens and the overall user interface must be clear, accessible, and perceivable by text, audio, and assistive tools. \emph{(links to Front-end Interface — Confirmation not clear)}
-\end{description}
+Access to external services (e.g., LLM APIs) shall be rate-limited to ensure system stability, control costs, and prevent abuse.
+\subsection{Integrity Requirements}\label{subsec:integrity}
 
-\subsection{Privacy Requirements}
+\textbf{SEC2: Command Integrity Validation}\label{req:SEC2}
 
-\begin{description}
-  \item[PRR1:] All stored data is encrypted with restricted access to protect privacy. \emph{(links to Storage — Private data leaked)}
-  \item[PRR2:] Logs never store personal or raw speech data; only anonymized and redacted information is kept. \emph{(supports IR2, PRR2)}
-  \item[PRR3:] Sessions expire automatically and are revoked if suspicious activity is detected. \emph{(extends ACR3 — unauthorized access)}
-  \item[PRR4:] Users can request deletion of stored data; the system removes it after a defined time. \emph{(future privacy maintenance)}
-\end{description}
+The system must provide real-time confirmation and validation of commands before execution to ensure they match user intent. 
+\subsection{Privacy Requirements}\label{subsec:privacy}
 
-\subsection{Audit Requirements}
+\textbf{SEC3: User Data Privacy Protection}\label{req:SEC3}
 
-\begin{description}
-  \item[ADR1:] The system records recognition accuracy over time and flags when results decline. \emph{(links to ML Model — Accuracy drops)}
-  \item[ADR2:] Keep structured, redacted logs for reviews and debugging. \emph{(links to Storage — Sensitive logging)}
-  \item[ADR3:] Create a Software Bill of Materials (SBOM) and block unsafe dependencies. \emph{(links to library risk, supports IMR6)}
-  \item[ADR4:] Provide regular privacy reports showing data deletion and retention. \emph{(future extension)}
-\end{description}
+The system must gather explicity user consent for storing voice and personal data. All user data used for model improvement must be anonymized. Database and personalized ASR models must maintain integrity through secure, versioned backups. Unauthorized changes or corruption of user data must be prevented. 
+\subsection{Audit Requirements}\label{subsec:audit}
 
-\subsection{Immunity Requirements}
+\textbf{SEC4: Secure Audit Logging}\label{req:SEC4}
 
-\begin{description}
-  \item[IMR1:] The app recovers smoothly from device or permission changes without restarting. \emph{(links to Input Devices — Wrong mic chosen)}
-  \item[IMR2:] Maintain good recognition accuracy even with background noise at normal levels. \emph{(links to Input Devices — Too much noise)}
-  \item[IMR3:] The app retries failed network actions and cancels incomplete ones to handle weak connections gracefully. \emph{(links to Communication — Weak or lost network)}
-  \item[IMR4:] Detect and drop repeated or expired requests to avoid replay attacks. \emph{(future enhancement)}
-  \item[IMR5:] Ensure all confirmations can be seen or heard, including through screen readers. \emph{(links to Front-end Interface — not perceivable)}
-\end{description}
+The system shall maintain secure logs of major actions and commands, including loging events, access to profile and personal data, and command execution failures. Logs shall be protected and retained in a secure database. 
+\subsection{Immunity Requirements}\label{subsec:immunity}
+
+\textbf{SEC5: Resilience to Misuse}\label{req:SEC5}
+
+The system must be resilient to accidental misuse. It shall handle noisy input robustly, avoid executing unintended commands, and operate safely within rate limits to prevent resource overload. 
 
 \section{Cultural Requirements}
-\subsection{Cultural Requirements}
+\subsection{Cultural Requirements}\label{subsec:cultural}
+
+\textbf{CR1: Culturally Neutral Interaction}\label{req:CR1}
+
 The system shall maintain a culturally neutral and respectful tone when prompting users, avoiding slang, bias, and discriminatory language. It must include ethical guardrails to prevent the generation of harmful content or execution of potentially dangerous commands.
 
 It shall support inclusive and accessible design to serve users across diverse cultural backgrounds.
 
 \section{Compliance Requirements}
-\subsection{Legal Requirements}
+\subsection{Legal Requirements}\label{subsec:legal}
+
+\textbf{CO1: Legal Compliance}\label{req:CO1}
+
 The project shall comply with the Personal Information Protection and Electronic Documents Act (PIPEDA) regarding the collection, storage, and handling of personal information.
 
-\subsection{Standards Compliance Requirements}
+\subsection{Standards Compliance Requirements}\label{subsec:standards}
+
+\textbf{CO2: Accessibility Standards Compliance}\label{req:CO2}
+
 The application must comply with the Web Content Accessibility Guidelines (WCAG) 2.0, Level AA guidelines to ensure usability by individuals with disabilities.
 
 \section{Requirements Likely and Unlikely to Change}
@@ -1005,12 +1071,12 @@ Our main tasks are centered on preparing the system by training and tuning the d
 A detailed schedule of development phases, milestones, and dependencies is outlined in the PoC and Development Plan.
 
 \section{Migration to the New Product}
-\subsection{Requirements for Migration to the New Product}
+\subsection{User Onboarding and Migration}
 The system shall support new users with no prior ASR and interpreter experience through an onboarding process. 
 
 The system shall support transitioning users migrating from an existing system by allowing for easy uploading of recordings of their speech training data.
 
-\subsection{Data That Has to be Modified or Translated for the New System}
+\subsection{Data Support Across Accounts}
 All previous transcripts, audio files, and personalization data shall be tied to secure user accounts.
 
 Users shall be able to access their data from any supported device after logging in and authentication.
@@ -1070,134 +1136,135 @@ The following plan outlines the order in which the system requirements (9.1--17.
     % Functional Requirements
     \item \textbf{9.1 Functional Requirements:} Core system behaviors including input processing and basic transcription.\\
     \textit{Phase: PoC} \\
-    \textit{Rationale:} Core functionality must be demonstrated to validate feasibility.
+    \textit{Rationale:} Core functionality must be demonstrated to validate feasibility. See \hyperref[sec:FR]{Functional Requirements}.
 
     % Look and Feel
     \item \textbf{10.1 Appearance Requirements:} Initial UI layout and interface elements.\\
     \textit{Phase: Revision 0} \\
-    \textit{Rationale:} Visual interface can be refined after core functions are stable.
+    \textit{Rationale:} Visual interface can be refined after core functions are stable. See \hyperref[subsec:appearance]{Appearance Requirements}.
 
     \item \textbf{10.2 Style Requirements:} Consistent fonts, colors, and spacing.\\
     \textit{Phase: Revision 0} \\
-    \textit{Rationale:} Enhances readability and user experience once functionality is proven.
+    \textit{Rationale:} Enhances readability and user experience once functionality is proven.See \hyperref[subsec:style]{Style Requirements}.
 
     % Usability
     \item \textbf{11.1 Ease of Use Requirements:} Interface must be intuitive and straightforward.\\
     \textit{Phase: Revision 0} \\
-    \textit{Rationale:} Important for usability testing, applied after functional PoC is complete.
+    \textit{Rationale:} Important for usability testing, applied after functional PoC is complete. See \hyperref[subsec:ease-of-use]{Ease of Use Requirements}.
 
     \item \textbf{11.2 Personalization and Internationalization Requirements:} Language/voice adaptations.\\
     \textit{Phase: Revision 1} \\
-    \textit{Rationale:} Applied later when system is functionally stable.
+    \textit{Rationale:} Applied later when system is functionally stable. See \hyperref[subsec:personalization]{Personalization Requirements}.
 
     \item \textbf{11.3 Learning Requirements:} System should adapt to repeated user patterns.\\
     \textit{Phase: Revision 1} \\
-    \textit{Rationale:} Machine learning or adaptation features require validated data pipelines.
+    \textit{Rationale:} Machine learning or adaptation features require validated data pipelines. See \hyperref[subsec:learning]{Learning Requirements}.
 
     \item \textbf{11.4 Understandability and Politeness Requirements:} Feedback should be clear and respectful.\\
     \textit{Phase: Revision 0} \\
-    \textit{Rationale:} Improves user experience during early testing.
+    \textit{Rationale:} Improves user experience during early testing. See \hyperref[subsec:understandability]{Understandability and Politeness Requirements}.
+
 
     \item \textbf{11.5 Accessibility Requirements:} Interface supports assistive technologies.\\
     \textit{Phase: Revision 0} \\
-    \textit{Rationale:} Early implementation ensures PoC testing is inclusive.
+    \textit{Rationale:} Early implementation ensures PoC testing is inclusive. See \hyperref[subsec:accessibility]{Accessibility Requirements}.
 
     % Performance
     \item \textbf{12.1 Speed and Latency Requirements:} System responds within acceptable time frames.\\
     \textit{Phase: PoC} \\
-    \textit{Rationale:} Performance validation is crucial for feasibility.
+    \textit{Rationale:} Performance validation is crucial for feasibility. See \hyperref[subsec:speed-latency]{Speed and Latency Requirements}.
 
     \item \textbf{12.2 Safety-Critical Requirements:} Ensure no harmful outputs or behaviors.\\
     \textit{Phase: PoC} \\
-    \textit{Rationale:} Early validation prevents critical errors in PoC.
+    \textit{Rationale:} Early validation prevents critical errors in PoC. See \hyperref[subsec:safety]{Safety-Critical Requirements}.
 
     \item \textbf{12.3 Precision or Accuracy Requirements:} Transcription must meet minimum WER/CER.\\
     \textit{Phase: PoC} \\
-    \textit{Rationale:} Accuracy is the central PoC metric.
+    \textit{Rationale:} Accuracy is the central PoC metric. See \hyperref[subsec:accuracy]{Precision or Accuracy Requirements}.
 
     \item \textbf{12.4 Robustness or Fault-Tolerance Requirements:} Handle errors gracefully.\\
     \textit{Phase: Revision 0} \\
-    \textit{Rationale:} Necessary for reliable system use beyond PoC.
+    \textit{Rationale:} Necessary for reliable system use beyond PoC. See \hyperref[subsec:robustness]{Robustness or Fault-Tolerance Requirements}.
 
     \item \textbf{12.5 Capacity Requirements:} Support a small set of concurrent users/data.\\
     \textit{Phase: Revision 0} \\
-    \textit{Rationale:} Ensure system can handle expected early usage.
+    \textit{Rationale:} Ensure system can handle expected early usage. See \hyperref[subsec:capacity]{Capacity Requirements}.
 
     \item \textbf{12.6 Scalability or Extensibility Requirements:} System should allow future growth.\\
     \textit{Phase: Revision 1} \\
-    \textit{Rationale:} Added after functional validation for longer-term planning.
+    \textit{Rationale:} Added after functional validation for longer-term planning. See \hyperref[subsec:scalability]{Scalability or Extensibility Requirements}.
 
     \item \textbf{12.7 Longevity Requirements:} Components maintainable over time.\\
     \textit{Phase: Revision 1} \\
-    \textit{Rationale:} Stability and maintainability are late-stage concerns.
+    \textit{Rationale:} Stability and maintainability are late-stage concerns. See \hyperref[subsec:longevity]{Longevity Requirements}.
 
     % Operational & Environment
     \item \textbf{13.1 Expected Physical Environment:} System works on typical office/lab computers.\\
     \textit{Phase: PoC} \\
-    \textit{Rationale:} Early testing on target devices is essential.
+    \textit{Rationale:} Early testing on target devices is essential. See \hyperref[subsec:physical-env]{Expected Physical Environment}.
 
     \item \textbf{13.2 Wider Environment Requirements:} Browser compatibility.\\
     \textit{Phase: Revision 0} \\
-    \textit{Rationale:} Once core functionality works, broaden environment testing.
+    \textit{Rationale:} Once core functionality works, broaden environment testing. See \hyperref[subsec:wider-env]{Wider Environment Requirements}.
 
     \item \textbf{13.3 Requirements for Interfacing with Adjacent Systems:} Integration points identified.\\
     \textit{Phase: Revision 1} \\
-    \textit{Rationale:} External integration is late-phase after internal systems are stable.
+    \textit{Rationale:} External integration is late-phase after internal systems are stable. See \hyperref[subsec:adjacent-systems]{Requirements for Interfacing with Adjacent Systems}.
 
     \item \textbf{13.4 Productization Requirements:} Ready for deployment.\\
     \textit{Phase: Revision 1} \\
-    \textit{Rationale:} Combines all prior validations for release.
+    \textit{Rationale:} Combines all prior validations for release. See \hyperref[subsec:productization]{Productization Requirements}.
 
     \item \textbf{13.5 Release Requirements:} Packaging, distribution readiness.\\
     \textit{Phase: Revision 1} \\
-    \textit{Rationale:} Ensures final delivery meets standards.
+    \textit{Rationale:} Ensures final delivery meets standards. See \hyperref[subsec:release]{Release Requirements}.
 
     % Maintainability & Support
     \item \textbf{14.1 Maintenance Requirements:} System maintainable.\\
     \textit{Phase: Revision 1} \\
-    \textit{Rationale:} Implemented once core system is functional.
+    \textit{Rationale:} Implemented once core system is functional. See \hyperref[subsec:maintenance]{Maintenance Requirements}.
 
     \item \textbf{14.2 Supportability Requirements:} Technical support procedures.\\
     \textit{Phase: Revision 1} \\
-    \textit{Rationale:} Late-stage requirement after main functionality.
+    \textit{Rationale:} Late-stage requirement after main functionality. See \hyperref[subsec:supportability]{Supportability Requirements}.
 
     \item \textbf{14.3 Adaptability Requirements:} System can be upgraded.\\
     \textit{Phase: Revision 1} \\
-    \textit{Rationale:} Flexibility comes after base system is validated.
+    \textit{Rationale:} Flexibility comes after base system is validated. See \hyperref[subsec:adaptability]{Adaptability Requirements}.
 
     % Security
     \item \textbf{15.1 Access Requirements:} User roles and permissions.\\
     \textit{Phase: Revision 0} \\
-    \textit{Rationale:} Early implementation secures initial PoC data.
+    \textit{Rationale:} Early implementation secures initial PoC data. See \hyperref[subsec:access]{Access Requirements}.
 
     \item \textbf{15.2 Integrity Requirements:} Prevent tampering or corruption.\\
     \textit{Phase: Revision 0} \\
-    \textit{Rationale:} Ensures reliable data handling.
+    \textit{Rationale:} Ensures reliable data handling. See \hyperref[subsec:integrity]{Integrity Requirements}.
 
     \item \textbf{15.3 Privacy Requirements:} Encrypt data in transit and at rest.\\
     \textit{Phase: Revision 0} \\
-    \textit{Rationale:} Essential for user trust and legal compliance.
+    \textit{Rationale:} Essential for user trust and legal compliance. See \hyperref[subsec:privacy]{Privacy Requirements}.
 
     \item \textbf{15.4 Audit Requirements:} Track critical system events.\\
     \textit{Phase: Revision 1} \\
-    \textit{Rationale:} Auditing implemented after basic functionality and privacy are validated.
+    \textit{Rationale:} Auditing implemented after basic functionality and privacy are validated. See \hyperref[subsec:audit]{Audit Requirements}.
 
     \item \textbf{15.5 Immunity Requirements:} Protection from external attacks.\\
     \textit{Phase: Revision 1} \\
-    \textit{Rationale:} Security hardening is a late-stage activity.
+    \textit{Rationale:} Security hardening is a late-stage activity. See \hyperref[subsec:immunity]{Immunity Requirements}.
 
     % Cultural & Compliance
     \item \textbf{16.1 Cultural Requirements:} Respect cultural norms and sensitivities.\\
     \textit{Phase: Revision 1} \\
-    \textit{Rationale:} Applied after all functional, UI, and content elements are stable.
+    \textit{Rationale:} Applied after all functional, UI, and content elements are stable. See \hyperref[subsec:cultural]{Cultural Requirements}.
 
     \item \textbf{17.1 Legal Requirements:} Comply with laws and regulations.\\
     \textit{Phase: Revision 1} \\
-    \textit{Rationale:} Legal compliance verified after security, privacy, and functionality are validated.
+    \textit{Rationale:} Legal compliance verified after security, privacy, and functionality are validated. See \hyperref[subsec:legal]{Legal Requirements}.
 
     \item \textbf{17.2 Standards Compliance Requirements:} Follow industry standards.\\
     \textit{Phase: Revision 1} \\
-    \textit{Rationale:} Ensures credibility and certification readiness at final stage.
+    \textit{Rationale:} Ensures credibility and certification readiness at final stage. See \hyperref[subsec:standards]{Standards Compliance Requirements}.
 \end{enumerate}
 \subsection{Requirement Implementation Timeline}
 
@@ -1283,11 +1350,11 @@ Error \rightarrow \text{Error or retry prompt}
 This formal model represents the main workflow of VoiceBridge and aligns with the following functional requirements:
 
 \begin{itemize}
-    \item FR1: Accept Speech Input ($Idle \rightarrow Listening$)
-    \item FR2: Convert Speech to Text ($Listening \rightarrow Processing$)
-    \item FR3: Confirm Transcription ($Processing \rightarrow Confirming$)
-    \item FR4: Map Intent to Command ($Confirming \rightarrow Executing$)
-    \item FR5: Execute Command ($Executing \rightarrow Idle$)
+    \item \hyperref[fr:FR1]{FR1}: Accept Speech Input ($Idle \rightarrow Listening$)
+    \item \hyperref[fr:FR2]{FR2}: Convert Speech to Text ($Listening \rightarrow Processing$)
+    \item \hyperref[fr:FR3]{FR3}: Confirm Transcription ($Processing \rightarrow Confirming$)
+    \item \hyperref[fr:FR4]{FR4}: Map Intent to Command ($Confirming \rightarrow Executing$)
+    \item \hyperref[fr:FR5]{FR5}: Execute Command ($Executing \rightarrow Idle$)
 \end{itemize}
 
 This simplified formalization shows how user input moves through each stage of the system in a predictable, testable way, ensuring clarity and correctness of behavior.
