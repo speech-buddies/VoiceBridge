@@ -52,6 +52,7 @@ Nov 11, 2025 & 1.0 & Added modules and Traceability Matrix\\
 Nov 12, 2025 & 1.1 & Added Modules M6-M11\\
 Nov 12, 2025 & 1.2 & Added Modules M18-M22\\
 Nov 26, 2025 & 1.3 & Added Modules M1-M6\\
+Jan 10, 2026 & 1.4 & Implemented TA Feedback for M7-M11\\
 \bottomrule
 \end{tabularx}
 
@@ -403,9 +404,9 @@ Provides user prompting, model fine-tuning, and instruction management. Supports
 
 \medskip
 \subsubsection*{M8: Error Feedback}
-\textbf{Secrets:} Message templating, localization hooks, mapping of internal error classes to user-facing copy and recovery options. \\
-\textbf{Services:} Show error; show recovery prompt with options; dismiss item; log event. \\
-\textbf{Implemented By:} UI notification layer. \\
+\textbf{Secrets:} Expected error types, message templates and localization hooks, mapping of internal/domain errors to user-facing message keys and recovery options, redaction rules for logs/UI. \\
+\textbf{Services:} (1) Display error notification. (2) Display recovery prompt with options. (3) Dismiss item. (4) Log structured error event. (5) Normalize/map errors to UI message + recovery actions. \\
+\textbf{Implemented By:} UI Notification Layer and Shared Error Handling Module (M11). \\
 
 % ---------- Control (Orchestration) ----------
 \subsection*{Control (Orchestration) Modules}
