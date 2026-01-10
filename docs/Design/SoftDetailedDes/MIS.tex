@@ -683,16 +683,16 @@ The high-level module decomposition of the system is summarized in Table 1 of th
 
 \newpage
 \section{MIS of Command Execution Layer} \label{M7}
+\textbf{Module:} CommandExecutionLayer
 
-\subsection{Module}
-
-Executes verified, mapped commands on the host device via the browser control bridge.
-Responsible for dispatch, cancellation, basic guardrails, timeout handling, and result reporting.
-
-\subsection{Uses}
-
-Browser control/automation client (e.g., \texttt{BrowserUse} bridge); OS process APIs; timer utilities;
-audit logger; configuration store for timeouts and retries.
+\subsection{Uses:}
+\begin{itemize}
+  \item BrowserController (M14) to send \texttt{BackendReq} requests and receive \texttt{BackendResp} results.
+  \item Session Manager (M15) to associate \texttt{cmd\_id} with an active session (when applicable).
+  \item Error Handling \& Recovery (M16) for standardized classification, retry/backoff, and compensation decisions.
+  \item AuditLogger (M19) to record execution attempts, outcomes, and failures.
+  \item Error Feedback (M13) to surface user-facing execution errors and recovery prompts.
+\end{itemize}
 
 \subsection{Syntax}
 
@@ -803,14 +803,15 @@ None.
 \end{itemize}
 
 \section{MIS of Error Feedback} \label{M8}
+\textbf{Module:} ErrorFeedback
 
-\subsection{Module}
-
-Displays user-friendly error messages and recovery prompts. Surfaces execution issues, suggests next steps, and routes critical errors to support logs.
-
-\subsection{Uses}
-
-UI notification layer; audit logger; configuration store for messages; localization service (optional).
+\subsection{Uses:}
+\begin{itemize}
+  \item User Interface (M1) and Feedback Display Module (M3) to render notifications and recovery prompts.
+  \item Accessibility Layer (M2) to ensure error messages and prompts are announced accessibly.
+  \item Error Handling \& Recovery (M16) to standardize error classification and map internal errors to user-facing recovery options.
+  \item AuditLogger (M19) to record error events and diagnostics.
+\end{itemize}
 
 \subsection{Syntax}
 
@@ -899,14 +900,14 @@ UI client is available and permitted to display notifications.
 \end{itemize}
 
 \section{MIS of BrowserController} \label{M9}
-
-\subsection{Module}
-
-Handles interaction with the browser controller: sends backend requests, receives statuses, and streams results back to higher layers.
+\textbf{Module:} BrowserController
 
 \subsection{Uses}
-
-Browser automation bridge client; transport layer; timer utilities; audit logger.
+\begin{itemize}
+  \item Credential Manager (M20) to obtain/validate authentication material required to call the controller endpoint (when applicable).
+  \item Error Handling \& Recovery (M16) to standardize timeout/retry decisions and error classification for transport failures.
+  \item AuditLogger (M19) to record request/response summaries, failures, and timeouts.
+\end{itemize}
 
 \subsection{Syntax}
 
@@ -1002,14 +1003,15 @@ Controller endpoint is reachable and authenticated.
   \item \texttt{normalize(resp)} — normalize controller response
 \end{itemize}
 \section{MIS of Session Manager} \label{M10}
-
-\subsection{Module}
-
-Manages ongoing user sessions and their states: start, stop, track activity, and associate commands with sessions.
+\textbf{Module:} SessionManager
 
 \subsection{Uses}
 
-Persistent store or cache; clock utilities; audit logger.
+15.2 Uses:
+\begin{itemize}
+  \item Storage Management Module (M17) as the persistent store/cache for session state.
+  \item AuditLogger (M19) to record session lifecycle events (start/stop/expiry) and state transitions.
+\end{itemize}
 
 \subsection{Syntax}
 
@@ -1106,13 +1108,16 @@ Store operations are atomic per session key.
 \end{itemize}
 \section{MIS of Error Handling \& Recovery Module} \label{M11}
 
-\subsection{Module}
-
-Classifies errors, applies retry and backoff policies, and coordinates recovery or compensation actions to return the system to a consistent state.
+\textbf{Module:} ErrorHandler
 
 \subsection{Uses}
 
-Policy store; timer/backoff utilities; audit logger; command execution layer; browser controller.
+\begin{itemize}
+  \item Command Execution Layer (M12) to schedule retries, trigger rollback/compensation, and query execution context.
+  \item BrowserController (M14) to coordinate recovery actions involving the browser automation bridge.
+  \item Session Manager (M15) to update or invalidate session state during recovery (when applicable).
+  \item AuditLogger (M19) to persist error events, classifications, and recovery actions taken.
+\end{itemize}
 
 \subsection{Syntax}
 
