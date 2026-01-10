@@ -64,6 +64,7 @@ December 19, 2025 & Rawan & Addressing peer feedback on caregivers as stakeholde
 December 19, 2025 & Rawan & Addressing TA feedback: adding section descriptions, figure/table descriptions, and clarification to varying TA questions, removing duplicate constraint (C1), UML description, and other minor fixes\\
 December 24, 2025 & Luna & Addressing TA feedback: adding requirement names, hyperlinks and minor fixes\\
 December 25, 2025 & Luna & Addressing Peer feedback: expanding rationale behind choice of 16Hz in FR1\\
+January 10, 2025 & Mazen & Linked SRS to Hazard Analysis Requirements for consistency\\
 
 \bottomrule
 \caption{Revision History for SRS Document}
@@ -73,17 +74,14 @@ December 25, 2025 & Luna & Addressing Peer feedback: expanding rationale behind 
 
 ~\newpage
 \section{Purpose of the Project}
-This section describes the overall goals and intended outcomes of the project. It describes the opportunities for developing the project as well as the value it provides for individual users and overall community. 
 \subsection{User Business}
- 
-Individuals with speech impairments face significant barriers when interacting with digital devices. VoiceBridge addresses this gap by providing an accurate, inclusive, and accessible speech-to-control system that enables users to communicate with their devices using their speech, regardless of clarity of articulation. A detailed description of the VoiceBridge problem statement may be references in the \href{https://github.com/speech-buddies/VoiceBridge/blob/main/docs/ProblemStatementAndGoals/ProblemStatement.pdf}{Problem Statement \& Goals document}. \\
 
-\noindent Building on familiar technology, such as personal computers and mobile devices, may be one of the most cost-effective and easily adoptable approaches for improving an individual with disability’s autonomy and access to the world around them. The rise of Automatic Speech Recognition (ASR)  technology and Artificial Intelligence (AI) integrations in the industry provides a novel landscape of opportunities to improve accessibility interfaces. VoiceBridge exploits bleeding-edge technology for a practical and impactful application.
+
+Individuals with speech impairments face significant barriers when interacting with digital devices. VoiceBridge addresses this gap by providing an accurate, inclusive, and accessible speech-to-control system that enables users to communicate with their devices using their speech, regardless of clarity of articulation. Building on familiar technology, such as personal computers and mobile devices, may be one of the most cost-effective and easily adoptable approaches for improving an individual with disability’s autonomy and access to the world around them. The rise of automatic speach recognition (ASR)  technology and Artificial Intelligence (AI) integrations in the industry provides a novel landscape of opportunities to improve accessibility interfaces. VoiceBridge exploits bleeding-edge technology for a practical and impactful application.
 
 \subsection{Goals of the Project}
 
 \begin{table}[H]
-\label{tab:project-goals}
 \centering
 \setcounter{table}{0}
 \begin{tabularx}{\textwidth}{p{1cm}p{4cm}p{8cm}X}
@@ -100,12 +98,11 @@ G8 & \textbf{Customizable Interface} & Allow users to adjust sensitivity, shortc
 G9 & \textbf{Scalable Architecture} & Design the system for future integration beyond browsers. \\ 
 \bottomrule
 \end{tabularx}
-\caption{Project Goals for VoiceBridge: Identifies and describes the overarching goals of VoiceBridge}
+\caption{Project Goals for VoiceBridge}
 \end{table}
 
 
 \section{Stakeholders}
-This section describes VoiceBridge Stakeholders, assigns priorities to them, and defines their respective goals.
 \subsection{Client}
 The primary client for the VoiceBridge project is the organization or individual funding or commissioning the system. The client is primarily concerned with achieving the following goals: \textbf{\hyperref[tab:project-goals]{G1}}, \textbf{\hyperref[tab:project-goals]{G5}}, and \textbf{\hyperref[tab:project-goals]{G9}}, ensuring accurate speech transcription, cross-browser compatibility, and scalable architecture.
 
@@ -116,8 +113,7 @@ The primary customers are also the users of the project, them being individuals 
 \subsection{Other Stakeholders}
 Secondary stakeholders include experts in linguistics, speech processing, and healthcare domains:
 \begin{itemize}
-    \item Relatives and caregivers of the hands on user of the VoiceBridge Platform.
-    \item Speech researchers and linguistics specialists, including the project supervisor, Dr. Christian Brodbeck, who provide insight toward \textbf{\hyperref[tab:project-goals]{G1}}, \textbf{\hyperref[tab:project-goals]{G6}}, and \textbf{\hyperref[tab:project-goals]{G9}}.
+    \item Speech researchers and linguistics specialists, including the project supervisor, Dr. Christian Brodbeck, who provide insight toward \textbf{\hyperref[tab:project-goals]{G1}} and \textbf{\hyperref[tab:project-goals]{G6}}.
     \item Healthcare professionals and speech therapists who advise on usability and accessibility, contributing to \textbf{\hyperref[tab:project-goals]{G3}} and \textbf{\hyperref[tab:project-goals]{G8}}.
     \item Accessibility advocates and organizations interested in promoting the application, aligned with \textbf{\hyperref[tab:project-goals]{G4}} and \textbf{\hyperref[tab:project-goals]{G5}}.
     \item Software developers who implement and maintain the system, supporting \textbf{\hyperref[tab:project-goals]{G9}} and \textbf{\hyperref[tab:project-goals]{G6}}.
@@ -129,8 +125,8 @@ Tertiary stakeholders include caregivers and professionals who interact with end
 
 Potential end users of VoiceBridge include:
 \begin{itemize}
-    \item \textbf{Amira}, a 45-year-old with Parkinson’s disease, uses the system to log into Gmail and send emails. Her voice is described by speech pathologists as being monopitch and breathy, often making it difficult for her to be understood by the people and technology she interacts with
-    \item \textbf{David}, a stroke survivor, uses the system to browse the web and make purchases. His voice is described by pathologists as having slurred and distorted consonants, as well as being monopitch, distorting his speech. 
+    \item \textbf{Amira}, a 45-year-old with Parkinson’s disease, uses the system to log into Gmail and send emails.
+    \item \textbf{David}, a stroke survivor, uses the system to browse the web and make purchases.
 \end{itemize}
 
 
@@ -182,16 +178,20 @@ The system is designed to accommodate diverse speech patterns, dialects, and acc
 By reducing communication barriers, VoiceBridge fosters greater inclusion in workplaces, education, and online communities. The system thus contributes to both individual empowerment and collective social benefit.
 
 \section{Mandated Constraints}
-This section outlines the external and internal constraints that the system must comply with. It includes environmental constraints, budgetary limits, and implementation restrictions that may impact design decisions, system behavior, or deployment.
 
 \subsection{Solution Constraints}
 
-\noindent\textbf{C1 — The product shall accept non-deterministic user input in the form of natural language speech.}\\
+\noindent\textbf{C1 — The product shall run on consumer-grade hardware using a personal computer microphone and support macOS, Windows, and Linux distributions.}\\
+\textbf{Rationale:} Requiring only consumer-grade hardware ensures broad accessibility for end users and avoids dependency on specialized equipment.\\
+\textbf{Fit Criterion:} The system must successfully be integrated onto browsers and run on laptops or desktops across the supported operating systems, using either built-in or external microphones.
+\par\noindent\rule{\textwidth}{0.4pt}
+
+\noindent\textbf{C2 — The product shall accept non-deterministic user input in the form of natural language speech.}\\
 \textbf{Rationale:} Individuals with speech impairments may produce varied speech patterns that cannot be handled by rigid or deterministic command structures.\\
 \textbf{Fit Criterion:} The system must be capable of processing and responding to variable natural language inputs without requiring a fixed set of commands.
 \par\noindent\rule{\textwidth}{0.4pt}
 
-\noindent\textbf{C2 — The product shall integrate with a browser control application to execute voice-based commands.}\\
+\noindent\textbf{C3 — The product shall integrate with a browser control application to execute voice-based commands.}\\
 \textbf{Rationale:} Browser interaction is a primary accessibility point for most digital services, and browser control is essential for practical use of the system.\\
 \textbf{Fit Criterion:} The system must successfully perform browser actions (e.g., opening tabs, navigating to URLs, scrolling) through the integrated control application.
 \par\noindent\rule{\textwidth}{0.4pt}
@@ -199,14 +199,9 @@ This section outlines the external and internal constraints that the system must
 
 \subsection{Implementation Environment of the Current System}
 
-\noindent\textbf{C3 — The product will operate within a consumer computing environment consisting of personal computers equipped with microphones.}\\
+\noindent\textbf{C4 — The product will operate within a consumer computing environment consisting of personal computers equipped with microphones.}\\
 \textbf{Rationale:} This setup reflects the most common user hardware configuration, ensuring the solution is accessible without additional devices.\\
 \textbf{Fit Criterion:} All core functionalities must operate correctly on standard personal computers with a functioning audio input device.
-\par\noindent\rule{\textwidth}{0.4pt}
-
-\noindent\textbf{C4 — The application must operate within standard browser security models and cannot bypass AV or OS-level protections.}\\
-\textbf{Rationale:} The user’s antivirus/endpoint protection software may block automated browser actions (e.g., script injection, simulated clicks, extensions).\\
-\textbf{Fit Criterion:} Full functionality depends on the browser and security software allowing the extension/tool to run.
 \par\noindent\rule{\textwidth}{0.4pt}
 
 
@@ -251,7 +246,7 @@ This section outlines the external and internal constraints that the system must
 
 \noindent\textbf{C10 — The project must operate within the capstone budget allocated for compute infrastructure and development resources.}\\
 \textbf{Rationale:} Budget limitations require prioritizing open-source solutions and efficient resource allocation.\\
-\textbf{Fit Criterion:} Total cost of infrastructure, hosting, and third-party services must not exceed the allocated capstone budget of \$125 CAD, provided by the supervising institution, McMaster University.
+\textbf{Fit Criterion:} Total cost of infrastructure, hosting, and third-party services must not exceed the allocated capstone budget.
 \par\noindent\rule{\textwidth}{0.4pt}
 
 
@@ -304,8 +299,6 @@ This section outlines the external and internal constraints that the system must
   \item[ALS (Amyotrophic Lateral Sclerosis)] Nervous system disease affecting movement, including speech, due to muscle weakness.
   \item[Dysarthria] Speech disorder resulting in slurred/slow speech because of nervous system damage.
   \item[Parkinson’s Disease] Progressive neurological disorder affecting movement and speech, often causing tremors and slurred speech.
-  \item[Monopitch] Limited variation in pitch; voice sounding flat, often linked to dysarthria. 
-  \item[Breathy] Incomplete vocal fold closure can cause breathiness during speech. 
 \end{description}
 
 \subsection*{Accessibility and Compliance}
@@ -382,13 +375,11 @@ WER     & Word Error Rate           & Metric for evaluating the accuracy of spee
 
 \hline
 \end{tabular}
-\caption{Acronym Quick Reference: A table defining the acronyms used in the VoiceBridge SRS document.}
+\caption{Acronym Quick Reference}
 \label{tab:acronyms}
 \end{table}
 
 \section{Relevant Facts And Assumptions}
-
-This section presents key facts about the users, environment, and operational context, along with the assumptions that guide system design. It includes user-centered facts, business rules, and design assumptions that influence functionality, usability, and system behavior. These elements ensure that the requirements are grounded in real-world conditions and support the intended goals of the system.
 \subsection{Relevant Facts}
 
 
@@ -410,7 +401,7 @@ F8 & \textbf{Users may use assistive tools concurrently.} & VoiceBridge should i
 F9 & \textbf{Users will vary in technical comfort.} & Onboarding should be minimal and low-friction (supports (\textbf{\hyperref[tab:project-goals]{G4}}), (\textbf{\hyperref[tab:project-goals]{G8}})). \\ \hline
 F10 & \textbf{Users appreciate visual feedback and control.} & Feedback builds trust and reduces frustration (complements (\textbf{\hyperref[tab:project-goals]{G1}}), (\textbf{\hyperref[tab:project-goals]{G8}})). \\
 \bottomrule
-\caption{User-Centered Facts for VoiceBridge: This table describes the facts linked to the users condition, expectations, and values relevant to their interactions with VoiceBridge. }
+\caption{User-Centered Facts for VoiceBridge}
 \end{tabularx}
 \end{table}
 
@@ -431,7 +422,7 @@ BR4 & The system should provide immediate visual feedback within 5 seconds of sp
 BR5 & System must handle moderate background noise without significant degradation of performance. & Maintains reliability in real-world environments.(\hyperref[tab:project-goals]{G1}, \hyperref[tab:project-goals]{G6}) \\
 BR6 & Users should be able to configure simple command mappings for personalized tasks. & Supports individual preferences and improves user autonomy. (\hyperref[tab:project-goals]{G2}, \hyperref[tab:project-goals]{G3}, \hyperref[tab:project-goals]{G8}) \\
 \bottomrule
-\caption{Business Rules for VoiceBridge: This table defines the business rules identified in order to satisfy respective VoiceBridge goals, along with a rationale linking the relevant goal.}
+\caption{Business Rules for VoiceBridge}
 \end{tabularx}
 % \label{tab:business-rules}
 \end{table}
@@ -451,13 +442,11 @@ A5 & \textbf{Users may be in noisy or uncontrolled environments.} & Noise-robust
 A6 & \textbf{Users want emotional ease of use.} & Tone and interface language must feel supportive — e.g., “Let’s try again” instead of “Error” (see \hyperref[tab:project-goals]{G6}). \\ \hline
 A7 & \textbf{Users will likely use the tool for daily web tasks.} & The feature set should prioritize essential browser actions (navigation, scrolling, typing, tab control) (see \hyperref[tab:project-goals]{G2}, \hyperref[tab:project-goals]{G3}, \hyperref[tab:project-goals]{G8}). \\
 \bottomrule
-\caption{Design Assumptions for VoiceBridge: This table defines assumptions imposed on the user's environment/preferences, and the implications of the assumption on the final design}
+\caption{Design Assumptions for VoiceBridge}
 \end{tabularx}
 \end{table}
 
 \section{The Scope of the Work}
-
-This section defines the boundaries and objectives of the VoiceBridge system. It describes the current limitations in browser interaction for users with speech impairments, the context in which the system will operate, and the partitioning of work into functional components. It also specifies the business use cases that guide system functionality from speech input to executed browser commands.
 \subsection{The Current Situation}
 
 Individuals with speech impairments currently rely on standard speech-to-text or manual input to use browsers and devices. Existing systems struggle with slurred or atypical speech, often requiring caregiver assistance.
@@ -474,7 +463,7 @@ VoiceBridge aims to replace this with accurate transcription, command mapping, a
 \begin{figure}[H]
 \centering
 \includegraphics[width=1\textwidth]{../imgs/VoiceBridge_context_diagram.png}
-\caption{Context Diagram of VoiceBridge: This table defines the interfaces that interact within and external to the VoiceBridge System}
+\caption{Context Diagram of VoiceBridge}
 \label{fig:voicebridge-context}
 \end{figure}
 
@@ -551,41 +540,12 @@ BUC-4 & Execute Browser Command & The structured intent is mapped to a browser a
 
 \section{Business Data Model and Data Dictionary}
 \subsection{Business Data Model}
-
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.7\textwidth]{..//imgs/VoiceBridge_uml.png}
     \caption{VoiceBridge UML Diagram. }
     \label{fig:voicebridge-usecase}
 \end{figure} 
-
-
-The UML class diagram in \href{fig:voicebridge-usecase}{Figure 6} models the key data structures and relationships in the VoiceBridge system. It captures how user interactions flow through the system, from speech input to executed browser commands and user feedback.
-
-\begin{itemize}
-    \item \textbf{UserProfile:} Stores individual user data, preferences, and speech characteristics.
-    \item \textbf{SpeechSession:} Represents a single interaction instance, capturing audio input and derived speech features.
-    \item \textbf{Transcription:} Stores the converted text, confidence scores, and status/error codes from speech recognition.
-    \item \textbf{UserIntent:} Represents the parsed intent from the transcription, including semantic slots.
-    \item \textbf{ExecutableCommand:} Maps the user intent to actionable browser commands with associated parameters.
-    \item \textbf{APIRequest:} Represents optional requests generated by commands for external systems.
-    \item \textbf{FeedbackMessage:} Logs system responses or messages to the user during the session.
-\end{itemize}
-
-\noindent
-\textbf{Relationships and Rationale:}
-\begin{itemize}
-    \item \texttt{UserProfile \& SpeechSession:} Each user may initiate multiple speech sessions. This models user activity over time and allows the system to track session history for personalization and auditing.
-    \item \texttt{SpeechSession \& Transcription:} Each session produces a single transcription. This ensures that each audio capture is processed into text for intent interpretation.
-    \item \texttt{Transcription \& UserIntent:} Each transcription is parsed into a user intent. This relationship models the mandatory step of interpreting what the user intends to do.
-    \item \texttt{UserIntent \& ExecutableCommand:} Each intent maps to a specific browser command. This ensures that interpreted user intentions are actionable within the system.
-    \item \texttt{ExecutableCommand \& APIRequest:} Some commands may produce an external API request. This optional relationship models integration with external services when required.
-    \item \texttt{SpeechSession \& FeedbackMessage:} Sessions may generate multiple feedback messages, such as transcription confirmations or error alerts, improving transparency and user trust.
-    \item \texttt{ExecutableCommand \& FeedbackMessage:} Executed commands may produce multiple messages, such as success notifications or warnings, keeping users informed about system actions.
-\end{itemize}
-
-
-This diagram complements the event and BUC tables by showing how data flows between components and how user interactions are represented in the system’s data model.
 
 \subsection{Data Dictionary}
 
@@ -792,6 +752,7 @@ UE-10 & User Cancels Ongoing Command & User says “cancel” or “stop.” & I
 
 
 \section{Functional Requirements}
+\subsection{Functional Requirements}
 
 \subsection{FR1: Accept Speech Audio via Microphone}
 \textbf{Description:} The system must capture live speech input from the user through a standard built-in or external microphone.\\
@@ -802,7 +763,7 @@ UE-10 & User Cancels Ongoing Command & User says “cancel” or “stop.” & I
 \subsection{FR2: Convert Impaired Speech to Text with greater than or equal to 80\% Accuracy (MVP)}\label{fr:FR2}
 \textbf{Description:} The system must process the captured audio and output a textual representation of the spoken utterance.\\
 \textbf{Rationale:} Accurate transcription is the core functionality that enables communication and command execution. Without acceptable accuracy, the product fails its purpose.\\
-\textbf{Fit Criterion:} In evaluation on a test dataset of impaired speech, transcription accuracy must reach at least 80\% Word Error Rate (WER) reduction compared to baseline models, and achieve greater than or equal to 80\% accuracy for common commands.
+\textbf{Fit Criterion:} In evaluation on a test dataset of impaired speech, transcription accuracy must reach at least 80\% word error rate (WER) reduction compared to baseline models, and achieve greater than or equal to 80\% accuracy for common commands.
 
 \bigskip
 \subsection{FR3: Display Transcription for Verification}\label{fr:FR3}
@@ -961,41 +922,55 @@ The product shall provide an accessible Help Page and a Frequently Asked Questio
 \textbf{MS3: Platform Compatibility}\label{req:MS3}
 
 The system must run on common workplace platforms via a web browser, including Windows 10 or later, macOS 12 Monterey or later, and Linux distributions such as Ubuntu 20.04 LTS or later, supporting modern web browsers.
+\section{Security Requirements}
+The following security/safety requirements are derived from the project Hazard Analysis (see \href{https://github.com/speech-buddies/VoiceBridge/blob/main/docs/HazardAnalysis/HazardAnalysis.pdf}{Hazard Analysis Section 6}.) Each item is traceable to hazards in the FMEA table and is included here to ensure consistency.
+We group VoiceBridge’s security requirements into five categories—\textbf{Access (ACR)}, \textbf{Integrity (IR)}, \textbf{Privacy (PRR)}, \textbf{Audit (ADR)}, and \textbf{Immunity (IMR)}.
 
-\section{Security Requirements}\label{sec:security}
-\subsection{Access Requirements}\label{subsec:access}
+\subsection{Access Requirements}
 
-\textbf{SEC1: Role-Based Access Control}\label{req:SEC1}
+\begin{description}
+  \item[ACR1:] Important actions (like sending data or external messages) must use a clear, two-step confirmation to prevent mistakes. \emph{(links to IR5/IMR7 — unclear confirmation)}
+  \item[ACR2:] Access to stored audio or transcripts is restricted by role-based permissions so only authorized users can view or edit sensitive data. \emph{(links to Storage — Private data leaked)}
+  \item[ACR3:] Multi-factor authentication (MFA) is required for all administrator or privileged logins to prevent unauthorized entry. \emph{(links to Auth/Access — Unauthorized entry)}
+\end{description}
 
-Only authorized end users shall be able to access personalized ASR features, voice command execution, and saved transcripts. Access shall be role-based:
+\subsection{Integrity Requirements}
 
-\begin{itemize}
-    \item \textbf{Primary users (end users):} can access their own data.
-    \item \textbf{Secondary users (supervisors/SMEs):} may have read-only access to assist with support or troubleshooting.
-    \item \textbf{Tertiary users (caregivers):} may have limited access to assist the end user, can view basic usage history and transcripts but cannot modify settings.
-\end{itemize}
+\begin{description}
+  \item[IR1:] VoiceBridge auto-detects microphone devices and alerts users if permissions are missing, offering a quick way to select a new device. \emph{(links to Input Devices — Wrong mic chosen)}
+  \item[IR2:] Noise suppression must run before recognition; when confidence is low, users must confirm results. \emph{(links to Input Devices — Too much background noise)}
+  \item[IR3:] The system tracks model accuracy and prompts retraining or calibration when accuracy drops below a set level. \emph{(links to ML Model — Doesn’t adapt to accent or changes)}
+  \item[IR4:] If the connection is lost, the app shows an offline message, pauses risky actions, and retries once the network returns. \emph{(links to Communication — Weak or lost network)}
+  \item[IR5:] Confirmation screens and the overall user interface must be clear, accessible, and perceivable by text, audio, and assistive tools. \emph{(links to Front-end Interface — Confirmation not clear)}
+\end{description}
 
-Access to external services (e.g., LLM APIs) shall be rate-limited to ensure system stability, control costs, and prevent abuse.
-\subsection{Integrity Requirements}\label{subsec:integrity}
+\subsection{Privacy Requirements}
 
-\textbf{SEC2: Command Integrity Validation}\label{req:SEC2}
+\begin{description}
+  \item[PRR1:] All stored data is encrypted with restricted access to protect privacy. \emph{(links to Storage — Private data leaked)}
+  \item[PRR2:] Logs never store personal or raw speech data; only anonymized and redacted information is kept. \emph{(supports IR2, PRR2)}
+  \item[PRR3:] Sessions expire automatically and are revoked if suspicious activity is detected. \emph{(extends ACR3 — unauthorized access)}
+  \item[PRR4:] Users can request deletion of stored data; the system removes it after a defined time. \emph{(future privacy maintenance)}
+\end{description}
 
-The system must provide real-time confirmation and validation of commands before execution to ensure they match user intent. 
-\subsection{Privacy Requirements}\label{subsec:privacy}
+\subsection{Audit Requirements}
 
-\textbf{SEC3: User Data Privacy Protection}\label{req:SEC3}
+\begin{description}
+  \item[ADR1:] The system records recognition accuracy over time and flags when results decline. \emph{(links to ML Model — Accuracy drops)}
+  \item[ADR2:] Keep structured, redacted logs for reviews and debugging. \emph{(links to Storage — Sensitive logging)}
+  \item[ADR3:] Create a Software Bill of Materials (SBOM) and block unsafe dependencies. \emph{(links to library risk, supports IMR6)}
+  \item[ADR4:] Provide regular privacy reports showing data deletion and retention. \emph{(future extension)}
+\end{description}
 
-The system must gather explicity user consent for storing voice and personal data. All user data used for model improvement must be anonymized. Database and personalized ASR models must maintain integrity through secure, versioned backups. Unauthorized changes or corruption of user data must be prevented. 
-\subsection{Audit Requirements}\label{subsec:audit}
+\subsection{Immunity Requirements}
 
-\textbf{SEC4: Secure Audit Logging}\label{req:SEC4}
-
-The system shall maintain secure logs of major actions and commands, including loging events, access to profile and personal data, and command execution failures. Logs shall be protected and retained in a secure database. 
-\subsection{Immunity Requirements}\label{subsec:immunity}
-
-\textbf{SEC5: Resilience to Misuse}\label{req:SEC5}
-
-The system must be resilient to accidental misuse. It shall handle noisy input robustly, avoid executing unintended commands, and operate safely within rate limits to prevent resource overload. 
+\begin{description}
+  \item[IMR1:] The app recovers smoothly from device or permission changes without restarting. \emph{(links to Input Devices — Wrong mic chosen)}
+  \item[IMR2:] Maintain good recognition accuracy even with background noise at normal levels. \emph{(links to Input Devices — Too much noise)}
+  \item[IMR3:] The app retries failed network actions and cancels incomplete ones to handle weak connections gracefully. \emph{(links to Communication — Weak or lost network)}
+  \item[IMR4:] Detect and drop repeated or expired requests to avoid replay attacks. \emph{(future enhancement)}
+  \item[IMR5:] Ensure all confirmations can be seen or heard, including through screen readers. \emph{(links to Front-end Interface — not perceivable)}
+\end{description}
 
 \section{Cultural Requirements}
 \subsection{Cultural Requirements}\label{subsec:cultural}
