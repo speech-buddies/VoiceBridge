@@ -54,6 +54,8 @@ urlcolor=cyan          % color of external links
 \toprule {\bf Date} & {\bf Version} & {\bf Notes}\\
 \midrule
 Nov 12, 2025 & 1.0 & Added Modules M1-M22\\
+Jan 11, 2026 & 1.1 & Updated local functions\\
+
 \bottomrule
 \end{tabularx}
 
@@ -306,8 +308,8 @@ The high-level module decomposition of the system is summarized in Table 1 of th
 \hline
 \textbf{Name} & \textbf{In} & \textbf{Out} & \textbf{Exceptions} \\ \hline
 \texttt{AccessibilityLayer} & \texttt{parent: UserInterface} & self & - \\ 
-\texttt{applySettings} & \texttt{settings: AccessConfig} & - & - \\ 
-\texttt{announce} & \texttt{msg: string} & - & - \\ 
+\texttt{applySettings} & \texttt{settings: AccessConfig} & bool & - \\ 
+\texttt{announce} & \texttt{msg: string} & string & - \\ 
 \texttt{validateElement} & \texttt{elem\_id: string} & \texttt{ValidationReport} & - \\ \hline
 \end{tabular}
 
@@ -482,7 +484,7 @@ The high-level module decomposition of the system is summarized in Table 1 of th
 \texttt{SpeechToTextEngine} & \texttt{config: AsrConfig} & self & InitializationError \\ 
 \texttt{processAudio} & \texttt{audioData: AudioStream} & \texttt{Transcript} & \texttt{ProcessingError} \\ 
 \texttt{reset} & - & - & - \\ \hline
-\texttt{validateAudioFormat} & \texttt{audioData: AudioStream} & - & - \\ 
+\texttt{validateAudioFormat} & \texttt{audioData: AudioStream} & bool & - \\ 
 \texttt{validateModelReady} & - & \texttt{bool} & \texttt{ModelValidationError} \\ 
 \end{tabular}
 
@@ -1015,7 +1017,7 @@ None.
 \hline
 \textbf{Name} & \textbf{In} & \textbf{Out} & \textbf{Exceptions} \\
 \hline
-\texttt{BrowserController} & \texttt{bridge: Client} & self & - \\
+\texttt{BrowserController} & \texttt{bridge: Client, timeout\_s: N} & self & -- \\
 \texttt{send} & \texttt{req: BackendReq} & \texttt{BackendResp} & \texttt{TimeoutError}, \texttt{TransportError} \\
 \texttt{get\_status} & \texttt{cmd\_id: UUID} & \texttt{ExecStatus} & \texttt{NotFoundError} \\
 \texttt{cancel} & \texttt{cmd\_id: UUID} & \texttt{bool} & \texttt{NotFoundError} \\
@@ -1439,7 +1441,7 @@ Compensation actions are idempotent or guarded.
 \begin{tabular}{|l|l|l|l|}
 \hline
 \textbf{Name} & \textbf{In} & \textbf{Out} & \textbf{Exceptions} \\ \hline
-\texttt{createProfile} & userToken, initData & profileID & ProfileCreationException \\ 
+\texttt{createProfile} & \texttt{userToken: string, initData: dict} & profileID & ProfileCreationException \\ 
 \texttt{loadPreferences} & userID & preferenceData & DataNotFoundException \\ 
 \texttt{saveConsent} & userID, consentFlags & status & ConsentException \\ \hline
 \end{tabular}
@@ -1529,9 +1531,9 @@ Compensation actions are idempotent or guarded.
 \begin{tabular}{|l|l|l|l|}
 \hline
 \textbf{Name} & \textbf{In} & \textbf{Out} & \textbf{Exceptions} \\ \hline
-\texttt{authenticateUser} & username, password & sessionToken & AuthException \\ 
-\texttt{validateToken} & sessionToken & validity & TokenException \\ 
-\texttt{rotateKeys} & scheduleID & status & KeyRotationException \\ \hline
+\texttt{authenticateUser} & \texttt{username: string, password: string} & sessionToken & AuthException \\ 
+\texttt{validateToken} & \texttt{sessionToken: string} & \texttt{validity: bool} & TokenException \\ 
+\texttt{rotateKeys} & scheduleID & \texttt{status: string} & KeyRotationException \\ \hline
 \end{tabular}
 
 \subsection{Semantics}
@@ -1567,9 +1569,9 @@ Compensation actions are idempotent or guarded.
 \begin{tabular}{|l|l|l|l|}
 \hline
 \textbf{Name} & \textbf{In} & \textbf{Out} & \textbf{Exceptions} \\ \hline
-\texttt{encryptData} & plainData, keyID & cipherData & EncryptionException \\ 
+\texttt{encryptData} & \texttt{plainData: string, keyID: UUID} & cipherData & EncryptionException \\ 
 \texttt{decryptData} & cipherData, keyID & plainData & DecryptionException \\ 
-\texttt{rotateKeys} & rotationPolicy & result & RotationFailureException \\ 
+\texttt{rotateKeys} & rotationPolicy & \texttt{result: bool} & RotationFailureException \\ 
 \texttt{verifyIntegrity} & dataBlob, signature & validFlag & IntegrityException \\ \hline
 \end{tabular}
 
@@ -1597,9 +1599,9 @@ Implements R16.2 (Integrity): validates message hashes before use.
 \begin{tabular}{|l|l|l|l|}
 \hline
 \textbf{Name} & \textbf{In} & \textbf{Out} & \textbf{Exceptions} \\ \hline
-\texttt{validateCommand} & commandText, context & validationResult & InvalidCommandException \\ 
-\texttt{reportIncident} & incidentData & reportID & ReportFailureException \\ 
-\texttt{recoverState} & sessionID & status & RecoveryException \\ \hline
+\texttt{validateCommand} & \texttt{commandText: string, context: dict} & validationResult & InvalidCommandException \\ 
+\texttt{reportIncident} & \texttt{incidentData: dict} & reportID & ReportFailureException \\ 
+\texttt{recoverState} & sessionID & \texttt{status: bool} & RecoveryException \\ \hline
 \end{tabular}
 
 \subsection{Semantics}
@@ -1640,7 +1642,7 @@ Integrates with M14 to log anomaly-triggered safety events.
 \hline
 \textbf{Name} & \textbf{In} & \textbf{Out} & \textbf{Exceptions} \\ \hline
 \texttt{listDevices} & - & deviceList & DeviceQueryException \\ 
-\texttt{startCapture} & deviceID & status & PermissionException \\ 
+\texttt{startCapture} & deviceID & \texttt{status: bool} & PermissionException \\ 
 \texttt{readFrame} & - & audioFrame & CaptureInactiveException \\ \hline
 \end{tabular}
 
@@ -1681,9 +1683,10 @@ input to subsequent modules. Integrates with M10 to maintain session continuity.
 \begin{tabular}{|l|l|l|l|}
 \hline
 \textbf{Name} & \textbf{In} & \textbf{Out} & \textbf{Exceptions} \\ \hline
-\texttt{filterFrame} & audioFrame & cleanedFrame & - \\ 
-\texttt{detectSpeech} & audioFrame & isSpeech (bool) & - \\ 
-\texttt{resetState} & - & status & - \\ \hline
+\texttt{filterFrame} & \texttt{audioFrame: AudioFrame} & \texttt{cleanedFrame: AudioFrame} & - \\ 
+\texttt{detectSpeech} & \texttt{audioFrame: AudioFrame} & \texttt{isSpeech: bool} & - \\ 
+\texttt{resetState} & - & \texttt{status: bool} & - \\ \hline
+\end{tabular}
 \end{tabular}
 
 \subsection{Semantics}
@@ -1723,9 +1726,9 @@ Provides binary VAD detections for downstream timing and segmentation.
 \begin{tabular}{|l|l|l|l|}
 \hline
 \textbf{Name} & \textbf{In} & \textbf{Out} & \textbf{Exceptions} \\ \hline
-\texttt{makePrompt} & uiState & promptText & - \\ 
-\texttt{makeConfirm} & intent & promptText & - \\ 
-\texttt{makeErrorPrompt} & errorData & promptText & - \\ \hline
+\texttt{makePrompt} & \texttt{uiState: UiState} & \texttt{promptText: string} & - \\ 
+\texttt{makeConfirm} & \texttt{intent: Intent} & \texttt{promptText: string} & - \\ 
+\texttt{makeErrorPrompt} & \texttt{errorData: dict} & \texttt{promptText: string} & - \\ \hline
 \end{tabular}
 
 \subsection{Semantics}
@@ -1767,7 +1770,7 @@ Ensures consistent phrasing across confirmations, errors, and system messages.
 \textbf{Name} & \textbf{In} & \textbf{Out} & \textbf{Exceptions} \\ \hline
 \texttt{scheduleTune} & userID, dataset & jobID & TunePolicyException \\ 
 \texttt{checkStatus} & jobID & status & NotFoundException \\ 
-\texttt{applyModel} & userID, jobID & success (bool) & ModelLoadException \\ \hline
+\texttt{applyModel} & userID, jobID & \texttt{success: bool} & ModelLoadException \\ \hline
 \end{tabular}
 
 \subsection{Semantics}
@@ -1807,8 +1810,8 @@ Updates the user's model profile upon successful tuning.
 \begin{tabular}{|l|l|l|l|}
 \hline
 \textbf{Name} & \textbf{In} & \textbf{Out} & \textbf{Exceptions} \\ \hline
-\texttt{lookup} & intent & instruction & NotFoundException \\ 
-\texttt{registerInstr} & instruction & status & StoreException \\ 
+\texttt{lookup} & \texttt{intent: Intent} & \texttt{instruction: Command} & \texttt{NotFoundException} \\ 
+\texttt{registerInstr} & \texttt{instruction: Command} & \texttt{status: bool} & \texttt{StoreException} \\ 
 \texttt{updateInstr} & id, instruction & status & StoreException \\ \hline
 \end{tabular}
 
