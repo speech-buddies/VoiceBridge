@@ -283,7 +283,7 @@ In this stage, the system is decomposed into modules. The connection between req
 
 \begin{table}[htbp]
 \centering
-\small
+\footnotesize
 \renewcommand{\arraystretch}{1.1} % row height
 \setlength{\tabcolsep}{6pt}       % column spacing
 \begin{tabular}{
@@ -352,7 +352,6 @@ Provides user prompting, model fine-tuning, and instruction management. Supports
 \end{table}
 \newpage
 
-
 % =========================
 % Module Decomposition
 % =========================
@@ -361,75 +360,194 @@ Provides user prompting, model fine-tuning, and instruction management. Supports
 \subsection*{Presentation Layer Modules}
 
 \subsubsection*{M1: User Interface Module}
-\textbf{Secrets:} How UI state, layout, and visible components are represented, including the mapping from raw browser events into UiEvents and management of keyboard and screen-reader focus. \\
-\textbf{Services:} Initialize and render UI; receive and normalize input events into UiEvents; route feedback items; update keyboard/screen-reader focus. \\
-\textbf{Implemented By:} UserInterface module using the browser rendering engine and DOM/event APIs. \\
+\textbf{Secrets:} 
+\begin{itemize}
+  \item Representation of UI state, layout, and visible components
+  \item Mapping of raw browser events into UiEvents
+  \item Management of keyboard and screen-reader focus
+\end{itemize}
+\textbf{Services:} 
+\begin{itemize}
+  \item Initialize and render UI
+  \item Receive and normalize input events into UiEvents
+  \item Route feedback items
+  \item Update keyboard and screen-reader focus
+\end{itemize}
+\textbf{Implemented By:} UserInterface module using the browser rendering engine and DOM/event APIs.
 
 \medskip
 \subsubsection*{M2: Accessibility Layer}
-\textbf{Secrets:} Encoding of accessibility configuration (AccessConfig), ARIA attribute mappings, and validation rules for UI elements against WCAG standards. \\
-\textbf{Services:} Apply accessibility options; announce messages; check UI elements and report any problems using ValidationReports. \\
-\textbf{Implemented By:} AccessibilityLayer module operating on UI elements exposed by UserInterface. \\
+\textbf{Secrets:} 
+\begin{itemize}
+  \item Encoding of accessibility configuration (AccessConfig)
+  \item ARIA attribute mappings
+  \item Validation rules for UI elements against WCAG standards
+\end{itemize}
+\textbf{Services:} 
+\begin{itemize}
+  \item Apply accessibility options
+  \item Announce messages
+  \item Check UI elements and report problems using ValidationReports
+\end{itemize}
+\textbf{Implemented By:} AccessibilityLayer module operating on UI elements exposed by UserInterface.
 
 \medskip
 \subsubsection*{M3: Feedback Display Module}
-\textbf{Secrets:} Internal representation of FeedbackItems keyed by UUID, and policies for creation, clearance, and recovery options of feedback messages. \\
-\textbf{Services:} Attach to parent UI; show messages of given types; clear messages; create recovery options for feedback items. \\
-\textbf{Implemented By:} FeedbackDisplay module rendering via UserInterface and coordinating with AccessibilityLayer. \\
+\textbf{Secrets:} 
+\begin{itemize}
+  \item Internal representation of FeedbackItems keyed by UUID
+  \item Policies for creation, clearance, and recovery options of feedback messages
+\end{itemize}
+\textbf{Services:} 
+\begin{itemize}
+  \item Attach to parent UI
+  \item Show messages of given types
+  \item Clear messages
+  \item Create recovery options for feedback items
+\end{itemize}
+\textbf{Implemented By:} FeedbackDisplay module rendering via UserInterface and coordinating with AccessibilityLayer.
 
 % ---------- Application Processing Layer ----------
 \subsection*{Application (Processing) Modules}
 
 \subsubsection*{M4: Speech-to-Text Engine}
-\textbf{Secrets:} Configuration (AsrConfig) and internal processing details of the speech-to-text engine that converts audio input into accurate text transcript. \\
-\textbf{Services:} Initialize engine; process audio to produce transcripts with confidence metadata; reset internal state. \\
-\textbf{Implemented By:} SpeechToTextEngine module wrapping acoustic and language models. \\
+\textbf{Secrets:} 
+\begin{itemize}
+  \item Configuration (AsrConfig) and internal processing details of the speech-to-text engine
+  \item Methods for converting audio input into accurate text transcripts
+\end{itemize}
+\textbf{Services:} 
+\begin{itemize}
+  \item Initialize engine
+  \item Process audio to produce transcripts with confidence metadata
+  \item Reset internal state
+\end{itemize}
+\textbf{Implemented By:} SpeechToTextEngine module wrapping acoustic and language models.
 
 \medskip
 \subsubsection*{M5: Intent Interpreter}
-\textbf{Secrets:} How the system recognizes user intentions by using stored intent templates, managing conversation context, and extracting key details (slots) from the user’s speech. \\
-\textbf{Services:} Initialize the interpreter; convert speech transcripts into structured intentions, including important details and confidence levels; reset the interpreter’s context when needed. \\
-\textbf{Implemented By:} IntentInterpreter module using registered intent templates and dialog state management. \\
+\textbf{Secrets:} 
+\begin{itemize}
+  \item Recognition of user intentions using stored intent templates
+  \item Management of conversation context
+  \item Extraction of key details (slots) from user speech
+\end{itemize}
+\textbf{Services:} 
+\begin{itemize}
+  \item Initialize the interpreter
+  \item Convert speech transcripts into structured intentions
+  \item Extract details and confidence levels
+  \item Reset interpreter context
+\end{itemize}
+\textbf{Implemented By:} IntentInterpreter module using registered intent templates and dialog state management.
 
 \medskip
 \subsubsection*{M6: Command Mapping Module}
-\textbf{Secrets:} Command registry structure, user preferences, and policy application for mapping intents to executable commands. \\
-\textbf{Services:} Initialize mapping; map Intents to validated Commands; validate commands against guardrails; reset internal state. \\
-\textbf{Implemented By:} CommandMapping module using command registry, preferences, and policy configurations. \\
+\textbf{Secrets:} 
+\begin{itemize}
+  \item Command registry structure
+  \item User preferences and policy application for mapping
+\end{itemize}
+\textbf{Services:} 
+\begin{itemize}
+  \item Initialize mapping
+  \item Map Intents to validated Commands
+  \item Validate commands against guardrails
+  \item Reset internal state
+\end{itemize}
+\textbf{Implemented By:} CommandMapping module using command registry, preferences, and policy configurations.
 
 % ---------- Application (Processing) ----------
 \subsection*{Application (Processing) Modules}
 
 \subsubsection*{M7: Command Execution Layer}
-\textbf{Secrets:} How commands are validated, mapped to backend requests, dispatched, tracked, cancelled, and timed-out. Internal queueing and audit format. \\
-\textbf{Services:} Execute/cancel/status for commands; translate to backend format; rollback hooks. \\
-\textbf{Implemented By:} Core runtime (browser bridge + OS process APIs). \\
+\textbf{Secrets:} 
+\begin{itemize}
+  \item Command validation and mapping to backend requests
+  \item Dispatching, tracking, cancellation, and timeout logic
+  \item Internal queueing and audit formats
+\end{itemize}
+\textbf{Services:} 
+\begin{itemize}
+  \item Execute, cancel, and provide status for commands
+  \item Translate commands to backend formats
+  \item Provide rollback hooks
+\end{itemize}
+\textbf{Implemented By:} Core runtime (browser bridge + OS process APIs).
 
 \medskip
 \subsubsection*{M8: Error Feedback}
-\textbf{Secrets:} Expected error types, message templates and localization hooks, mapping of internal/domain errors to user-facing message keys and recovery options, redaction rules for logs/UI. \\
-\textbf{Services:} (1) Display error notification. (2) Display recovery prompt with options. (3) Dismiss item. (4) Log structured error event. (5) Normalize/map errors to UI message + recovery actions. \\
-\textbf{Implemented By:} UI Notification Layer and Shared Error Handling Module (M11). \\
+\textbf{Secrets:} 
+\begin{itemize}
+  \item Expected error types
+  \item Message templates and localization hooks
+  \item Mapping of internal/domain errors to user-facing message keys and recovery options
+  \item Redaction rules for logs and UI
+\end{itemize}
+
+\textbf{Services:} 
+\begin{itemize}
+  \item Display error notifications
+  \item Display recovery prompts with options
+  \item Dismiss items
+  \item Log structured error events
+  \item Normalize and map errors to UI messages and recovery actions
+\end{itemize}
+
+\textbf{Implemented By:} UI Notification Layer and Shared Error Handling Module (M11).
 
 % ---------- Control (Orchestration) ----------
 \subsection*{Control (Orchestration) Modules}
 
 \subsubsection*{M9: BrowserController}
-\textbf{Secrets:} Transport protocol to the browser controller, timeout wrappers, normalization of responses, and session plumbing. \\
-\textbf{Services:} Send request; get status; cancel; open/close controller session. \\
-\textbf{Implemented By:} Automation bridge client. \\
+\textbf{Secrets:} 
+\begin{itemize}
+  \item Transport protocol to the browser controller
+  \item Timeout wrappers and normalization of responses
+  \item Session plumbing
+\end{itemize}
+\textbf{Services:} 
+\begin{itemize}
+  \item Send request
+  \item Get status
+  \item Cancel operations
+  \item Open and close controller sessions
+\end{itemize}
+\textbf{Implemented By:} Automation bridge client.
 
 \medskip
 \subsubsection*{M10: Session Manager}
-\textbf{Secrets:} Session lifecycle rules, storage schema, and TTL/expiry handling. \\
-\textbf{Services:} Start/stop session; get session state; attach command; set state. \\
-\textbf{Implemented By:} In-memory cache + persistent store. \\
+\textbf{Secrets:} 
+\begin{itemize}
+  \item Session lifecycle rules
+  \item Storage schema
+  \item TTL and expiry handling
+\end{itemize}
+\textbf{Services:} 
+\begin{itemize}
+  \item Start and stop sessions
+  \item Get session state
+  \item Attach commands
+  \item Set state
+\end{itemize}
+\textbf{Implemented By:} In-memory cache + persistent store.
 
 \medskip
 \subsubsection*{M11: Error Handling \& Recovery Module}
-\textbf{Secrets:} Error classification policy, retry/backoff strategy, and compensation catalog. \\
-\textbf{Services:} Handle error; retry; compensate; classify; record event. \\
-\textbf{Implemented By:} Orchestration runtime with policy store. \\
+\textbf{Secrets:} 
+\begin{itemize}
+  \item Error classification policy
+  \item Retry and backoff strategies
+  \item Compensation catalog
+\end{itemize}
+\textbf{Services:} 
+\begin{itemize}
+  \item Handle error
+  \item Retry and compensate
+  \item Classify errors
+  \item Record events
+\end{itemize}
+\textbf{Implemented By:} Orchestration runtime with policy store.
 
 \medskip
 \subsubsection*{M12: Storage Management Module}
@@ -533,34 +651,87 @@ Provides user prompting, model fine-tuning, and instruction management. Supports
 \subsection*{Input Processing Layer Modules}
 
 \subsubsection*{M18: Microphone Manager}
-\textbf{Secrets:} Device-level audio capture configuration, sampling parameters, buffering strategy, fallback device selection, and how raw audio is normalized before downstream processing.\\
-\textbf{Services:} Start/stop microphone stream; read audio frames; provide normalized PCM buffer; expose current device status; surface hardware errors.\\
-\textbf{Implemented By:} Browser audio APIs or OS audio interface.\\
+\textbf{Secrets:} 
+\begin{itemize}
+  \item Device-level audio capture configuration and sampling parameters
+  \item Buffering strategy and fallback device selection
+  \item Normalization of raw audio before downstream processing
+\end{itemize}
+\textbf{Services:} 
+\begin{itemize}
+  \item Start and stop microphone stream
+  \item Read audio frames
+  \item Provide normalized PCM buffer
+  \item Expose current device status and surface hardware errors
+\end{itemize}
+\textbf{Implemented By:} Browser audio APIs or OS audio interface.
 
+\medskip
 \subsubsection*{M19: VAD Noise Filter}
-\textbf{Secrets:} Voice-activity-detection thresholds, noise-suppression heuristics, smoothing windows, and adaptive gain rules.\\
-\textbf{Services:} Filter raw microphone frames; determine speech vs. silence; emit clean audio frames; send VAD events (start/stop speech).\\
-\textbf{Implemented By:} DSP/VAD library.\\
+\textbf{Secrets:} 
+\begin{itemize}
+  \item Voice-activity-detection thresholds
+  \item Noise-suppression heuristics and smoothing windows
+  \item Adaptive gain rules
+\end{itemize}
+\textbf{Services:} 
+\begin{itemize}
+  \item Filter raw microphone frames
+  \item Determine speech vs. silence
+  \item Emit clean audio frames
+  \item Send VAD events (start/stop speech)
+\end{itemize}
+\textbf{Implemented By:} DSP/VAD library.
 
-
-\subsection*{Personalization  Layer}
+\subsection*{Personalization Layer}
 \subsubsection*{M20: Prompting Module}
-\textbf{Secrets:} Prompt templates, personalization rules, condition-based variation (user history, context), and confidence-based prompt selection logic.\\
-\textbf{Services:} Generate user prompts; provide clarifying follow-ups when intent confidence is low; produce culturally inclusive and accessibility-enabled copy.\\
-\textbf{Implemented By:} Application prompt engine.\\
+\textbf{Secrets:} 
+\begin{itemize}
+  \item Prompt templates and personalization rules
+  \item Condition-based variation (history, context)
+  \item Confidence-based prompt selection logic
+\end{itemize}
+\textbf{Services:} 
+\begin{itemize}
+  \item Generate user prompts
+  \item Provide clarifying follow-ups when intent confidence is low
+  \item Produce culturally inclusive and accessibility-enabled copy
+\end{itemize}
+\textbf{Implemented By:} Application prompt engine.
 
+\medskip
 \subsubsection*{M21: Model Tuner}
-\textbf{Secrets:} Adaptation strategy for user-specific speech patterns, tuning weights for model updates, online vs. offline update thresholds, and embedding storage rules.\\
-\textbf{Services:} Update inference parameters based on user data; compute personalized embeddings; adjust thresholds for intent classification and STT confidence.\\
-\textbf{Implemented By:} ML runtime (Whisper fine-tuning layer or lightweight personalization pipeline).\\
+\textbf{Secrets:} 
+\begin{itemize}
+  \item Adaptation strategy for user-specific speech patterns
+  \item Tuning weights for model updates
+  \item Online vs. offline update thresholds
+  \item Embedding storage rules
+\end{itemize}
+\textbf{Services:} 
+\begin{itemize}
+  \item Update inference parameters based on user data
+  \item Compute personalized embeddings
+  \item Adjust thresholds for intent classification and STT confidence
+\end{itemize}
+\textbf{Implemented By:} ML runtime (Whisper fine-tuning layer or lightweight personalization pipeline).
 
+\medskip
 \subsubsection*{M22: Instruction Registry}
-\textbf{Secrets:} Internal representation of user-custom commands, schema for mapping instructions to intents, and safety constraints preventing unsafe or ambiguous command creation.\\
-\textbf{Services:} Store/update/delete user instructions; resolve user-defined commands during intent parsing; validate new instructions; expose registry lookup API.\\
-\textbf{Implemented By:} Local or cloud command registry service.\\
-
-
-
+\textbf{Secrets:} 
+\begin{itemize}
+  \item Internal representation of user-custom commands
+  \item Schema for mapping instructions to intents
+  \item Safety constraints preventing unsafe or ambiguous command creation
+\end{itemize}
+\textbf{Services:} 
+\begin{itemize}
+  \item Store, update, and delete user instructions
+  \item Resolve user-defined commands during intent parsing
+  \item Validate new instructions
+  \item Expose registry lookup API
+\end{itemize}
+\textbf{Implemented By:} Local or cloud command registry service.
 
 \section{Traceability Matrix} \label{SecTM}
 
