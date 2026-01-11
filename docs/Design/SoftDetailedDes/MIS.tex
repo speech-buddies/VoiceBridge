@@ -54,6 +54,7 @@ urlcolor=cyan          % color of external links
 \toprule {\bf Date} & {\bf Version} & {\bf Notes}\\
 \midrule
 Nov 12, 2025 & 1.0 & Added Modules M1-M22\\
+Jan 11, 2026 & 1.1 & Updated local functions\\
 \bottomrule
 \end{tabularx}
 
@@ -270,10 +271,17 @@ The high-level module decomposition of the system is summarized in Table 1 of th
 \subsubsection{Local Functions}
 
 \begin{itemize}
-  \item \texttt{apply\_config()} — Persist \texttt{config} and apply runtime settings.
-  \item \texttt{normalize\_event(event)} — Normalize raw input events into \texttt{UiEvent} format.
+  \item \texttt{apply\_config}(\texttt{UiConfig cfg}): \texttt{UiConfig} $\rightarrow$ \texttt{UiState} \\
+  \textbf{Description:} \texttt{apply\_config(cfg)} returns the UI state after setting theme, verbosity, and other options to match \texttt{cfg}.
+
+  \item \texttt{normalize\_event}(\texttt{RawUiEvent e}): \texttt{RawUiEvent} $\rightarrow$ \texttt{UiEvent} \\
+  \textbf{Description:} \texttt{normalize\_event(e)} returns a standard \texttt{UiEvent} with type, target, and payload from raw event \texttt{e}.
 \end{itemize}
 
+% \begin{itemize}
+%   \item \texttt{apply\_config()} — Persist \texttt{config} and apply runtime settings.
+%   \item \texttt{normalize\_event(event)} — Normalize raw input events into \texttt{UiEvent} format.
+% \end{itemize}
 
 \newpage
 \section{MIS of Accessibility Layer} \label{M2}
@@ -299,8 +307,8 @@ The high-level module decomposition of the system is summarized in Table 1 of th
 \hline
 \textbf{Name} & \textbf{In} & \textbf{Out} & \textbf{Exceptions} \\ \hline
 \texttt{AccessibilityLayer} & \texttt{parent: UserInterface} & self & - \\ 
-\texttt{applySettings} & \texttt{settings: AccessConfig} & - & - \\ 
-\texttt{announce} & \texttt{msg: string} & - & - \\ 
+\texttt{applySettings} & \texttt{settings: AccessConfig} & bool & - \\ 
+\texttt{announce} & \texttt{msg: string} & string & - \\ 
 \texttt{validateElement} & \texttt{elem\_id: string} & \texttt{ValidationReport} & - \\ \hline
 \end{tabular}
 
@@ -345,11 +353,18 @@ The high-level module decomposition of the system is summarized in Table 1 of th
   \item \textbf{exception:} -.
 \end{itemize}
 
+% \begin{itemize}
+%   \item \texttt{check\_contrast(rgb\_fg, rgb\_bg)} — Compute contrast ratio based on WCAG formula \(\frac{L_1 + 0.05}{L_2 + 0.05}\), where \(L_1\) and \(L_2\) are relative luminances of foreground and background; returns Boolean pass/fail against \texttt{WCAG\_LEVEL}.
+%   \item \texttt{aria\_set(elem\_id, metadata)} — Apply ARIA role, label, and state attributes to UI elements; returns Boolean indicating success.
+% \end{itemize}
 \subsubsection{Local Functions}
 
 \begin{itemize}
-  \item \texttt{check\_contrast(rgb\_fg, rgb\_bg)} — Compute contrast ratio based on WCAG formula \(\frac{L_1 + 0.05}{L_2 + 0.05}\), where \(L_1\) and \(L_2\) are relative luminances of foreground and background; returns Boolean pass/fail against \texttt{WCAG\_LEVEL}.
-  \item \texttt{aria\_set(elem\_id, metadata)} — Apply ARIA role, label, and state attributes to UI elements; returns Boolean indicating success.
+  \item \texttt{check\_contrast}(\texttt{rgb fg, rgb bg}): \texttt{rgb} $\times$ \texttt{rgb} $\rightarrow$ \texttt{bool} \\
+  \textbf{Description:} \texttt{check\_contrast(fg, bg)} $\equiv$ \(\frac{L_1 + 0.05}{L_2 + 0.05}\) $\geq$ \texttt{WCAG\_THRESHOLD} where $L_1, L_2$ are relative luminances of fg/bg (used by \texttt{validateElement})
+
+  \item \texttt{aria\_set}(\texttt{string elemId, AccessMetadata metadata}): \texttt{string} $\times$ \texttt{AccessMetadata} $\rightarrow$ \texttt{bool} \\
+  \textbf{Description:} \texttt{aria\_set(elemId, metadata)} returns \texttt{true} if ARIA attributes from \texttt{metadata} are applied to element \texttt{elemId} (used by \texttt{applySettings})
 \end{itemize}
 
 \newpage
@@ -428,9 +443,16 @@ The high-level module decomposition of the system is summarized in Table 1 of th
 
 \subsubsection{Local Functions:}
 \begin{itemize}
-  \item \texttt{format\_message(msg, type)} — apply template, icons, and localization.
-  \item \texttt{schedule\_dismiss(feedbackId, ttl\_s)} — auto-dismiss transient messages.
+  \item \texttt{format\_message}(\texttt{string msg, MsgType type}): \texttt{string} $\times$ \texttt{MsgType} $\rightarrow$ \texttt{FeedbackItem} \\
+  \textbf{Description:} \texttt{format\_message(msg, type)} returns a \texttt{FeedbackItem} with style, icon, and metadata matching \texttt{type} for text \texttt{msg}.
+
+  \item \texttt{schedule\_dismiss}(\texttt{UUID feedbackId, N ttl\_s}): \texttt{UUID} $\times$ \texttt{N} $\rightarrow$ \texttt{bool} \\
+  \textbf{Description:} \texttt{schedule\_dismiss(feedbackId, ttl\_s)} returns \texttt{true} if timer is set to remove feedback \texttt{feedbackId} after \texttt{ttl\_s} seconds.
 \end{itemize}
+% \begin{itemize}
+%   \item \texttt{format\_message(msg, type)} — apply template, icons, and localization.
+%   \item \texttt{schedule\_dismiss(feedbackId, ttl\_s)} — auto-dismiss transient messages.
+% \end{itemize}
 
 \newpage
 \section{MIS of Speech-to-Text Engine}
@@ -461,6 +483,8 @@ The high-level module decomposition of the system is summarized in Table 1 of th
 \texttt{SpeechToTextEngine} & \texttt{config: AsrConfig} & self & InitializationError \\ 
 \texttt{processAudio} & \texttt{audioData: AudioStream} & \texttt{Transcript} & \texttt{ProcessingError} \\ 
 \texttt{reset} & - & - & - \\ \hline
+\texttt{validateAudioFormat} & \texttt{audioData: AudioStream} & bool & - \\ 
+\texttt{validateModelReady} & - & \texttt{bool} & \texttt{ModelValidationError} \\ 
 \end{tabular}
 
 \subsection{Semantics}
@@ -479,8 +503,9 @@ The high-level module decomposition of the system is summarized in Table 1 of th
 
 \subsubsection{Assumptions:}
 \begin{itemize}
-  \item Input audio meets expected format and sample rate.
-  \item Model artifacts are present and validated at initialization.
+  \item None.
+  % \item Input audio meets expected format and sample rate.
+  % \item Model artifacts are present and validated at initialization.
 \end{itemize}
 
 \subsubsection{Access Routine Semantics:}
@@ -494,9 +519,9 @@ The high-level module decomposition of the system is summarized in Table 1 of th
 
 \noindent\texttt{processAudio(audioData)}:
 \begin{itemize}
-  \item \textbf{transition:} preprocess (VAD, noise suppression), extract features, decode with models, and apply personalization.
+  \item \textbf{transition:} validateAudioFormat(audioData) $\wedge$ preprocess (VAD, noise suppression), extract features, decode with models, and apply personalization.
   \item \textbf{output:} \texttt{Transcript} containing recognized text and confidence metadata.
-  \item \textbf{exception:} \texttt{ProcessingError} on unrecoverable failure.
+  \item \textbf{exception:} \texttt{ProcessingError} if format invalid or processing fails.
 \end{itemize}
 
 \noindent\texttt{reset()}:
@@ -506,11 +531,30 @@ The high-level module decomposition of the system is summarized in Table 1 of th
   \item \textbf{exception:} -.
 \end{itemize}
 
+\noindent\texttt{validateAudioFormat(audio)}:
+\begin{itemize}
+  \item \textbf{transition:} None
+  \item \textbf{output:} \texttt{true} iff \texttt{audio.sampleRate = EXPECTED\_SAMPLE\_RATE $\wedge$ audio.format = EXPECTED\_FORMAT}
+  \item \textbf{exception:} -
+\end{itemize}
+
+\noindent\texttt{validateModelReady()}:
+\begin{itemize}
+  \item \textbf{transition:} None
+  \item \textbf{output:} \texttt{true} iff model is loaded $\wedge$ model is validated
+  \item \textbf{exception:} \texttt{exc := ModelValidationError} if model files missing or corrupted
+\end{itemize}
+
 \subsubsection{Local Functions:}
 \begin{itemize}
-  \item \texttt{extract\_features(audio)} — compute model inputs (spectrogram, MFCCs).
-  \item \texttt{decode(features)} — run acoustic and language decoding to produce candidate transcripts.
-  \item \texttt{apply\_personalization(profile)} — adapt decoder priors using user profile.
+  \item \texttt{extract\_features}(\texttt{AudioStream audio}): \texttt{AudioStream} $\rightarrow$ \texttt{FeatureVector} \\
+  \textbf{Description:} \texttt{extract\_features(audio)} returns feature vector (spectrogram, MFCCs) computed from input audio.
+
+  \item \texttt{decode}(\texttt{FeatureVector features}): \texttt{FeatureVector} $\rightarrow$ \texttt{Transcript} \\
+  \textbf{Description:} \texttt{decode(features)} returns recognized text and confidence scores from model decoding.
+
+  \item \texttt{apply\_personalization}(\texttt{Transcript transcript, UserProfile profile}): \texttt{Transcript} $\times$ \texttt{UserProfile} $\rightarrow$ \texttt{Transcript} \\
+  \textbf{Description:} \texttt{apply\_personalization(transcript, profile)} returns transcript adjusted using user profile adaptation.
 \end{itemize}
 
 
@@ -531,7 +575,8 @@ The high-level module decomposition of the system is summarized in Table 1 of th
 
 \subsubsection{Exported Constants:}
 \begin{itemize}
-  \item None.
+  \item \texttt{MIN\_CONFIDENCE = 0.5}
+  \item \texttt{EXPECTED\_TRANSCRIPT\_FORMAT = ``text + confidence''}
 \end{itemize}
 
 \subsubsection{Exported Access Programs:}
@@ -542,6 +587,7 @@ The high-level module decomposition of the system is summarized in Table 1 of th
 \texttt{IntentInterpreter} & - & self & InitializationError \\ 
 \texttt{interpret} & \texttt{transcript: Transcript} & \texttt{Intent} & \texttt{InterpretationError} \\ 
 \texttt{reset} & - & - & - \\ \hline
+\texttt{validateTranscript} & \texttt{transcript: Transcript} & bool & - \\ \hline
 \end{tabular}
 
 \subsection{Semantics}
@@ -559,7 +605,7 @@ The high-level module decomposition of the system is summarized in Table 1 of th
 
 \subsubsection{Assumptions:}
 \begin{itemize}
-  \item Transcripts are syntactically valid and provide sufficient information for intent resolution in typical cases.
+  \item None. % Transcripts are syntactically valid and provide sufficient information for intent resolution in typical cases.
 \end{itemize}
 \subsubsection{Access Routine Semantics}
 
@@ -573,9 +619,9 @@ The high-level module decomposition of the system is summarized in Table 1 of th
 
 \noindent\texttt{interpret(transcript)}:
 \begin{itemize}
-\item \textbf{transition:} Parse input \texttt{transcript}; match it against intent schemas; extract and normalize slots; consult \texttt{context} for multi-turn resolution.
-\item \textbf{output:} \texttt{Intent} object containing intent name, parameter slots, and confidence score.
-\item \textbf{exception:} \texttt{InterpretationError} if no confident intent mapping can be produced.
+  \item \textbf{transition:} validateTranscript(transcript) $\wedge$ parse input $\wedge$ match against intent schemas $\wedge$ extract slots
+  \item \textbf{output:} \texttt{Intent} object containing intent name, slots, and confidence score
+  \item \textbf{exception:} \texttt{InterpretationError} if transcript invalid or no confident intent found
 \end{itemize}
 
 \noindent\texttt{reset()}:
@@ -584,12 +630,26 @@ The high-level module decomposition of the system is summarized in Table 1 of th
 \item \textbf{output:} Boolean flag indicating success of reset operation.
 \item \textbf{exception:} -
 \end{itemize}
+\noindent\texttt{validateTranscript(transcript)}:
+\begin{itemize}
+  \item \textbf{transition:} None
+  \item \textbf{output:} \texttt{true} iff \texttt{transcript.text $\neq$ $\emptyset$ $\wedge$ transcript.confidence $>$ MIN\_CONFIDENCE}
+  \item \textbf{exception:} None
+\end{itemize}
+
 
 \subsubsection{Local Functions:}
 \begin{itemize}
-  \item \texttt{match\_intent(text)} — score candidate intents and return best match.
-  \item \texttt{extract\_slots(intent, text)} — extract and normalize parameter values for the matched intent.
-\end{itemize}
+  \item \texttt{match\_intent}(\texttt{Transcript text}): \texttt{Transcript} $\rightarrow$ \texttt{Intent} \\
+  \textbf{Description:} \texttt{match\_intent(text)} returns the highest-scoring intent that matches the input transcript.
+
+  \item \texttt{extract\_slots}(\texttt{Transcript text, Intent intent}): \texttt{Transcript} $\times$ \texttt{Intent} $\rightarrow$ \texttt{Slots} \\
+  \textbf{Description:} \texttt{extract\_slots(text, intent)} returns parameter values (slots) extracted from transcript for the given intent.
+
+% \begin{itemize}
+%   \item \texttt{match\_intent(text)} — score candidate intents and return best match.
+%   \item \texttt{extract\_slots(intent, text)} — extract and normalize parameter values for the matched intent.
+% \end{itemize}
 
 \newpage
 \section{MIS of Command Mapping Module}
@@ -675,10 +735,20 @@ The high-level module decomposition of the system is summarized in Table 1 of th
 
 \subsubsection{Local Functions:}
 \begin{itemize}
-  \item \texttt{find\_command(intent)} — return candidate commands and ranking.
-  \item \texttt{apply\_preferences(command)} — adapt parameters per user preferences.
-  \item \texttt{enforce\_policy(command)} — apply policy and authorization constraints.
+  \item \texttt{find\_command}(\texttt{Intent intent}): \texttt{Intent} $\rightarrow$ \texttt{Command} \\
+  \textbf{Description:} \texttt{find\_command(intent)} returns the best matching command from the registry for the given intent.
+
+  \item \texttt{apply\_preferences}(\texttt{Command cmd, UserPreferences prefs}): \texttt{Command} $\times$ \texttt{UserPreferences} $\rightarrow$ \texttt{Command} \\
+  \textbf{Description:} \texttt{apply\_preferences(cmd, prefs)} returns command with parameters adjusted by user preferences.
+
+  \item \texttt{enforce\_policy}(\texttt{Command cmd, Policy policy}): \texttt{Command} $\times$ \texttt{Policy} $\rightarrow$ \texttt{bool} \\
+  \textbf{Description:} \texttt{enforce\_policy(cmd, policy)} returns \texttt{true} if command passes all policy checks.
 \end{itemize}
+% \begin{itemize}
+%   \item \texttt{find\_command(intent)} — return candidate commands and ranking.
+%   \item \texttt{apply\_preferences(command)} — adapt parameters per user preferences.
+%   \item \texttt{enforce\_policy(command)} — apply policy and authorization constraints.
+% \end{itemize}
 
 
 \newpage
@@ -792,14 +862,31 @@ None.
 \item exception: \texttt{ExecError} if rollback fails
 \end{itemize}
 
-\subsubsection{Local Functions}
+% \subsubsection{Local Functions}
 
+% \begin{itemize}
+%   \item \texttt{start\_timer(ctx)} — begin timeout tracking on a context
+%   \item \texttt{complete(ctx, result)} — finalize status, log, and cleanup
+%   \item \texttt{is\_allowed(cmd)} — check guardrails and policy
+%   \item \texttt{retryable(err)} — decide if backend error can be retried
+%   \item \texttt{to\_backend(payload)} — format request for bridge
+% \end{itemize}
+\subsubsection{Local Functions}
 \begin{itemize}
-  \item \texttt{start\_timer(ctx)} — begin timeout tracking on a context
-  \item \texttt{complete(ctx, result)} — finalize status, log, and cleanup
-  \item \texttt{is\_allowed(cmd)} — check guardrails and policy
-  \item \texttt{retryable(err)} — decide if backend error can be retried
-  \item \texttt{to\_backend(payload)} — format request for bridge
+  \item \texttt{start\_timer}(\texttt{ExecCtx ctx}): \texttt{ExecCtx} $\rightarrow$ \texttt{Timer} \\
+  \textbf{Description:} \texttt{start\_timer(ctx)} returns timer object that tracks timeout for execution context \texttt{ctx}.
+
+  \item \texttt{complete}(\texttt{ExecCtx ctx, Result result}): \texttt{ExecCtx} $\times$ \texttt{Result} $\rightarrow$ \texttt{bool} \\
+  \textbf{Description:} \texttt{complete(ctx, result)} returns \texttt{true} if execution context is finalized and cleaned up.
+
+  \item \texttt{is\_allowed}(\texttt{ExecCmd cmd}): \texttt{ExecCmd} $\rightarrow$ \texttt{bool} \\
+  \textbf{Description:} \texttt{is\_allowed(cmd)} returns \texttt{true} if command passes guardrails and policy checks.
+
+  \item \texttt{retryable}(\texttt{Error err}): \texttt{Error} $\rightarrow$ \texttt{bool} \\
+  \textbf{Description:} \texttt{retryable(err)} returns \texttt{true} if error type can be safely retried.
+
+  \item \texttt{to\_backend}(\texttt{ExecCmd cmd}): \texttt{ExecCmd} $\rightarrow$ \texttt{BackendReq} \\
+  \textbf{Description:} \texttt{to\_backend(cmd)} returns normalized backend request for browser bridge.
 \end{itemize}
 
 \section{MIS of Error Feedback} \label{M8}
@@ -893,11 +980,18 @@ UI client is available and permitted to display notifications.
 \end{itemize}
 
 \subsubsection{Local Functions}
-
 \begin{itemize}
-  \item \texttt{format\_message(code, detail)} — produce a concise message
-  \item \texttt{make\_recovery(options)} — build prompt content
+  \item \texttt{format\_error\_message}(\texttt{string code, string detail}): \texttt{string} $\times$ \texttt{string} $\rightarrow$ \texttt{string} \\
+  \textbf{Description:} \texttt{format\_error\_message(code, detail)} returns concise user-facing error message combining code and detail.
+
+  \item \texttt{make\_recovery}(\texttt{string list options}): \texttt{string list} $\rightarrow$ \texttt{RecoveryOptions} \\
+  \textbf{Description:} \texttt{make\_recovery(options)} returns recovery prompt with clickable recovery options list.
 \end{itemize}
+
+% \begin{itemize}
+%   \item \texttt{format\_message(code, detail)} — produce a concise message
+%   \item \texttt{make\_recovery(options)} — build prompt content
+% \end{itemize}
 
 \section{MIS of BrowserController} \label{M9}
 \textbf{Module:} BrowserController
@@ -922,7 +1016,7 @@ None.
 \hline
 \textbf{Name} & \textbf{In} & \textbf{Out} & \textbf{Exceptions} \\
 \hline
-\texttt{BrowserController} & \texttt{bridge: Client} & self & - \\
+\texttt{BrowserController} & \texttt{bridge: Client, timeout\_s: N} & self & -- \\
 \texttt{send} & \texttt{req: BackendReq} & \texttt{BackendResp} & \texttt{TimeoutError}, \texttt{TransportError} \\
 \texttt{get\_status} & \texttt{cmd\_id: UUID} & \texttt{ExecStatus} & \texttt{NotFoundError} \\
 \texttt{cancel} & \texttt{cmd\_id: UUID} & \texttt{bool} & \texttt{NotFoundError} \\
@@ -997,11 +1091,19 @@ Controller endpoint is reachable and authenticated.
 \end{itemize}
 
 \subsubsection{Local Functions}
-
 \begin{itemize}
-  \item \texttt{with\_timeout(call)} — wrap a bridge call with timeout
-  \item \texttt{normalize(resp)} — normalize controller response
+  \item \texttt{with\_timeout}(\texttt{ClientCall call}): \texttt{ClientCall} $\rightarrow$ \texttt{ClientCall} \\
+  \textbf{Description:} \texttt{with\_timeout(call)} returns wrapped call that fails if it exceeds timeout limit.
+
+  \item \texttt{normalize}(\texttt{BackendResp resp}): \texttt{BackendResp} $\rightarrow$ \texttt{BackendResp} \\
+  \textbf{Description:} \texttt{normalize(resp)} returns controller response with standardized fields and error codes.
 \end{itemize}
+% \begin{itemize}
+%   \item \texttt{with\_timeout(call)} — wrap a bridge call with timeout
+%   \item \texttt{normalize(resp)} — normalize controller response
+% \end{itemize}
+
+
 \section{MIS of Session Manager} \label{M10}
 \textbf{Module:} SessionManager
 
@@ -1103,9 +1205,16 @@ Store operations are atomic per session key.
 \subsubsection{Local Functions}
 
 \begin{itemize}
-  \item \texttt{now()} — current timestamp
-  \item \texttt{expired(state)} — checks idle expiry
+  \item \texttt{now}(): $\rightarrow$ \texttt{timestamp} \\
+  \textbf{Description:} \texttt{now()} returns the current system timestamp.
+
+  \item \texttt{expired}(\texttt{SessionState state}): \texttt{SessionState} $\rightarrow$ \texttt{bool} \\
+  \textbf{Description:} \texttt{expired(state)} returns \texttt{true} if the session state has exceeded its idle expiry time.
 \end{itemize}
+% \begin{itemize}
+%   \item \texttt{now()} — current timestamp
+%   \item \texttt{expired(state)} — checks idle expiry
+% \end{itemize}
 \section{MIS of Error Handling \& Recovery Module} \label{M11}
 
 \textbf{Module:} ErrorHandler
@@ -1210,9 +1319,16 @@ Compensation actions are idempotent or guarded.
 \subsubsection{Local Functions}
 
 \begin{itemize}
-  \item \texttt{calc\_backoff(cmd\_id)} — compute next delay
-  \item \texttt{is\_idempotent(cmd\_id)} — check compensation safety
+  \item \texttt{calc\_backoff}(\texttt{UUID cmd\_id}): \texttt{UUID} $\rightarrow$ \texttt{N} \\
+  \textbf{Description:} \texttt{calc\_backoff(cmd\_id)} returns the next retry delay (seconds) for command \texttt{cmd\_id}.
+
+  \item \texttt{is\_idempotent}(\texttt{UUID cmd\_id}): \texttt{UUID} $\rightarrow$ \texttt{bool} \\
+  \textbf{Description:} \texttt{is\_idempotent(cmd\_id)} returns \texttt{true} if command \texttt{cmd\_id} is safe for compensation/rollback.
 \end{itemize}
+% \begin{itemize}
+%   \item \texttt{calc\_backoff(cmd\_id)} — compute next delay
+%   \item \texttt{is\_idempotent(cmd\_id)} — check compensation safety
+% \end{itemize}
 
 \section{MIS of Storage Management Module}\label{M12}
 
@@ -1295,9 +1411,16 @@ Compensation actions are idempotent or guarded.
 
 \subsubsection{Local Functions:}
 \begin{itemize}
-  \item \texttt{verifyBackupIntegrity(backupID)}
-  \item \texttt{applyRetentionRule(fileMeta)}
+  \item \texttt{verifyBackupIntegrity}(\texttt{UUID backupID}): \texttt{UUID} $\rightarrow$ \texttt{bool} \\
+  \textbf{Description:} \texttt{verifyBackupIntegrity(backupID)} returns \texttt{true} if backup \texttt{backupID} passes integrity checks.
+
+  \item \texttt{applyRetentionRule}(\texttt{FileMeta fileMeta}): \texttt{FileMeta} $\rightarrow$ \texttt{bool} \\
+  \textbf{Description:} \texttt{applyRetentionRule(fileMeta)} returns \texttt{true} if file metadata \texttt{fileMeta} should be retained by retention policy.
 \end{itemize}
+% \begin{itemize}
+%   \item \texttt{verifyBackupIntegrity(backupID)}
+%   \item \texttt{applyRetentionRule(fileMeta)}
+% \end{itemize}
 
 \section{MIS of User Profile Manager} \label{M13}
 
@@ -1317,7 +1440,7 @@ Compensation actions are idempotent or guarded.
 \begin{tabular}{|l|l|l|l|}
 \hline
 \textbf{Name} & \textbf{In} & \textbf{Out} & \textbf{Exceptions} \\ \hline
-\texttt{createProfile} & userToken, initData & profileID & ProfileCreationException \\ 
+\texttt{createProfile} & \texttt{userToken: string, initData: dict} & profileID & ProfileCreationException \\ 
 \texttt{loadPreferences} & userID & preferenceData & DataNotFoundException \\ 
 \texttt{saveConsent} & userID, consentFlags & status & ConsentException \\ \hline
 \end{tabular}
@@ -1407,9 +1530,9 @@ Compensation actions are idempotent or guarded.
 \begin{tabular}{|l|l|l|l|}
 \hline
 \textbf{Name} & \textbf{In} & \textbf{Out} & \textbf{Exceptions} \\ \hline
-\texttt{authenticateUser} & username, password & sessionToken & AuthException \\ 
-\texttt{validateToken} & sessionToken & validity & TokenException \\ 
-\texttt{rotateKeys} & scheduleID & status & KeyRotationException \\ \hline
+\texttt{authenticateUser} & \texttt{username: string, password: string} & sessionToken & AuthException \\ 
+\texttt{validateToken} & \texttt{sessionToken: string} & \texttt{validity: bool} & TokenException \\ 
+\texttt{rotateKeys} & scheduleID & \texttt{status: string} & KeyRotationException \\ \hline
 \end{tabular}
 
 \subsection{Semantics}
@@ -1445,9 +1568,9 @@ Compensation actions are idempotent or guarded.
 \begin{tabular}{|l|l|l|l|}
 \hline
 \textbf{Name} & \textbf{In} & \textbf{Out} & \textbf{Exceptions} \\ \hline
-\texttt{encryptData} & plainData, keyID & cipherData & EncryptionException \\ 
+\texttt{encryptData} & \texttt{plainData: string, keyID: UUID} & cipherData & EncryptionException \\ 
 \texttt{decryptData} & cipherData, keyID & plainData & DecryptionException \\ 
-\texttt{rotateKeys} & rotationPolicy & result & RotationFailureException \\ 
+\texttt{rotateKeys} & rotationPolicy & \texttt{result: bool} & RotationFailureException \\ 
 \texttt{verifyIntegrity} & dataBlob, signature & validFlag & IntegrityException \\ \hline
 \end{tabular}
 
@@ -1475,9 +1598,9 @@ Implements R16.2 (Integrity): validates message hashes before use.
 \begin{tabular}{|l|l|l|l|}
 \hline
 \textbf{Name} & \textbf{In} & \textbf{Out} & \textbf{Exceptions} \\ \hline
-\texttt{validateCommand} & commandText, context & validationResult & InvalidCommandException \\ 
-\texttt{reportIncident} & incidentData & reportID & ReportFailureException \\ 
-\texttt{recoverState} & sessionID & status & RecoveryException \\ \hline
+\texttt{validateCommand} & \texttt{commandText: string, context: dict} & validationResult & InvalidCommandException \\ 
+\texttt{reportIncident} & \texttt{incidentData: dict} & reportID & ReportFailureException \\ 
+\texttt{recoverState} & sessionID & \texttt{status: bool} & RecoveryException \\ \hline
 \end{tabular}
 
 \subsection{Semantics}
@@ -1518,7 +1641,7 @@ Integrates with M14 to log anomaly-triggered safety events.
 \hline
 \textbf{Name} & \textbf{In} & \textbf{Out} & \textbf{Exceptions} \\ \hline
 \texttt{listDevices} & - & deviceList & DeviceQueryException \\ 
-\texttt{startCapture} & deviceID & status & PermissionException \\ 
+\texttt{startCapture} & deviceID & \texttt{status: bool} & PermissionException \\ 
 \texttt{readFrame} & - & audioFrame & CaptureInactiveException \\ \hline
 \end{tabular}
 
@@ -1559,9 +1682,10 @@ input to subsequent modules. Integrates with M10 to maintain session continuity.
 \begin{tabular}{|l|l|l|l|}
 \hline
 \textbf{Name} & \textbf{In} & \textbf{Out} & \textbf{Exceptions} \\ \hline
-\texttt{filterFrame} & audioFrame & cleanedFrame & - \\ 
-\texttt{detectSpeech} & audioFrame & isSpeech (bool) & - \\ 
-\texttt{resetState} & - & status & - \\ \hline
+\texttt{filterFrame} & \texttt{audioFrame: AudioFrame} & \texttt{cleanedFrame: AudioFrame} & - \\ 
+\texttt{detectSpeech} & \texttt{audioFrame: AudioFrame} & \texttt{isSpeech: bool} & - \\ 
+\texttt{resetState} & - & \texttt{status: bool} & - \\ \hline
+\end{tabular}
 \end{tabular}
 
 \subsection{Semantics}
@@ -1601,9 +1725,9 @@ Provides binary VAD detections for downstream timing and segmentation.
 \begin{tabular}{|l|l|l|l|}
 \hline
 \textbf{Name} & \textbf{In} & \textbf{Out} & \textbf{Exceptions} \\ \hline
-\texttt{makePrompt} & uiState & promptText & - \\ 
-\texttt{makeConfirm} & intent & promptText & - \\ 
-\texttt{makeErrorPrompt} & errorData & promptText & - \\ \hline
+\texttt{makePrompt} & \texttt{uiState: UiState} & \texttt{promptText: string} & - \\ 
+\texttt{makeConfirm} & \texttt{intent: Intent} & \texttt{promptText: string} & - \\ 
+\texttt{makeErrorPrompt} & \texttt{errorData: dict} & \texttt{promptText: string} & - \\ \hline
 \end{tabular}
 
 \subsection{Semantics}
@@ -1645,7 +1769,7 @@ Ensures consistent phrasing across confirmations, errors, and system messages.
 \textbf{Name} & \textbf{In} & \textbf{Out} & \textbf{Exceptions} \\ \hline
 \texttt{scheduleTune} & userID, dataset & jobID & TunePolicyException \\ 
 \texttt{checkStatus} & jobID & status & NotFoundException \\ 
-\texttt{applyModel} & userID, jobID & success (bool) & ModelLoadException \\ \hline
+\texttt{applyModel} & userID, jobID & \texttt{success: bool} & ModelLoadException \\ \hline
 \end{tabular}
 
 \subsection{Semantics}
@@ -1685,8 +1809,8 @@ Updates the user's model profile upon successful tuning.
 \begin{tabular}{|l|l|l|l|}
 \hline
 \textbf{Name} & \textbf{In} & \textbf{Out} & \textbf{Exceptions} \\ \hline
-\texttt{lookup} & intent & instruction & NotFoundException \\ 
-\texttt{registerInstr} & instruction & status & StoreException \\ 
+\texttt{lookup} & \texttt{intent: Intent} & \texttt{instruction: Command} & \texttt{NotFoundException} \\ 
+\texttt{registerInstr} & \texttt{instruction: Command} & \texttt{status: bool} & \texttt{StoreException} \\ 
 \texttt{updateInstr} & id, instruction & status & StoreException \\ \hline
 \end{tabular}
 
