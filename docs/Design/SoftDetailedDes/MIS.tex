@@ -360,10 +360,10 @@ The high-level module decomposition of the system is summarized in Table 1 of th
 
 \begin{itemize}
   \item \texttt{check\_contrast}(\texttt{rgb fg, rgb bg}): \texttt{rgb} $\times$ \texttt{rgb} $\rightarrow$ \texttt{bool} \\
-  \textbf{Description:} \texttt{check\_contrast(fg, bg)} returns \texttt{true} if contrast ratio between foreground \texttt{fg} and background \texttt{bg} meets WCAG level.
+  \textbf{Description:} \texttt{check\_contrast(fg, bg)} $\equiv$ \(\frac{L_1 + 0.05}{L_2 + 0.05}\) $\geq$ \texttt{WCAG\_THRESHOLD} where $L_1, L_2$ are relative luminances of fg/bg (used by \texttt{validateElement})
 
   \item \texttt{aria\_set}(\texttt{string elemId, AccessMetadata metadata}): \texttt{string} $\times$ \texttt{AccessMetadata} $\rightarrow$ \texttt{bool} \\
-  \textbf{Description:} \texttt{aria\_set(elemId, metadata)} returns \texttt{true} if ARIA attributes from \texttt{metadata} are applied to element \texttt{elemId}.
+  \textbf{Description:} \texttt{aria\_set(elemId, metadata)} returns \texttt{true} if ARIA attributes from \texttt{metadata} are applied to element \texttt{elemId} (used by \texttt{applySettings})
 \end{itemize}
 
 \newpage
@@ -482,6 +482,8 @@ The high-level module decomposition of the system is summarized in Table 1 of th
 \texttt{SpeechToTextEngine} & \texttt{config: AsrConfig} & self & InitializationError \\ 
 \texttt{processAudio} & \texttt{audioData: AudioStream} & \texttt{Transcript} & \texttt{ProcessingError} \\ 
 \texttt{reset} & - & - & - \\ \hline
+\texttt{validateAudioFormat} & \texttt{audioData: AudioStream} & - & - \\ 
+\texttt{validateModelReady} & - & \texttt{bool} & \texttt{ModelValidationError} \\ 
 \end{tabular}
 
 \subsection{Semantics}
@@ -500,8 +502,9 @@ The high-level module decomposition of the system is summarized in Table 1 of th
 
 \subsubsection{Assumptions:}
 \begin{itemize}
-  \item Input audio meets expected format and sample rate.
-  \item Model artifacts are present and validated at initialization.
+  \item None.
+  % \item Input audio meets expected format and sample rate.
+  % \item Model artifacts are present and validated at initialization.
 \end{itemize}
 
 \subsubsection{Access Routine Semantics:}
@@ -515,9 +518,9 @@ The high-level module decomposition of the system is summarized in Table 1 of th
 
 \noindent\texttt{processAudio(audioData)}:
 \begin{itemize}
-  \item \textbf{transition:} preprocess (VAD, noise suppression), extract features, decode with models, and apply personalization.
+  \item \textbf{transition:} validateAudioFormat(audioData) $\wedge$ preprocess (VAD, noise suppression), extract features, decode with models, and apply personalization.
   \item \textbf{output:} \texttt{Transcript} containing recognized text and confidence metadata.
-  \item \textbf{exception:} \texttt{ProcessingError} on unrecoverable failure.
+  \item \textbf{exception:} \texttt{ProcessingError} if format invalid or processing fails.
 \end{itemize}
 
 \noindent\texttt{reset()}:
@@ -525,6 +528,20 @@ The high-level module decomposition of the system is summarized in Table 1 of th
   \item \textbf{transition:} clear \texttt{audio\_buffer} and reset decoder/model state.
   \item \textbf{output:} -.
   \item \textbf{exception:} -.
+\end{itemize}
+
+\noindent\texttt{validateAudioFormat(audio)}:
+\begin{itemize}
+  \item \textbf{transition:} None
+  \item \textbf{output:} \texttt{true} iff \texttt{audio.sampleRate = EXPECTED\_SAMPLE\_RATE $\wedge$ audio.format = EXPECTED\_FORMAT}
+  \item \textbf{exception:} -
+\end{itemize}
+
+\noindent\texttt{validateModelReady()}:
+\begin{itemize}
+  \item \textbf{transition:} None
+  \item \textbf{output:} \texttt{true} iff model is loaded $\wedge$ model is validated
+  \item \textbf{exception:} \texttt{exc := ModelValidationError} if model files missing or corrupted
 \end{itemize}
 
 \subsubsection{Local Functions:}
@@ -557,7 +574,8 @@ The high-level module decomposition of the system is summarized in Table 1 of th
 
 \subsubsection{Exported Constants:}
 \begin{itemize}
-  \item None.
+  \item \texttt{MIN\_CONFIDENCE = 0.5}
+  \item \texttt{EXPECTED\_TRANSCRIPT\_FORMAT = ``text + confidence''}
 \end{itemize}
 
 \subsubsection{Exported Access Programs:}
@@ -568,6 +586,7 @@ The high-level module decomposition of the system is summarized in Table 1 of th
 \texttt{IntentInterpreter} & - & self & InitializationError \\ 
 \texttt{interpret} & \texttt{transcript: Transcript} & \texttt{Intent} & \texttt{InterpretationError} \\ 
 \texttt{reset} & - & - & - \\ \hline
+\texttt{validateTranscript} & \texttt{transcript: Transcript} & bool & - \\ \hline
 \end{tabular}
 
 \subsection{Semantics}
@@ -585,7 +604,7 @@ The high-level module decomposition of the system is summarized in Table 1 of th
 
 \subsubsection{Assumptions:}
 \begin{itemize}
-  \item Transcripts are syntactically valid and provide sufficient information for intent resolution in typical cases.
+  \item None. % Transcripts are syntactically valid and provide sufficient information for intent resolution in typical cases.
 \end{itemize}
 \subsubsection{Access Routine Semantics}
 
@@ -599,9 +618,9 @@ The high-level module decomposition of the system is summarized in Table 1 of th
 
 \noindent\texttt{interpret(transcript)}:
 \begin{itemize}
-\item \textbf{transition:} Parse input \texttt{transcript}; match it against intent schemas; extract and normalize slots; consult \texttt{context} for multi-turn resolution.
-\item \textbf{output:} \texttt{Intent} object containing intent name, parameter slots, and confidence score.
-\item \textbf{exception:} \texttt{InterpretationError} if no confident intent mapping can be produced.
+  \item \textbf{transition:} validateTranscript(transcript) $\wedge$ parse input $\wedge$ match against intent schemas $\wedge$ extract slots
+  \item \textbf{output:} \texttt{Intent} object containing intent name, slots, and confidence score
+  \item \textbf{exception:} \texttt{InterpretationError} if transcript invalid or no confident intent found
 \end{itemize}
 
 \noindent\texttt{reset()}:
@@ -610,6 +629,13 @@ The high-level module decomposition of the system is summarized in Table 1 of th
 \item \textbf{output:} Boolean flag indicating success of reset operation.
 \item \textbf{exception:} -
 \end{itemize}
+\noindent\texttt{validateTranscript(transcript)}:
+\begin{itemize}
+  \item \textbf{transition:} None
+  \item \textbf{output:} \texttt{true} iff \texttt{transcript.text $\neq$ $\emptyset$ $\wedge$ transcript.confidence $>$ MIN\_CONFIDENCE}
+  \item \textbf{exception:} None
+\end{itemize}
+
 
 \subsubsection{Local Functions:}
 \begin{itemize}
