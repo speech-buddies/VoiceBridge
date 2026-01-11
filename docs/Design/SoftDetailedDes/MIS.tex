@@ -115,7 +115,7 @@ For example, the symbol := denotes multiple assignment, and conditional rules
 appear in the form $(c_1 \Rightarrow r_1 \mid c_2 \Rightarrow r_2 \mid \dots \mid c_n \Rightarrow r_n)$.
 
 This section summarizes the primitive and derived data types used by
-\progname, the VoiceBridge system.
+the VoiceBridge system.
 
 \begin{center}
 \renewcommand{\arraystretch}{1.2}
@@ -134,7 +134,7 @@ boolean & bool & Logical value in \{true, false\}. Used frequently across valida
 \end{center}
 
 \noindent
-In addition to these primitive types, \progname\ uses several derived types relevant
+In addition to these primitive types, VoiceBridge uses several derived types relevant
 to speech processing, browser automation, and interaction workflows:
 
 \begin{itemize}
@@ -168,7 +168,7 @@ to speech processing, browser automation, and interaction workflows:
 \end{itemize}
 
 \noindent
-Functions used by \progname\ are typed by input and output domains.  
+Functions used by VoiceBridge are typed by input and output domains.  
 Local functions are documented in each module by listing their type signatures followed by their specification.
 Where relevant, imported functions (e.g., VAD filters, ASR decoders, encryption routines, browser automation calls) are abstracted using their formal types rather than implementation details.
 
@@ -203,10 +203,10 @@ The high-level module decomposition of the system is summarized in Table 1 of th
 \begin{tabular}{|l|l|l|l|}
 \hline
 \textbf{Name} & \textbf{In} & \textbf{Out} & \textbf{Exceptions} \\ \hline
-\texttt{UserInterface} & \texttt{config: UiConfig} & self & InitializationError \\ \hline
-\texttt{receiveInput} & \texttt{event: UiEvent} & - & \texttt{InputError} \\ \hline
-\texttt{render} & \texttt{state: UiState} & - & RenderError \\ \hline
-\texttt{showFeedback} & \texttt{msg: FeedbackItem} & - & - \\ \hline
+\texttt{UserInterface} & \texttt{config: UiConfig} & self & InitializationError \\ 
+\texttt{receiveInput} & \texttt{event: UiEvent} & - & \texttt{InputError} \\ 
+\texttt{render} & \texttt{state: UiState} & - & RenderError \\ 
+\texttt{showFeedback} & \texttt{msg: FeedbackItem} & - & - \\ 
 \texttt{setFocus} & \texttt{elem\_id: string} & - & - \\ \hline
 \end{tabular}
 
@@ -298,9 +298,9 @@ The high-level module decomposition of the system is summarized in Table 1 of th
 \begin{tabular}{|l|l|l|l|}
 \hline
 \textbf{Name} & \textbf{In} & \textbf{Out} & \textbf{Exceptions} \\ \hline
-\texttt{AccessibilityLayer} & \texttt{parent: UserInterface} & self & - \\ \hline
-\texttt{applySettings} & \texttt{settings: AccessConfig} & - & - \\ \hline
-\texttt{announce} & \texttt{msg: string} & - & - \\ \hline
+\texttt{AccessibilityLayer} & \texttt{parent: UserInterface} & self & - \\ 
+\texttt{applySettings} & \texttt{settings: AccessConfig} & - & - \\ 
+\texttt{announce} & \texttt{msg: string} & - & - \\ 
 \texttt{validateElement} & \texttt{elem\_id: string} & \texttt{ValidationReport} & - \\ \hline
 \end{tabular}
 
@@ -377,9 +377,9 @@ The high-level module decomposition of the system is summarized in Table 1 of th
 \begin{tabular}{|l|l|l|l|}
 \hline
 \textbf{Name} & \textbf{In} & \textbf{Out} & \textbf{Exceptions} \\ \hline
-\texttt{FeedbackDisplay} & \texttt{parent: UserInterface} & self & - \\ \hline
-\texttt{showMessage} & \texttt{msg: string}, \texttt{type: MsgType} & \texttt{feedbackId: UUID} & - \\ \hline
-\texttt{clear} & - & - & - \\ \hline
+\texttt{FeedbackDisplay} & \texttt{parent: UserInterface} & self & - \\ 
+\texttt{showMessage} & \texttt{msg: string}, \texttt{type: MsgType} & \texttt{feedbackId: UUID} & - \\ 
+\texttt{clear} & - & - & - \\ 
 \texttt{makeRecovery} & \texttt{feedbackId: UUID} & \texttt{RecoveryOptions} & - \\ \hline
 \end{tabular}
 
@@ -458,8 +458,8 @@ The high-level module decomposition of the system is summarized in Table 1 of th
 \begin{tabular}{|l|l|l|l|}
 \hline
 \textbf{Name} & \textbf{In} & \textbf{Out} & \textbf{Exceptions} \\ \hline
-\texttt{SpeechToTextEngine} & \texttt{config: AsrConfig} & self & InitializationError \\ \hline
-\texttt{processAudio} & \texttt{audioData: AudioStream} & \texttt{Transcript} & \texttt{ProcessingError} \\ \hline
+\texttt{SpeechToTextEngine} & \texttt{config: AsrConfig} & self & InitializationError \\ 
+\texttt{processAudio} & \texttt{audioData: AudioStream} & \texttt{Transcript} & \texttt{ProcessingError} \\ 
 \texttt{reset} & - & - & - \\ \hline
 \end{tabular}
 
@@ -539,8 +539,8 @@ The high-level module decomposition of the system is summarized in Table 1 of th
 \begin{tabular}{|l|l|l|l|}
 \hline
 \textbf{Name} & \textbf{In} & \textbf{Out} & \textbf{Exceptions} \\ \hline
-\texttt{IntentInterpreter} & - & self & InitializationError \\ \hline
-\texttt{interpret} & \texttt{transcript: Transcript} & \texttt{Intent} & \texttt{InterpretationError} \\ \hline
+\texttt{IntentInterpreter} & - & self & InitializationError \\ 
+\texttt{interpret} & \texttt{transcript: Transcript} & \texttt{Intent} & \texttt{InterpretationError} \\ 
 \texttt{reset} & - & - & - \\ \hline
 \end{tabular}
 
@@ -617,9 +617,9 @@ The high-level module decomposition of the system is summarized in Table 1 of th
 \begin{tabular}{|l|l|l|l|}
 \hline
 \textbf{Name} & \textbf{In} & \textbf{Out} & \textbf{Exceptions} \\ \hline
-\texttt{CommandMapping} & - & self & InitializationError \\ \hline
-\texttt{mapIntent} & \texttt{intent: Intent} & \texttt{Command} & \texttt{MappingError} \\ \hline
-\texttt{validate} & \texttt{command: Command} & \texttt{bool} & - \\ \hline
+\texttt{CommandMapping} & - & self & InitializationError \\ 
+\texttt{mapIntent} & \texttt{intent: Intent} & \texttt{Command} & \texttt{MappingError} \\ 
+\texttt{validate} & \texttt{command: Command} & \texttt{bool} & - \\ 
 \texttt{reset} & - & - & - \\ \hline
 \end{tabular}
 
@@ -683,16 +683,16 @@ The high-level module decomposition of the system is summarized in Table 1 of th
 
 \newpage
 \section{MIS of Command Execution Layer} \label{M7}
+\textbf{Module:} CommandExecutionLayer
 
-\subsection{Module}
-
-Executes verified, mapped commands on the host device via the browser control bridge.
-Responsible for dispatch, cancellation, basic guardrails, timeout handling, and result reporting.
-
-\subsection{Uses}
-
-Browser control/automation client (e.g., \texttt{BrowserUse} bridge); OS process APIs; timer utilities;
-audit logger; configuration store for timeouts and retries.
+\subsection{Uses:}
+\begin{itemize}
+  \item BrowserController (M14) to send \texttt{BackendReq} requests and receive \texttt{BackendResp} results.
+  \item Session Manager (M15) to associate \texttt{cmd\_id} with an active session (when applicable).
+  \item Error Handling \& Recovery (M16) for standardized classification, retry/backoff, and compensation decisions.
+  \item AuditLogger (M19) to record execution attempts, outcomes, and failures.
+  \item Error Feedback (M13) to surface user-facing execution errors and recovery prompts.
+\end{itemize}
 
 \subsection{Syntax}
 
@@ -803,14 +803,15 @@ None.
 \end{itemize}
 
 \section{MIS of Error Feedback} \label{M8}
+\textbf{Module:} ErrorFeedback
 
-\subsection{Module}
-
-Displays user-friendly error messages and recovery prompts. Surfaces execution issues, suggests next steps, and routes critical errors to support logs.
-
-\subsection{Uses}
-
-UI notification layer; audit logger; configuration store for messages; localization service (optional).
+\subsection{Uses:}
+\begin{itemize}
+  \item User Interface (M1) and Feedback Display Module (M3) to render notifications and recovery prompts.
+  \item Accessibility Layer (M2) to ensure error messages and prompts are announced accessibly.
+  \item Error Handling \& Recovery (M16) to standardize error classification and map internal errors to user-facing recovery options.
+  \item AuditLogger (M19) to record error events and diagnostics.
+\end{itemize}
 
 \subsection{Syntax}
 
@@ -899,14 +900,14 @@ UI client is available and permitted to display notifications.
 \end{itemize}
 
 \section{MIS of BrowserController} \label{M9}
-
-\subsection{Module}
-
-Handles interaction with the browser controller: sends backend requests, receives statuses, and streams results back to higher layers.
+\textbf{Module:} BrowserController
 
 \subsection{Uses}
-
-Browser automation bridge client; transport layer; timer utilities; audit logger.
+\begin{itemize}
+  \item Credential Manager (M20) to obtain/validate authentication material required to call the controller endpoint (when applicable).
+  \item Error Handling \& Recovery (M16) to standardize timeout/retry decisions and error classification for transport failures.
+  \item AuditLogger (M19) to record request/response summaries, failures, and timeouts.
+\end{itemize}
 
 \subsection{Syntax}
 
@@ -1002,14 +1003,15 @@ Controller endpoint is reachable and authenticated.
   \item \texttt{normalize(resp)} — normalize controller response
 \end{itemize}
 \section{MIS of Session Manager} \label{M10}
-
-\subsection{Module}
-
-Manages ongoing user sessions and their states: start, stop, track activity, and associate commands with sessions.
+\textbf{Module:} SessionManager
 
 \subsection{Uses}
 
-Persistent store or cache; clock utilities; audit logger.
+15.2 Uses:
+\begin{itemize}
+  \item Storage Management Module (M17) as the persistent store/cache for session state.
+  \item AuditLogger (M19) to record session lifecycle events (start/stop/expiry) and state transitions.
+\end{itemize}
 
 \subsection{Syntax}
 
@@ -1106,13 +1108,16 @@ Store operations are atomic per session key.
 \end{itemize}
 \section{MIS of Error Handling \& Recovery Module} \label{M11}
 
-\subsection{Module}
-
-Classifies errors, applies retry and backoff policies, and coordinates recovery or compensation actions to return the system to a consistent state.
+\textbf{Module:} ErrorHandler
 
 \subsection{Uses}
 
-Policy store; timer/backoff utilities; audit logger; command execution layer; browser controller.
+\begin{itemize}
+  \item Command Execution Layer (M12) to schedule retries, trigger rollback/compensation, and query execution context.
+  \item BrowserController (M14) to coordinate recovery actions involving the browser automation bridge.
+  \item Session Manager (M15) to update or invalidate session state during recovery (when applicable).
+  \item AuditLogger (M19) to persist error events, classifications, and recovery actions taken.
+\end{itemize}
 
 \subsection{Syntax}
 
@@ -1235,9 +1240,9 @@ Compensation actions are idempotent or guarded.
 \begin{tabular}{|l|l|l|l|}
 \hline
 \textbf{Name} & \textbf{In} & \textbf{Out} & \textbf{Exceptions} \\ \hline
-\texttt{storeTranscript} & transcriptData, userID & confirmationID & StorageWriteException \\ \hline
-\texttt{retrieveTranscript} & transcriptID, userID & transcriptData & DataNotFoundException \\ \hline
-\texttt{backupData} & userID & backupStatus & BackupFailureException \\ \hline
+\texttt{storeTranscript} & transcriptData, userID & confirmationID & StorageWriteException \\ 
+\texttt{retrieveTranscript} & transcriptID, userID & transcriptData & DataNotFoundException \\ 
+\texttt{backupData} & userID & backupStatus & BackupFailureException \\ 
 \texttt{enforceRetentionRules} & policyConfig & summaryReport & RetentionException \\ \hline
 \end{tabular}
 
@@ -1312,8 +1317,8 @@ Compensation actions are idempotent or guarded.
 \begin{tabular}{|l|l|l|l|}
 \hline
 \textbf{Name} & \textbf{In} & \textbf{Out} & \textbf{Exceptions} \\ \hline
-\texttt{createProfile} & userToken, initData & profileID & ProfileCreationException \\ \hline
-\texttt{loadPreferences} & userID & preferenceData & DataNotFoundException \\ \hline
+\texttt{createProfile} & userToken, initData & profileID & ProfileCreationException \\ 
+\texttt{loadPreferences} & userID & preferenceData & DataNotFoundException \\ 
 \texttt{saveConsent} & userID, consentFlags & status & ConsentException \\ \hline
 \end{tabular}
 
@@ -1363,8 +1368,8 @@ Compensation actions are idempotent or guarded.
 \begin{tabular}{|l|l|l|l|}
 \hline
 \textbf{Name} & \textbf{In} & \textbf{Out} & \textbf{Exceptions} \\ \hline
-\texttt{logEvent} & eventData, severity & logID & LogWriteException \\ \hline
-\texttt{queryLogs} & filterParams, userRole & logRecords & UnauthorizedAccessException \\ \hline
+\texttt{logEvent} & eventData, severity & logID & LogWriteException \\ 
+\texttt{queryLogs} & filterParams, userRole & logRecords & UnauthorizedAccessException \\ 
 \texttt{detectAnomaly} & recentLogs & anomalyReport & DetectionException \\ \hline
 \end{tabular}
 
@@ -1402,8 +1407,8 @@ Compensation actions are idempotent or guarded.
 \begin{tabular}{|l|l|l|l|}
 \hline
 \textbf{Name} & \textbf{In} & \textbf{Out} & \textbf{Exceptions} \\ \hline
-\texttt{authenticateUser} & username, password & sessionToken & AuthException \\ \hline
-\texttt{validateToken} & sessionToken & validity & TokenException \\ \hline
+\texttt{authenticateUser} & username, password & sessionToken & AuthException \\ 
+\texttt{validateToken} & sessionToken & validity & TokenException \\ 
 \texttt{rotateKeys} & scheduleID & status & KeyRotationException \\ \hline
 \end{tabular}
 
@@ -1440,9 +1445,9 @@ Compensation actions are idempotent or guarded.
 \begin{tabular}{|l|l|l|l|}
 \hline
 \textbf{Name} & \textbf{In} & \textbf{Out} & \textbf{Exceptions} \\ \hline
-\texttt{encryptData} & plainData, keyID & cipherData & EncryptionException \\ \hline
-\texttt{decryptData} & cipherData, keyID & plainData & DecryptionException \\ \hline
-\texttt{rotateKeys} & rotationPolicy & result & RotationFailureException \\ \hline
+\texttt{encryptData} & plainData, keyID & cipherData & EncryptionException \\ 
+\texttt{decryptData} & cipherData, keyID & plainData & DecryptionException \\ 
+\texttt{rotateKeys} & rotationPolicy & result & RotationFailureException \\ 
 \texttt{verifyIntegrity} & dataBlob, signature & validFlag & IntegrityException \\ \hline
 \end{tabular}
 
@@ -1470,8 +1475,8 @@ Implements R16.2 (Integrity): validates message hashes before use.
 \begin{tabular}{|l|l|l|l|}
 \hline
 \textbf{Name} & \textbf{In} & \textbf{Out} & \textbf{Exceptions} \\ \hline
-\texttt{validateCommand} & commandText, context & validationResult & InvalidCommandException \\ \hline
-\texttt{reportIncident} & incidentData & reportID & ReportFailureException \\ \hline
+\texttt{validateCommand} & commandText, context & validationResult & InvalidCommandException \\ 
+\texttt{reportIncident} & incidentData & reportID & ReportFailureException \\ 
 \texttt{recoverState} & sessionID & status & RecoveryException \\ \hline
 \end{tabular}
 
@@ -1512,8 +1517,8 @@ Integrates with M14 to log anomaly-triggered safety events.
 \begin{tabular}{|l|l|l|l|}
 \hline
 \textbf{Name} & \textbf{In} & \textbf{Out} & \textbf{Exceptions} \\ \hline
-\texttt{listDevices} & - & deviceList & DeviceQueryException \\ \hline
-\texttt{startCapture} & deviceID & status & PermissionException \\ \hline
+\texttt{listDevices} & - & deviceList & DeviceQueryException \\ 
+\texttt{startCapture} & deviceID & status & PermissionException \\ 
 \texttt{readFrame} & - & audioFrame & CaptureInactiveException \\ \hline
 \end{tabular}
 
@@ -1554,8 +1559,8 @@ input to subsequent modules. Integrates with M10 to maintain session continuity.
 \begin{tabular}{|l|l|l|l|}
 \hline
 \textbf{Name} & \textbf{In} & \textbf{Out} & \textbf{Exceptions} \\ \hline
-\texttt{filterFrame} & audioFrame & cleanedFrame & - \\ \hline
-\texttt{detectSpeech} & audioFrame & isSpeech (bool) & - \\ \hline
+\texttt{filterFrame} & audioFrame & cleanedFrame & - \\ 
+\texttt{detectSpeech} & audioFrame & isSpeech (bool) & - \\ 
 \texttt{resetState} & - & status & - \\ \hline
 \end{tabular}
 
@@ -1596,8 +1601,8 @@ Provides binary VAD detections for downstream timing and segmentation.
 \begin{tabular}{|l|l|l|l|}
 \hline
 \textbf{Name} & \textbf{In} & \textbf{Out} & \textbf{Exceptions} \\ \hline
-\texttt{makePrompt} & uiState & promptText & - \\ \hline
-\texttt{makeConfirm} & intent & promptText & - \\ \hline
+\texttt{makePrompt} & uiState & promptText & - \\ 
+\texttt{makeConfirm} & intent & promptText & - \\ 
 \texttt{makeErrorPrompt} & errorData & promptText & - \\ \hline
 \end{tabular}
 
@@ -1638,8 +1643,8 @@ Ensures consistent phrasing across confirmations, errors, and system messages.
 \begin{tabular}{|l|l|l|l|}
 \hline
 \textbf{Name} & \textbf{In} & \textbf{Out} & \textbf{Exceptions} \\ \hline
-\texttt{scheduleTune} & userID, dataset & jobID & TunePolicyException \\ \hline
-\texttt{checkStatus} & jobID & status & NotFoundException \\ \hline
+\texttt{scheduleTune} & userID, dataset & jobID & TunePolicyException \\ 
+\texttt{checkStatus} & jobID & status & NotFoundException \\ 
 \texttt{applyModel} & userID, jobID & success (bool) & ModelLoadException \\ \hline
 \end{tabular}
 
@@ -1680,8 +1685,8 @@ Updates the user's model profile upon successful tuning.
 \begin{tabular}{|l|l|l|l|}
 \hline
 \textbf{Name} & \textbf{In} & \textbf{Out} & \textbf{Exceptions} \\ \hline
-\texttt{lookup} & intent & instruction & NotFoundException \\ \hline
-\texttt{registerInstr} & instruction & status & StoreException \\ \hline
+\texttt{lookup} & intent & instruction & NotFoundException \\ 
+\texttt{registerInstr} & instruction & status & StoreException \\ 
 \texttt{updateInstr} & id, instruction & status & StoreException \\ \hline
 \end{tabular}
 
