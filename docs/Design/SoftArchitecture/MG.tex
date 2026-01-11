@@ -53,6 +53,7 @@ Nov 12, 2025 & 1.1 & Added Modules M6-M11\\
 Nov 12, 2025 & 1.2 & Added Modules M18-M22\\
 Nov 26, 2025 & 1.3 & Added Modules M1-M6\\
 Jan 10, 2026 & 1.4 & Implemented TA Feedback for M7-M11\\
+Jan 10, 2026 & 1.4 & Implemented TA and Peer Feedback for AC/UC distinctions\\
 \bottomrule
 \end{tabularx}
 
@@ -77,7 +78,6 @@ This section records information for easy reference.
   R & Requirement\\
   SC & Scientific Computing \\
   SRS & Software Requirements Specification\\
-  \progname & Explanation of program name\\
   UC & Unlikely Change \\
   FR & Functional Requirement\\
   LF & Look and Feel \\
@@ -168,8 +168,8 @@ change.
 \begin{description}
 
 \item[\refstepcounter{acnum} \actheacnum \label{acHardware}:]
-Hardware platform and input devices. \\
-Advancements in microphone technology, such as arrays or new form factors, alongside evolving processing hardware, may improve audio quality, reduce costs, and enable integration with wearable devices. These changes influence audio acquisition and preprocessing modules.
+Consumer-grade hardware platform and input devices. \\
+VoiceBridge is expected to run on a range of consumer-grade devices (desktops, laptops, tablets) with standard microphones and evolving OS audio stacks. Variations in microphone quality, form factor, and host processing capabilities, as well as future improvements in consumer audio hardware, should be handled by the audio acquisition and preprocessing modules (e.g., Microphone Manager and VAD/NoiseFilter) without impacting higher layers.
 
 \item[\refstepcounter{acnum} \actheacnum \label{acSpeechModel}:]
 Speech-to-text engine and language support. \\
@@ -181,7 +181,8 @@ Personalization features may evolve to accommodate changing user speech patterns
 
 \item[\refstepcounter{acnum} \actheacnum \label{acCommandSupport}:]
 Command mapping and browser automation protocols. \\
-Updates may introduce new commands, integrate with emerging browser APIs, or improve error detection and recovery in command execution modules.
+Browser capabilities, permission models, and automation interfaces (such as extension manifests and scripting APIs) are expected to evolve over time. New commands, revised command schemas, and updated browser/OS integration will require changes localized to the Command Mapping, Command Execution, and Browser Controller modules, which are designed to isolate such API-level changes from the rest of the system.
+
 
 \item[\refstepcounter{acnum} \actheacnum \label{acUIAndAccessibility}:]
 User interface and accessibility compliance. \\
@@ -222,8 +223,8 @@ decisions will be changed.
 \begin{description}
 
 \item[\refstepcounter{ucnum} \uctheucnum \label{ucHardwarePlatform}:]
-Switching to specialized or high-end microphones and audio hardware. \\
-VoiceBridge targets consumer-grade devices using standard microphones, ensuring affordability and accessibility. Moving to uncommon or costly hardware is outside the project scope and is therefore unlikely.
+Switching to specialized or non-consumer deployment platforms. \\
+VoiceBridge is designed to run on consumer-grade devices using standard microphones and common operating systems. Supporting specialized assistive hardware would require major changes to hardware assumptions, certification, and system integration, and is out of scope for this project.
 
 \item[\refstepcounter{ucnum} \uctheucnum \label{ucProcessingOffload}:]
 Offloading speech processing or command execution to external or cloud systems. \\
@@ -231,11 +232,11 @@ To protect user privacy and maintain responsiveness, VoiceBridge performs all ke
 
 \item[\refstepcounter{ucnum} \uctheucnum \label{ucASRMethod}:]
 Fundamental changes to the speech recognition approach. \\
-The system uses specialized ASR models tuned for speech impairments based on proven models. Major shifts in ASR methodology would be disruptive and are therefore improbable.
+The system uses speech recognition models adapted for users with speech impairments. Major changes to the recognition method—such as replacing local processing with a fully cloud-based approach—would be disruptive and are not planned.
 
 \item[\refstepcounter{ucnum} \uctheucnum \label{ucCommandSystem}:]
 Complete redesign of command mapping and browser control modules. \\
-These modules are tightly coupled with browser APIs and OS functions for stability and usability. Major rewrites would cause extensive system impact and are unlikely.
+The system uses a browser-bridge automation pattern, with dedicated modules (Command Mapping, Command Execution, Browser Controller) that encapsulate browser APIs and OS integration. Updates to support new browser APIs or extensions are expected, but replacing the underlying automation architecture is not planned.
 
 \item[\refstepcounter{ucnum} \uctheucnum \label{ucArchitecture}:]
 Abandoning modular design for a monolithic or radically different architecture. \\
