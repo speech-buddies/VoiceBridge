@@ -179,7 +179,7 @@ Where relevant, imported functions (e.g., VAD filters, ASR decoders, encryption 
 The high-level module decomposition of the system is summarized in Table 1 of the MG document. For a comprehensive and detailed breakdown, please refer to the Module Guide (MG) document available at \href{https://github.com/speech-buddies/VoiceBridge/blob/main/docs/Design/SoftArchitecture/MG.pdf}{MG document}.
 
 \newpage
-\section{MIS of User Interface Module} \label{M1}
+\section{(M1) MIS of User Interface Module} \label{M1}
 
 
 \textbf{Module:} UserInterface
@@ -284,7 +284,7 @@ The high-level module decomposition of the system is summarized in Table 1 of th
 % \end{itemize}
 
 \newpage
-\section{MIS of Accessibility Layer} \label{M2}
+\section{(M2) MIS of Accessibility Layer} \label{M2}
 \textbf{Module:} AccessibilityLayer
 
 \subsection{Uses:}
@@ -368,7 +368,7 @@ The high-level module decomposition of the system is summarized in Table 1 of th
 \end{itemize}
 
 \newpage
-\section{MIS of Feedback Display Module}
+\section{(M3) MIS of Feedback Display Module}
 \label{M3}
 
 \textbf{Module:} FeedbackDisplay
@@ -455,7 +455,7 @@ The high-level module decomposition of the system is summarized in Table 1 of th
 % \end{itemize}
 
 \newpage
-\section{MIS of Speech-to-Text Engine}
+\section{(M4) MIS Speech-to-Text Engine}
 \label{M4}
 
 \textbf{Module:} SpeechToTextEngine
@@ -559,7 +559,7 @@ The high-level module decomposition of the system is summarized in Table 1 of th
 
 
 \newpage
-\section{MIS of Intent Interpreter}
+\section{(M5) MIS of Intent Interpreter}
 \label{M5}
 
 \textbf{Module:} IntentInterpreter
@@ -652,7 +652,7 @@ The high-level module decomposition of the system is summarized in Table 1 of th
 % \end{itemize}
 
 \newpage
-\section{MIS of Command Mapping Module}
+\section{(M6) MIS of Command Mapping Module}
 \label{M6}
 
 \textbf{Module:} CommandMapping
@@ -752,7 +752,7 @@ The high-level module decomposition of the system is summarized in Table 1 of th
 
 
 \newpage
-\section{MIS of Command Execution Layer} \label{M7}
+\section{(M7) MIS of Command Execution Layer} \label{M7}
 \textbf{Module:} CommandExecutionLayer
 
 \subsection{Uses:}
@@ -889,7 +889,7 @@ None.
   \textbf{Description:} \texttt{to\_backend(cmd)} returns normalized backend request for browser bridge.
 \end{itemize}
 
-\section{MIS of Error Feedback} \label{M8}
+\section{(M8) MIS of Error Feedback} \label{M8}
 \textbf{Module:} ErrorFeedback
 
 \subsection{Uses:}
@@ -993,7 +993,7 @@ UI client is available and permitted to display notifications.
 %   \item \texttt{make\_recovery(options)} — build prompt content
 % \end{itemize}
 
-\section{MIS of BrowserController} \label{M9}
+\section{(M9) MIS of BrowserController} \label{M9}
 \textbf{Module:} BrowserController
 
 \subsection{Uses}
@@ -1104,7 +1104,7 @@ Controller endpoint is reachable and authenticated.
 % \end{itemize}
 
 
-\section{MIS of Session Manager} \label{M10}
+\section{(M10) MIS of Session Manager} \label{M10}
 \textbf{Module:} SessionManager
 
 \subsection{Uses}
@@ -1215,7 +1215,7 @@ Store operations are atomic per session key.
 %   \item \texttt{now()} — current timestamp
 %   \item \texttt{expired(state)} — checks idle expiry
 % \end{itemize}
-\section{MIS of Error Handling \& Recovery Module} \label{M11}
+\section{(M11) MIS of Error Handling \& Recovery Module} \label{M11}
 
 \textbf{Module:} ErrorHandler
 
@@ -1330,9 +1330,9 @@ Compensation actions are idempotent or guarded.
 %   \item \texttt{is\_idempotent(cmd\_id)} — check compensation safety
 % \end{itemize}
 
-\section{MIS of Storage Management Module}\label{M12}
+\section{(M12) MIS of Data Management Module}\label{M12}
 
-\textbf{Module:} Storage Management Module 
+\textbf{Module:} Data Management Module 
 
 \subsection{Uses:}
 \begin{itemize}
@@ -1422,7 +1422,7 @@ Compensation actions are idempotent or guarded.
 %   \item \texttt{applyRetentionRule(fileMeta)}
 % \end{itemize}
 
-\section{MIS of User Profile Manager} \label{M13}
+\section{(M13) MIS of User Profile Manager} \label{M13}
 
 \textbf{Module:} UserProfileManager
 
@@ -1474,7 +1474,7 @@ Compensation actions are idempotent or guarded.
 \end{itemize}
 
 
-\section{MIS of AuditLogger} \label{M14}
+\section{(M14) MIS of AuditLogger} \label{M14}
 
 \textbf{Module:} AuditLogger
 
@@ -1513,7 +1513,7 @@ Compensation actions are idempotent or guarded.
 
 \label{MIS:M15}
 
-\section{MIS of Credential Manager} \label{M15}
+\section{(M15) MIS of Credential Manager} \label{M15}
 
 \textbf{Module:} Credential Manager (CredentialManagerImpl)
 
@@ -1552,7 +1552,7 @@ Compensation actions are idempotent or guarded.
 
 \label{MIS:M16}
 
-\section{MIS of Encryption Manager} \label{M16}
+\section{(M16) MIS of Encryption Manager} \label{M16}
 
 \textbf{Module:} Encryption Manager (EncryptionManagerImpl)
 
@@ -1580,7 +1580,7 @@ Implements R16.3 (Privacy Requirements): ensures all data is encrypted at rest/i
 Implements R16.2 (Integrity): validates message hashes before use.
 
 
-\section{MIS of OutOfScopeHandler}\label{M17}
+\section{(M17) MIS of OutOfScopeHandler}\label{M17}
 
 \textbf{Module:} OutOfScopeHandler
 
@@ -1622,7 +1622,7 @@ Integrates with M14 to log anomaly-triggered safety events.
 
 
 
-\section{MIS of MicrophoneManager} \label{M18}
+\section{(M18) MIS of MicrophoneManager} \label{M18}
 
 \textbf{Module:} MicrophoneManager
 
@@ -1664,7 +1664,7 @@ input to subsequent modules. Integrates with M10 to maintain session continuity.
 
 \label{MIS:M19}
 
-\section{MIS of VADNoiseFilter} \label{M19}
+\section{(M19) MIS of VADNoiseFilter} \label{M19}
 
 \textbf{Module:} VADNoiseFilter
 
@@ -1706,7 +1706,7 @@ Provides binary VAD detections for downstream timing and segmentation.
 
 \label{MIS:M20}
 
-\section{MIS of PromptingModule} \label{M20}
+\section{(M20) MIS of PromptingModule} \label{M20}
 
 \textbf{Module:} PromptingModule
 
@@ -1748,7 +1748,7 @@ Ensures consistent phrasing across confirmations, errors, and system messages.
 
 \label{MIS:M21}
 
-\section{MIS of ModelTuner} \label{M21}
+\section{(M21) MIS of ModelTuner} \label{M21}
 
 \textbf{Module:} ModelTuner
 
@@ -1790,7 +1790,7 @@ Updates the user's model profile upon successful tuning.
 
 \label{MIS:M22}
 
-\section{MIS of InstructionRegistry} \label{M22}
+\section{(M22) MIS of InstructionRegistry} \label{M22}
 
 \textbf{Module:} InstructionRegistry
 
