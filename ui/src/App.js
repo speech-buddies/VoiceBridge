@@ -67,55 +67,62 @@ function App() {
   };
 
   return (
-    <div className={`App ${isLightMode ? 'light-mode' : 'dark-mode'}`}>
-      <header className="App-header">
-        <div className="header-content">
-          <div>
-            <h1>VoiceBridge</h1>
-            <p className="subtitle">Accessibility Interface for Speech-to-Text</p>
+    <div className={`App extension-overlay ${isLightMode ? 'light-mode' : 'dark-mode'}`}>
+      <div className="extension-container">
+        <header className="App-header">
+          <div className="header-content">
+            <div>
+              <h1>VoiceBridge</h1>
+              <p className="subtitle">Accessibility Interface for Speech-to-Text</p>
+            </div>
+            <div className="header-controls">
+              <button className="theme-toggle" onClick={toggleTheme} aria-label="Toggle theme">
+                {isLightMode ? '🌙' : '☀️'}
+              </button>
+              <button 
+                className="minimize-button" 
+                onClick={() => {
+                  const root = document.getElementById('voicebridge-root');
+                  if (root) root.style.display = 'none';
+                }}
+                aria-label="Minimize"
+              >
+                −
+              </button>
+            </div>
           </div>
-          <button className="theme-toggle" onClick={toggleTheme} aria-label="Toggle theme">
-            {isLightMode ? '🌙' : '☀️'}
-          </button>
-        </div>
-      </header>
+        </header>
 
-      <main className="App-main">
-        <div className="main-container">
-          <div className="left-panel">
-            <StatusIndicator status={status} error={error} isLightMode={isLightMode} />
-            <SpeechInput
-              isListening={isListening}
-              onStartListening={handleStartListening}
-              onStopListening={handleStopListening}
-              onTranscription={handleTranscription}
-              onError={handleError}
-              isLightMode={isLightMode}
-            />
-            {command && (
-              <CommandConfirmation
-                command={command}
-                onConfirm={handleConfirmCommand}
-                onCancel={handleCancelCommand}
+        <main className="App-main">
+          <div className="main-container">
+            <div className="left-panel">
+              <StatusIndicator status={status} error={error} isLightMode={isLightMode} />
+              <SpeechInput
+                isListening={isListening}
+                onStartListening={handleStartListening}
+                onStopListening={handleStopListening}
+                onTranscription={handleTranscription}
+                onError={handleError}
                 isLightMode={isLightMode}
               />
-            )}
+              {command && (
+                <CommandConfirmation
+                  command={command}
+                  onConfirm={handleConfirmCommand}
+                  onCancel={handleCancelCommand}
+                  isLightMode={isLightMode}
+                />
+              )}
+              <TranscriptionDisplay
+                transcription={transcription}
+                isListening={isListening}
+                onCommandDetected={handleCommandDetected}
+                isLightMode={isLightMode}
+              />
+            </div>
           </div>
-
-          <div className="right-panel">
-            <TranscriptionDisplay
-              transcription={transcription}
-              isListening={isListening}
-              onCommandDetected={handleCommandDetected}
-              isLightMode={isLightMode}
-            />
-          </div>
-        </div>
-      </main>
-
-      <footer className="App-footer">
-        <p>Speech Buddies - Making technology accessible for everyone</p>
-      </footer>
+        </main>
+      </div>
     </div>
   );
 }

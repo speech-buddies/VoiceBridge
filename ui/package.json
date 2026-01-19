@@ -11,6 +11,7 @@
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
+    "build:extension": "react-scripts build && node scripts/prepare-extension.js",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
