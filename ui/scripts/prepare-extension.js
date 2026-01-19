@@ -68,10 +68,24 @@ extensionFiles.forEach(file => {
   }
 });
 
-// Ensure icons directory exists
-const iconsDir = path.join(extensionDir, 'icons');
-if (!fs.existsSync(iconsDir)) {
-  fs.mkdirSync(iconsDir, { recursive: true });
+// Copy icons from source icons directory (if present) into extension/icons
+const sourceIconsDir = path.join(__dirname, '..', 'icons');
+const extensionIconsDir = path.join(extensionDir, 'icons');
+
+if (fs.existsSync(sourceIconsDir)) {
+  // Remove old icons directory to avoid stale files
+  if (fs.existsSync(extensionIconsDir)) {
+    fs.rmSync(extensionIconsDir, { recursive: true, force: true });
+  }
+
+  // Copy fresh icons
+  copyRecursiveSync(sourceIconsDir, extensionIconsDir);
+} else {
+  // Ensure the icons directory still exists so manifest paths are valid,
+  // even if the user hasn't added actual icon files yet.
+  if (!fs.existsSync(extensionIconsDir)) {
+    fs.mkdirSync(extensionIconsDir, { recursive: true });
+  }
 }
 
 console.log('Extension files prepared in:', extensionDir);
