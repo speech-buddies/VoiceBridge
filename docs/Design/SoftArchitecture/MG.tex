@@ -303,21 +303,19 @@ Feedback Display Module &
 Manages direct user interaction and feedback presentation. Displays transcribed text, confirmations, feedback messages, and status indicators. Ensures compliance with WCAG accessibility standards including contrast, font, and color. \\
 \midrule
 
+\textbf{Control (Orchestration) Layer} &
+Browser Controller \newline
+Session Manager  &
+Coordinates and manages flow between modules. Tracks session states such as capture, transcribe, confirm, and execute. Manages events, exceptions, retries, and cancellations to ensure smooth operation. \\
+\midrule
+
 \textbf{Application (Processing) Layer} &
-Speech-to-Text Engine \newline
-Intent Interpreter \newline
-Command Mapping Module \newline
-Command Execution Layer \newline
-Error Feedback Module &
+Error Feedback Module \newline
+Command Orchestrator \newline
+Speech-to-Text Engine &
 Performs speech recognition and intent processing. Converts speech audio to text, interprets user intent, maps intent to browser or OS commands, executes commands, and handles error feedback. \\
 \midrule
 
-\textbf{Control (Orchestration) Layer} &
-Browser Controller \newline
-Session Manager \newline
-Error Handling and Recovery Module &
-Coordinates and manages flow between modules. Tracks session states such as capture, transcribe, confirm, and execute. Manages events, exceptions, retries, and cancellations to ensure smooth operation. \\
-\midrule
 
 \textbf{Data Management Layer} &
 Data Storage Manager \newline
@@ -521,23 +519,7 @@ CommandOrchestrator module using an external LLM API, dynamic context injection,
 \end{itemize}
 \textbf{Implemented By:} In-memory cache + persistent store.
 
-\medskip
-\subsubsection*{M11: Error Handling \& Recovery Module}
-\textbf{Secrets:} 
-\begin{itemize}
-  \item Error classification policy
-  \item Retry and backoff strategies
-  \item Compensation catalog
-\end{itemize}
-\textbf{Services:} 
-\begin{itemize}
-  \item Handle error
-  \item Retry and compensate
-  \item Classify errors
-  \item Record events
-\end{itemize}
-\textbf{Implemented By:} Orchestration runtime with policy store.
-
+\subsection*{Data Management Modules}
 \medskip
 \subsubsection*{M12: Storage Management Module}
 \textbf{Secrets:}
