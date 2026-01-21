@@ -424,39 +424,28 @@ Provides user prompting, model fine-tuning, and instruction management. Supports
 \end{itemize}
 \textbf{Implemented By:} SpeechToTextEngine module wrapping acoustic and language models.
 
-\medskip
-\subsubsection*{M5: Intent Interpreter}
-\textbf{Secrets:} 
-\begin{itemize}
-  \item Recognition of user intentions using stored intent templates
-  \item Management of conversation context
-  \item Extraction of key details (slots) from user speech
-\end{itemize}
-\textbf{Services:} 
-\begin{itemize}
-  \item Initialize the interpreter
-  \item Convert speech transcripts into structured intentions
-  \item Extract details and confidence levels
-  \item Reset interpreter context
-\end{itemize}
-\textbf{Implemented By:} IntentInterpreter module using registered intent templates and dialog state management.
 
 \medskip
-\subsubsection*{M6: Command Mapping Module}
+\subsubsection*{M5: Command Orchestrator}
+
 \textbf{Secrets:} 
 \begin{itemize}
-  \item Command registry structure
-  \item User preferences and policy application for mapping
+    \item Prompt engineering strategies and system instructions for direct command synthesis.
+    \item Session-based conversation context and short-term memory management.
+    \item Heuristics for mapping natural language to browser-specific schemas without a fixed registry.
+    \item Validation logic for ensuring LLM outputs conform to executable security guardrails.
 \end{itemize}
+
 \textbf{Services:} 
 \begin{itemize}
-  \item Initialize mapping
-  \item Map Intents to validated Commands
-  \item Validate commands against guardrails
-  \item Reset internal state
+    \item Initialize the orchestrator with system prompts and API configurations.
+    \item Synthesize raw speech transcripts directly into structured, validated browser commands.
+    \item Assign confidence scores based on model reasoning.
+    \item Reset session context and clear conversation history.
 \end{itemize}
-\textbf{Implemented By:} CommandMapping module using command registry, preferences, and policy configurations.
 
+\textbf{Implemented By:} 
+CommandOrchestrator module using an external LLM API, dynamic context injection, and a JSON schema validation layer.
 % ---------- Application (Processing) ----------
 \subsection*{Application (Processing) Modules}
 

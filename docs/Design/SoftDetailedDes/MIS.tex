@@ -559,24 +559,24 @@ The high-level module decomposition of the system is summarized in Table 1 of th
 
 
 \newpage
-\section{(M5) MIS of Intent Interpreter}
+\section{(M5) MIS of Command Orchestrator}
 \label{M5}
-
-\textbf{Module:} IntentInterpreter
+\textbf{Module:} CommandOrchestrator
 
 \subsection{Uses:}
 \begin{itemize}
-  \item Speech-to-Text Engine (M4) for input transcripts.
-  \item Intent Schema Registry for parsing and intent extraction.
-  \item Error Feedback (M8) for reporting ambiguous or failed interpretations.
+  \item External LLM API (e.g., GPT-4o, Claude) for natural language reasoning.
+  \item User Profile Manager (M10) for personalized context and preferences.
+  \item Error Feedback Module (M8) for reporting API or schema validation failures.
+  \item Security Layer (M12) for managing API credentials and encryption.
 \end{itemize}
 
 \subsection{Syntax:}
 
 \subsubsection{Exported Constants:}
 \begin{itemize}
-  \item \texttt{MIN\_CONFIDENCE = 0.5}
-  \item \texttt{EXPECTED\_TRANSCRIPT\_FORMAT = ``text + confidence''}
+  \item \texttt{MAX\_CONTEXT\_TOKENS}: Integer defining the limit for conversation history.
+  \item \texttt{COMMAND\_SCHEMA}: JSON object defining the required structure for browser commands.
 \end{itemize}
 
 \subsubsection{Exported Access Programs:}
@@ -584,172 +584,72 @@ The high-level module decomposition of the system is summarized in Table 1 of th
 \begin{tabular}{|l|l|l|l|}
 \hline
 \textbf{Name} & \textbf{In} & \textbf{Out} & \textbf{Exceptions} \\ \hline
-\texttt{IntentInterpreter} & - & self & InitializationError \\ 
-\texttt{interpret} & \texttt{transcript: Transcript} & \texttt{Intent} & \texttt{InterpretationError} \\ 
-\texttt{reset} & - & - & - \\ \hline
-\texttt{validateTranscript} & \texttt{transcript: Transcript} & bool & - \\ \hline
+\texttt{CommandOrchestrator} & - & self & InitializationError \\ 
+\texttt{processTranscript} & \texttt{text: String} & \texttt{Command} & \texttt{InferenceError} \\ 
+\texttt{validateSchema} & \texttt{output: String} & \texttt{bool} & - \\ 
+\texttt{resetContext} & - & - & - \\ \hline
 \end{tabular}
 
 \subsection{Semantics}
 
 \subsubsection{State Variables:}
 \begin{itemize}
-  \item \texttt{intent\_schemas: IntentSchemaRegistry} — canonical intent definitions and slot schemas.
-  \item \texttt{context: DialogContext} — context for multi-turn dialog and disambiguation.
+  \item \texttt{system\_prompt: String} — The core instructions and few-shot examples for the LLM.
+  \item \texttt{conversation\_history: List<Message>} — The rolling buffer of recent interactions.
+  \item \texttt{api\_config: Config} — Parameters including temperature, model ID, and endpoint URLs.
 \end{itemize}
 
 \subsubsection{Environment Variables:}
 \begin{itemize}
-  \item None.
+  \item \texttt{LLM\_API\_KEY} — Authenticated credential for the external inference service.
 \end{itemize}
 
 \subsubsection{Assumptions:}
 \begin{itemize}
-  \item None. % Transcripts are syntactically valid and provide sufficient information for intent resolution in typical cases.
-\end{itemize}
-\subsubsection{Access Routine Semantics}
-
-\noindent\texttt{IntentInterpreter()}:
-\begin{itemize}
-    \item \textbf{Transition:} Load \texttt{intent\_schemas} and initialize \texttt{context} for dialog state.
-    \item \textbf{Output:} Initialized interpreter instance ready to process transcripts.
-    \item \textbf{Exception:} \texttt{InitializationError} if required schema resources are missing or invalid.
-\end{itemize}
-
-
-\noindent\texttt{interpret(transcript)}:
-\begin{itemize}
-  \item \textbf{transition:} validateTranscript(transcript) $\wedge$ parse input $\wedge$ match against intent schemas $\wedge$ extract slots
-  \item \textbf{output:} \texttt{Intent} object containing intent name, slots, and confidence score
-  \item \textbf{exception:} \texttt{InterpretationError} if transcript invalid or no confident intent found
-\end{itemize}
-
-\noindent\texttt{reset()}:
-\begin{itemize}
-\item \textbf{transition:} Clear \texttt{context} and reset transient parsing caches.
-\item \textbf{output:} Boolean flag indicating success of reset operation.
-\item \textbf{exception:} -
-\end{itemize}
-\noindent\texttt{validateTranscript(transcript)}:
-\begin{itemize}
-  \item \textbf{transition:} None
-  \item \textbf{output:} \texttt{true} iff \texttt{transcript.text $\neq$ $\emptyset$ $\wedge$ transcript.confidence $>$ MIN\_CONFIDENCE}
-  \item \textbf{exception:} None
-\end{itemize}
-
-
-\subsubsection{Local Functions:}
-\begin{itemize}
-  \item \texttt{match\_intent}(\texttt{Transcript text}): \texttt{Transcript} $\rightarrow$ \texttt{Intent} \\
-  \textbf{Description:} \texttt{match\_intent(text)} returns the highest-scoring intent that matches the input transcript.
-
-  \item \texttt{extract\_slots}(\texttt{Transcript text, Intent intent}): \texttt{Transcript} $\times$ \texttt{Intent} $\rightarrow$ \texttt{Slots} \\
-  \textbf{Description:} \texttt{extract\_slots(text, intent)} returns parameter values (slots) extracted from transcript for the given intent.
-
-% \begin{itemize}
-%   \item \texttt{match\_intent(text)} — score candidate intents and return best match.
-%   \item \texttt{extract\_slots(intent, text)} — extract and normalize parameter values for the matched intent.
-% \end{itemize}
-
-\newpage
-\section{(M6) MIS of Command Mapping Module}
-\label{M6}
-
-\textbf{Module:} CommandMapping
-
-\subsection{Uses:}
-\begin{itemize}
-  \item Intent Interpreter (M5) for structured intents.
-  \item Command Registry for available executable actions and metadata.
-  \item User Preferences / Policy store to apply customization and guardrails.
-  \item Error Feedback (M8) for reporting mapping or policy failures.
-\end{itemize}
-
-\subsection{Syntax:}
-
-\subsubsection{Exported Constants:}
-\begin{itemize}
-  \item None.
-\end{itemize}
-
-\subsubsection{Exported Access Programs:}
-
-\begin{tabular}{|l|l|l|l|}
-\hline
-\textbf{Name} & \textbf{In} & \textbf{Out} & \textbf{Exceptions} \\ \hline
-\texttt{CommandMapping} & - & self & InitializationError \\ 
-\texttt{mapIntent} & \texttt{intent: Intent} & \texttt{Command} & \texttt{MappingError} \\ 
-\texttt{validate} & \texttt{command: Command} & \texttt{bool} & - \\ 
-\texttt{reset} & - & - & - \\ \hline
-\end{tabular}
-
-\subsection{Semantics}
-
-\subsubsection{State Variables:}
-\begin{itemize}
-  \item \texttt{command\_registry: CommandRegistry} — available commands, parameter schemas, and metadata.
-  \item \texttt{preferences: UserPreferences} — mapping rules and user-specific overrides.
-  \item \texttt{policy: Policy} — mapping guardrails and authorization rules.
-\end{itemize}
-
-\subsubsection{Environment Variables:}
-\begin{itemize}
-  \item None.
-\end{itemize}
-
-\subsubsection{Assumptions:}
-\begin{itemize}
-  \item Intent objects conform to the registered schema; command registry is current and authoritative.
+  \item The LLM API is reachable and maintains a structured output format (JSON); the system prompt effectively constrains the model to the browser's domain.
 \end{itemize}
 
 \subsubsection{Access Routine Semantics}
 
-\noindent\texttt{CommandMapping()}:
+\noindent\texttt{CommandOrchestrator()}:
 \begin{itemize}
-  \item \textbf{transition:} Load \texttt{command\_registry}, \texttt{preferences}, and \texttt{policy} configurations.
-  \item \textbf{output:} Initialized mapping instance ready to process intents.
-  \item \textbf{exception:} \texttt{InitializationError} if registry or policy resources are missing or invalid.
+  \item \textbf{transition:} Load \texttt{system\_prompt}, \texttt{api\_config}, and initialize an empty \texttt{conversation\_history}.
+  \item \textbf{output:} Initialized orchestrator instance.
+  \item \textbf{exception:} \texttt{InitializationError} if API keys are missing or config is malformed.
 \end{itemize}
 
-
-\noindent\texttt{mapIntent(intent)}:
+\noindent\texttt{processTranscript(text)}:
 \begin{itemize}
-\item \textbf{transition:} Select candidate commands matching the \texttt{intent}; apply \texttt{preferences} and enforce \texttt{policy} constraints; produce a validated \texttt{Command}.
-\item \textbf{output:} Executable \texttt{Command} object representing the mapped device or browser action.
-\item \textbf{exception:} \texttt{MappingError} if no suitable mapping exists or policy prevents execution.
+\item \textbf{transition:} Append \texttt{text} to \texttt{conversation\_history}; send history + \texttt{system\_prompt} to LLM; parse resulting string into a \texttt{Command} object.
+\item \textbf{output:} A structured \texttt{Command} object ready for the Browser Controller.
+\item \textbf{exception:} \texttt{InferenceError} if the API fails, times out, or returns a non-parsable response.
 \end{itemize}
 
-\noindent\texttt{validate(command)}:
+\noindent\texttt{validateSchema(output)}:
 \begin{itemize}
-\item \textbf{transition:} Execute guardrail checks (authorization, confirmation) against \texttt{command}.
-\item \textbf{output:} \texttt{true} if \texttt{command} passes all validation criteria; otherwise \texttt{false}.
+\item \textbf{transition:} Compare the LLM's raw output against \texttt{COMMAND\_SCHEMA}.
+\item \textbf{output:} \texttt{true} if the output contains all required keys (e.g., action, target, value); otherwise \texttt{false}.
 \item \textbf{exception:} -.
 \end{itemize}
 
-\noindent\texttt{reset()}:
+\noindent\texttt{resetContext()}:
 \begin{itemize}
-\item \textbf{transition:} Clear internal caches and reload default configuration.
-\item \textbf{output:} Boolean indicating success of the reset operation.
+\item \textbf{transition:} Clear the \texttt{conversation\_history} list.
+\item \textbf{output:} None.
 \item \textbf{exception:} -.
 \end{itemize}
 
 \subsubsection{Local Functions:}
 \begin{itemize}
-  \item \texttt{find\_command}(\texttt{Intent intent}): \texttt{Intent} $\rightarrow$ \texttt{Command} \\
-  \textbf{Description:} \texttt{find\_command(intent)} returns the best matching command from the registry for the given intent.
+  \item \texttt{construct\_payload}(\texttt{String text}): \texttt{String} $\rightarrow$ \texttt{JSON} \\
+  \textbf{Description:} Packages the system prompt and conversation history into the specific JSON format required by the external API provider.
 
-  \item \texttt{apply\_preferences}(\texttt{Command cmd, UserPreferences prefs}): \texttt{Command} $\times$ \texttt{UserPreferences} $\rightarrow$ \texttt{Command} \\
-  \textbf{Description:} \texttt{apply\_preferences(cmd, prefs)} returns command with parameters adjusted by user preferences.
+  \item \texttt{apply\_guardrails}(\texttt{Command cmd}): \texttt{Command} $\rightarrow$ \texttt{bool} \\
+  \textbf{Description:} Checks the generated command against safety policies (e.g., preventing the LLM from executing "delete\_all\_history" without confirmation).
 
-  \item \texttt{enforce\_policy}(\texttt{Command cmd, Policy policy}): \texttt{Command} $\times$ \texttt{Policy} $\rightarrow$ \texttt{bool} \\
-  \textbf{Description:} \texttt{enforce\_policy(cmd, policy)} returns \texttt{true} if command passes all policy checks.
+  \item \texttt{update\_history}(\texttt{Message msg}): \texttt{Message} $\rightarrow$ \texttt{void} \\
+  \textbf{Description:} Manages the context window by removing the oldest messages if \texttt{MAX\_CONTEXT\_TOKENS} is exceeded.
 \end{itemize}
-% \begin{itemize}
-%   \item \texttt{find\_command(intent)} — return candidate commands and ranking.
-%   \item \texttt{apply\_preferences(command)} — adapt parameters per user preferences.
-%   \item \texttt{enforce\_policy(command)} — apply policy and authorization constraints.
-% \end{itemize}
-
 
 \newpage
 \section{(M7) MIS of Command Execution Layer} \label{M7}
@@ -1878,7 +1778,5 @@ graduate attribute of Problem Analysis and Design.
   \item \textbf{Give a brief overview of other design solutions you considered. What are the benefits and tradeoffs of those other designs compared with the chosen design? From all the potential options, why did you select the documented design? (LO\_Explores)}  
   Alternative designs considered included monolithic architectures and different modular breakdowns. Monolithic design offered simplicity but reduced maintainability and scalability. Various modular structures were explored; the chosen modular design balances separation of concerns, ease of integration, and parallel development capability. This approach was selected to optimize maintainability and accommodate future enhancements efficiently.
 \end{enumerate}
-
-\end{itemize}
 
 \end{document}
