@@ -50,10 +50,11 @@
 \midrule
 Nov 11, 2025 & 1.0 & Added modules and Traceability Matrix\\
 Nov 12, 2025 & 1.1 & Added Modules M6-M11\\
-Nov 12, 2025 & 1.2 & Added Modules M18-M22\\
+Nov 12, 2025 & 1.2 & Added Modules M15-M19\\
 Nov 26, 2025 & 1.3 & Added Modules M1-M6\\
 Jan 10, 2026 & 1.4 & Implemented TA Feedback for M7-M11\\
 Jan 10, 2026 & 1.4 & Implemented TA and Peer Feedback for AC/UC distinctions\\
+Jan 21, 2026 & 2.0 & Merged modules in application layer\\
 \bottomrule
 \end{tabularx}
 
@@ -183,7 +184,7 @@ Personalization features may evolve to accommodate changing user speech patterns
 
 \item[\refstepcounter{acnum} \actheacnum \label{acCommandSupport}:]
 Command mapping and browser automation protocols. \\
-Browser capabilities, permission models, and automation interfaces (such as extension manifests and scripting APIs) are expected to evolve over time. New commands, revised command schemas, and updated browser/OS integration will require changes localized to the Command Mapping, Command Execution, and Browser Controller modules, which are designed to isolate such API-level changes from the rest of the system.
+Browser capabilities, permission models, and automation interfaces (such as extension manifests and scripting APIs) are expected to evolve over time. New commands, revised command schemas, and updated browser/OS integration will require changes localized to the Command Orchestration and Browser Controller modules, which are designed to isolate such API-level changes from the rest of the system.
 
 
 \item[\refstepcounter{acnum} \actheacnum \label{acUIAndAccessibility}:]
@@ -238,7 +239,7 @@ The system uses speech recognition models adapted for users with speech impairme
 
 \item[\refstepcounter{ucnum} \uctheucnum \label{ucCommandSystem}:]
 Complete redesign of command mapping and browser control modules. \\
-The system uses a browser-bridge automation pattern, with dedicated modules (Command Mapping, Command Execution, Browser Controller) that encapsulate browser APIs and OS integration. Updates to support new browser APIs or extensions are expected, but replacing the underlying automation architecture is not planned.
+The system uses a browser-bridge automation pattern, with dedicated modules (Command Orchestrator, Browser Controller) that encapsulate browser APIs and OS integration. Updates to support new browser APIs or extensions are expected, but replacing the underlying automation architecture is not planned.
 
 \item[\refstepcounter{ucnum} \uctheucnum \label{ucArchitecture}:]
 Abandoning modular design for a monolithic or radically different architecture. \\
@@ -251,31 +252,29 @@ Modularity was chosen for maintainability and scalability. Changing to a less mo
 This section provides an overview of the module design. The system is organized into architectural layers, each containing modules that encapsulate specific responsibilities. Table~\ref{TblMH} presents the hierarchy of modules by their layers, including their primary purposes and responsibilities. The modules listed below, which are leaves in the hierarchy tree, are the modules that will be implemented.
 
 \begin{description}
-\item [\refstepcounter{mnum} \mthemnum \label{m1}:] User Interface Module
-\item [\refstepcounter{mnum} \mthemnum \label{m2}:] Accessibility Layer
-\item [\refstepcounter{mnum} \mthemnum \label{m3}:] Feedback Display Module
-\item [\refstepcounter{mnum} \mthemnum \label{m4}:] Speech-to-Text Engine
-\item [\refstepcounter{mnum} \mthemnum \label{m5}:] Intent Interpreter
-\item [\refstepcounter{mnum} \mthemnum \label{m6}:] Command Mapping Module
-\item [\refstepcounter{mnum} \mthemnum \label{m7}:] Command Execution Layer
-\item [\refstepcounter{mnum} \mthemnum \label{m8}:] Error Feedback
-\item [\refstepcounter{mnum} \mthemnum \label{m9}:] Browser Controller
-\item [\refstepcounter{mnum} \mthemnum \label{m10}:] Session Manager
-\item [\refstepcounter{mnum} \mthemnum \label{m11}:] Error Handling \& Recovery Module
-\item [\refstepcounter{mnum} \mthemnum \label{m12}:] Data Management Layer
-\item [\refstepcounter{mnum} \mthemnum \label{m13}:] User Profile Manager
-\item [\refstepcounter{mnum} \mthemnum \label{m14}:] Audit Logger
-\item [\refstepcounter{mnum} \mthemnum \label{m15}:] Credential Manager
-\item [\refstepcounter{mnum} \mthemnum \label{m16}:] Encryption Manager
-\item [\refstepcounter{mnum} \mthemnum \label{m17}:] Out-of-Scope Handler
-\item [\refstepcounter{mnum} \mthemnum \label{m18}:] Microphone Manager
-\item [\refstepcounter{mnum} \mthemnum \label{m19}:] VAD Noise Filter
-\item [\refstepcounter{mnum} \mthemnum \label{m20}:] Prompting Module
-\item [\refstepcounter{mnum} \mthemnum \label{m21}:] Model Tuner
-\item [\refstepcounter{mnum} \mthemnum \label{m22}:] Instruction Registry
+\item [\refstepcounter{mnum}\mthemnum\label{m1}:] User Interface Module
+\item [\refstepcounter{mnum}\mthemnum\label{m2}:] Accessibility Layer
+\item [\refstepcounter{mnum}\mthemnum\label{m3}:] Feedback Display Module
+\item [\refstepcounter{mnum}\mthemnum\label{m4}:] Speech-to-Text Engine
+\item [\refstepcounter{mnum}\mthemnum\label{m5}:] Command Orchestrator
+\item [\refstepcounter{mnum}\mthemnum\label{m6}:] Error Feedback
+\item [\refstepcounter{mnum}\mthemnum\label{m7}:] Browser Controller
+\item [\refstepcounter{mnum}\mthemnum\label{m8}:] Session Manager
+\item [\refstepcounter{mnum}\mthemnum\label{m9}:] Data Management Layer
+\item [\refstepcounter{mnum}\mthemnum\label{m10}:] User Profile Manager
+\item [\refstepcounter{mnum}\mthemnum\label{m11}:] Audit Logger
+\item [\refstepcounter{mnum}\mthemnum\label{m12}:] Credential Manager
+\item [\refstepcounter{mnum}\mthemnum\label{m13}:] Encryption Manager
+\item [\refstepcounter{mnum}\mthemnum\label{m14}:] Out-of-Scope Handler
+\item [\refstepcounter{mnum}\mthemnum\label{m15}:] Microphone Manager
+\item [\refstepcounter{mnum}\mthemnum\label{m16}:] VAD Noise Filter
+\item [\refstepcounter{mnum}\mthemnum\label{m17}:] Prompting Module
+\item [\refstepcounter{mnum}\mthemnum\label{m18}:] Model Tuner
 \end{description}
 
-\section{Connection Between Requirements and Design}
+
+
+\section{Connection Between Requirements and Design} \label{SecConnection}
 
 The design of the system is intended to satisfy the requirements developed in the 
 (\href{https://github.com/speech-buddies/VoiceBridge/blob/main/docs/SRS-Volere/SRS.pdf}{SRS}).
@@ -339,8 +338,7 @@ Controls microphone hardware and audio capture. Filters noise to improve voice i
 
 \textbf{Personalization Layer} &
 Prompting Module \newline
-Model Tuner \newline
-Instruction Registry &
+Model Tuner &
 Provides user prompting, model fine-tuning, and instruction management. Supports optional personalization based on confidence scores and usage history. \\
 
 \bottomrule
@@ -353,7 +351,7 @@ Provides user prompting, model fine-tuning, and instruction management. Supports
 % =========================
 % Module Decomposition
 % =========================
-\section{Module Decomposition}
+\section{Module Decomposition} \label{SecMD}
 % ---------- Presentation Layer ----------
 \subsection*{Presentation Layer Modules}
 
@@ -433,7 +431,6 @@ Provides user prompting, model fine-tuning, and instruction management. Supports
     \item Heuristics for mapping natural language to browser-specific schemas without a fixed registry.
     \item Validation logic for ensuring LLM outputs conform to executable security guardrails.
 \end{itemize}
-
 \textbf{Services:} 
 \begin{itemize}
     \item Initialize the orchestrator with system prompts and API configurations.
@@ -441,29 +438,11 @@ Provides user prompting, model fine-tuning, and instruction management. Supports
     \item Assign confidence scores based on model reasoning.
     \item Reset session context and clear conversation history.
 \end{itemize}
-
-\textbf{Implemented By:} 
-CommandOrchestrator module using an external LLM API, dynamic context injection, and a JSON schema validation layer.
-% ---------- Application (Processing) ----------
-\subsection*{Application (Processing) Modules}
-
-\subsubsection*{M7: Command Execution Layer}
-\textbf{Secrets:} 
-\begin{itemize}
-  \item Command validation and mapping to backend requests
-  \item Dispatching, tracking, cancellation, and timeout logic
-  \item Internal queueing and audit formats
-\end{itemize}
-\textbf{Services:} 
-\begin{itemize}
-  \item Execute, cancel, and provide status for commands
-  \item Translate commands to backend formats
-  \item Provide rollback hooks
-\end{itemize}
-\textbf{Implemented By:} Core runtime (browser bridge + OS process APIs).
+\textbf{Implemented By:} CommandOrchestrator module using an external LLM API, dynamic context injection, and a JSON schema validation layer.
 
 \medskip
-\subsubsection*{M8: Error Feedback}
+\subsubsection*{M6: Error Feedback}
+
 \textbf{Secrets:} 
 \begin{itemize}
   \item Expected error types
@@ -471,7 +450,6 @@ CommandOrchestrator module using an external LLM API, dynamic context injection,
   \item Mapping of internal/domain errors to user-facing message keys and recovery options
   \item Redaction rules for logs and UI
 \end{itemize}
-
 \textbf{Services:} 
 \begin{itemize}
   \item Display error notifications
@@ -480,13 +458,12 @@ CommandOrchestrator module using an external LLM API, dynamic context injection,
   \item Log structured error events
   \item Normalize and map errors to UI messages and recovery actions
 \end{itemize}
-
 \textbf{Implemented By:} UI Notification Layer and Shared Error Handling Module (M11).
 
 % ---------- Control (Orchestration) ----------
 \subsection*{Control (Orchestration) Modules}
 
-\subsubsection*{M9: BrowserController}
+\subsubsection*{M7: BrowserController}
 \textbf{Secrets:} 
 \begin{itemize}
   \item Transport protocol to the browser controller
@@ -503,7 +480,7 @@ CommandOrchestrator module using an external LLM API, dynamic context injection,
 \textbf{Implemented By:} Automation bridge client.
 
 \medskip
-\subsubsection*{M10: Session Manager}
+\subsubsection*{M8: Session Manager}
 \textbf{Secrets:} 
 \begin{itemize}
   \item Session lifecycle rules
@@ -521,7 +498,7 @@ CommandOrchestrator module using an external LLM API, dynamic context injection,
 
 \subsection*{Data Management Modules}
 \medskip
-\subsubsection*{M12: Storage Management Module}
+\subsubsection*{M9: Storage Management Module}
 \textbf{Secrets:}
 \begin{itemize}
   \item Database connection credentials
@@ -538,7 +515,7 @@ CommandOrchestrator module using an external LLM API, dynamic context injection,
 \textbf{Implemented By:} DataStorageManager.
 
 \medskip
-\subsubsection*{M13: User Profile Management Module}
+\subsubsection*{M10: User Profile Management Module}
 \textbf{Secrets:}
 \begin{itemize}
   \item User tokens and refresh keys
@@ -554,7 +531,7 @@ CommandOrchestrator module using an external LLM API, dynamic context injection,
 \textbf{Implemented By:} UserProfileManagerImpl.
 
 \medskip
-\subsubsection*{M14: Audit Logging Module}
+\subsubsection*{M11: Audit Logging Module}
 \textbf{Secrets:}
 \begin{itemize}
   \item Log signing key
@@ -570,7 +547,7 @@ CommandOrchestrator module using an external LLM API, dynamic context injection,
 \textbf{Implemented By:} AuditLoggerImpl.
 
 \medskip
-\subsubsection*{M15: Credential Management Module}
+\subsubsection*{M12: Credential Management Module}
 \textbf{Secrets:}
 \begin{itemize}
   \item Vault master key
@@ -586,7 +563,7 @@ CommandOrchestrator module using an external LLM API, dynamic context injection,
 \textbf{Implemented By:} CredentialManagerImpl.
 
 \medskip
-\subsubsection*{M16: Encryption Management Module}
+\subsubsection*{M13: Encryption Management Module}
 \textbf{Secrets:}
 \begin{itemize}
   \item Private encryption keypair
@@ -603,7 +580,7 @@ CommandOrchestrator module using an external LLM API, dynamic context injection,
 \textbf{Implemented By:} EncryptionManagerImpl.
 
 \medskip
-\subsubsection*{M17: Out-of-Scope Handling Module}
+\subsubsection*{M14: Out-of-Scope Handling Module}
 \textbf{Secrets:}
 \begin{itemize}
   \item Command whitelist/blacklist configuration
@@ -621,7 +598,7 @@ CommandOrchestrator module using an external LLM API, dynamic context injection,
 
 \subsection*{Input Processing Layer Modules}
 
-\subsubsection*{M18: Microphone Manager}
+\subsubsection*{M15: Microphone Manager}
 \textbf{Secrets:} 
 \begin{itemize}
   \item Device-level audio capture configuration and sampling parameters
@@ -638,7 +615,7 @@ CommandOrchestrator module using an external LLM API, dynamic context injection,
 \textbf{Implemented By:} Browser audio APIs or OS audio interface.
 
 \medskip
-\subsubsection*{M19: VAD Noise Filter}
+\subsubsection*{M16: VAD Noise Filter}
 \textbf{Secrets:} 
 \begin{itemize}
   \item Voice-activity-detection thresholds
@@ -655,7 +632,7 @@ CommandOrchestrator module using an external LLM API, dynamic context injection,
 \textbf{Implemented By:} DSP/VAD library.
 
 \subsection*{Personalization Layer}
-\subsubsection*{M20: Prompting Module}
+\subsubsection*{M17: Prompting Module}
 \textbf{Secrets:} 
 \begin{itemize}
   \item Prompt templates and personalization rules
@@ -671,7 +648,7 @@ CommandOrchestrator module using an external LLM API, dynamic context injection,
 \textbf{Implemented By:} Application prompt engine.
 
 \medskip
-\subsubsection*{M21: Model Tuner}
+\subsubsection*{M18: Model Tuner}
 \textbf{Secrets:} 
 \begin{itemize}
   \item Adaptation strategy for user-specific speech patterns
@@ -687,22 +664,6 @@ CommandOrchestrator module using an external LLM API, dynamic context injection,
 \end{itemize}
 \textbf{Implemented By:} ML runtime (Whisper fine-tuning layer or lightweight personalization pipeline).
 
-\medskip
-\subsubsection*{M22: Instruction Registry}
-\textbf{Secrets:} 
-\begin{itemize}
-  \item Internal representation of user-custom commands
-  \item Schema for mapping instructions to intents
-  \item Safety constraints preventing unsafe or ambiguous command creation
-\end{itemize}
-\textbf{Services:} 
-\begin{itemize}
-  \item Store, update, and delete user instructions
-  \item Resolve user-defined commands during intent parsing
-  \item Validate new instructions
-  \item Expose registry lookup API
-\end{itemize}
-\textbf{Implemented By:} Local or cloud command registry service.
 
 \section{Traceability Matrix} \label{SecTM}
 
@@ -718,11 +679,11 @@ within a single module.
 \toprule
 \textbf{Req.} & \textbf{Modules}\\
 \midrule
-FR-1 10.1 & \mref{m18}, \mref{m19}, \mref{m4}, \mref{m10}\\
-FR-2 10.2& \mref{m4}, \mref{m19}, \mref{m21}, \mref{m12}\\
-FR-3 10.3& \mref{m1}, \mref{m2}, \mref{m3}, \mref{m8}\\
-FR-4 10.4& \mref{m5}, \mref{m6}, \mref{m22}\\
-FR-5 10.5& \mref{m7}, \mref{m9}, \mref{m11}, \mref{m8}\\
+FR-1 10.1 & \mref{m15}, \mref{m16}, \mref{m4}, \mref{m8}\\
+FR-2 10.2& \mref{m4}, \mref{m16}, \mref{m18}, \mref{m9}\\
+FR-3 10.3& \mref{m1}, \mref{m2}, \mref{m3}, \mref{m6}\\
+FR-4 10.4& \mref{m5}, \mref{m6}\\
+FR-5 10.5& \mref{m7}, \mref{m7}, \mref{m11}, \mref{m6}\\
 \bottomrule
 \end{tabular}
 \caption{Trace Between Functional Requirements and Modules}
@@ -735,8 +696,8 @@ FR-5 10.5& \mref{m7}, \mref{m9}, \mref{m11}, \mref{m8}\\
 \toprule
 \textbf{Req.} & \textbf{Modules}\\
 \midrule
-LF-1 11.1& \mref{m1}, \mref{m2}, \mref{m3}, \mref{m8}\\
-LF-2 11.2& \mref{m1}, \mref{m2}, \mref{m20}, \mref{m3}\\
+LF-1 11.1& \mref{m1}, \mref{m2}, \mref{m3}, \mref{m6}\\
+LF-2 11.2& \mref{m1}, \mref{m2}, \mref{m17}, \mref{m3}\\
 \bottomrule
 \end{tabular}
 \caption{Trace Between Look \& Feel Requirements and Modules}
@@ -749,11 +710,11 @@ LF-2 11.2& \mref{m1}, \mref{m2}, \mref{m20}, \mref{m3}\\
 \toprule
 \textbf{Req.} & \textbf{Modules}\\
 \midrule
-UH-1 12.1 & \mref{m1}, \mref{m2}, \mref{m3}, \mref{m8}\\
-UH-2 12.2 & \mref{m13}, \mref{m12}, \mref{m5}, \mref{m6}\\
-UH-3 12.3& \mref{m1}, \mref{m2}, \mref{m20}, \mref{m10}\\
-UH-4 12.4& \mref{m8}, \mref{m3}, \mref{m2}, \mref{m20}\\
-UH-5 12.5& \mref{m2}, \mref{m1}, \mref{m3}, \mref{m8}\\
+UH-1 12.1 & \mref{m1}, \mref{m2}, \mref{m3}, \mref{m6}\\
+UH-2 12.2 & \mref{m10}, \mref{m9}, \mref{m5}, \mref{m6}\\
+UH-3 12.3& \mref{m1}, \mref{m2}, \mref{m17}, \mref{m8}\\
+UH-4 12.4& \mref{m6}, \mref{m3}, \mref{m2}, \mref{m17}\\
+UH-5 12.5& \mref{m2}, \mref{m1}, \mref{m3}, \mref{m6}\\
 \bottomrule
 \end{tabular}
 \caption{Trace Between Usability \& Humanity Requirements and Modules}
@@ -766,13 +727,13 @@ UH-5 12.5& \mref{m2}, \mref{m1}, \mref{m3}, \mref{m8}\\
 \toprule
 \textbf{Req.} & \textbf{Modules}\\
 \midrule
-PF-1 13.1 & \mref{m4}, \mref{m5}, \mref{m6}, \mref{m7}, \mref{m9}\\
-PF-2 13.2& \mref{m5}, \mref{m6}, \mref{m7}, \mref{m8}, \mref{m11}\\
-PF-3 13.3& \mref{m4}, \mref{m19}, \mref{m21}, \mref{m5}\\
-PF-4 13.4& \mref{m11}, \mref{m10}, \mref{m8}, \mref{m9}\\
-PF-5 13.5 & \mref{m10}, \mref{m12}, \mref{m13}\\
-PF-6 13.6& \mref{m10}, \mref{m12}, \mref{m7}, \mref{m9}\\
-PF-7 13.7& \mref{m12}, \mref{m13}, \mref{m14}, \mref{m15}\\
+PF-1 13.1 & \mref{m4}, \mref{m5}, \mref{m6}, \mref{m7}, \mref{m7}\\
+PF-2 13.2& \mref{m5}, \mref{m6}, \mref{m7}, \mref{m6}, \mref{m11}\\
+PF-3 13.3& \mref{m4}, \mref{m16}, \mref{m18}, \mref{m5}\\
+PF-4 13.4& \mref{m11}, \mref{m8}, \mref{m6}, \mref{m7}\\
+PF-5 13.5 & \mref{m8}, \mref{m9}, \mref{m10}\\
+PF-6 13.6& \mref{m8}, \mref{m9}, \mref{m7}\\
+PF-7 13.7& \mref{m9}, \mref{m10}, \mref{m11}, \mref{m12}\\
 \bottomrule
 \end{tabular}
 \caption{Trace Between Performance Requirements and Modules}
@@ -785,11 +746,11 @@ PF-7 13.7& \mref{m12}, \mref{m13}, \mref{m14}, \mref{m15}\\
 \toprule
 \textbf{Req.} & \textbf{Modules}\\
 \midrule
-OER-1 14.1& \mref{m18}, \mref{m19}, \mref{m4}, \mref{m11}\\
-OER-2 14.2& \mref{m1}, \mref{m2}, \mref{m9}, \mref{m10}\\
-OER-3 14.3& \mref{m5}, \mref{m6}, \mref{m9}, \mref{m22}\\
-OER-4 14.4& \mref{m12}, \mref{m13}, \mref{m14}, \mref{m15}, \mref{m10}\\
-OER-5 14.5& \mref{m10}, \mref{m12}, \mref{m14}, \mref{m15}\\
+OER-1 14.1& \mref{m15}, \mref{m16}, \mref{m4}, \mref{m11}\\
+OER-2 14.2& \mref{m1}, \mref{m2}, \mref{m7}, \mref{m8}\\
+OER-3 14.3& \mref{m5}, \mref{m6}, \mref{m7}\\
+OER-4 14.4& \mref{m9}, \mref{m10}, \mref{m11}, \mref{m12}, \mref{m8}\\
+OER-5 14.5& \mref{m8}, \mref{m9}, \mref{m11}, \mref{m12}\\
 \bottomrule
 \end{tabular}
 \caption{Trace Between Operational \& Environmental Requirements and Modules}
@@ -802,9 +763,9 @@ OER-5 14.5& \mref{m10}, \mref{m12}, \mref{m14}, \mref{m15}\\
 \toprule
 \textbf{Req.} & \textbf{Modules}\\
 \midrule
-MS-1 15.1& \mref{m10}, \mref{m12}, \mref{m13}, \mref{m14}, \mref{m15}, \mref{m22}\\
-MS-2 15.2& \mref{m1}, \mref{m2}, \mref{m3}, \mref{m8}, \mref{m20}\\
-MS-3 15.3& \mref{m1}, \mref{m2}, \mref{m9}, \mref{m10}, \mref{m11}\\
+MS-1 15.1& \mref{m8}, \mref{m9}, \mref{m10}, \mref{m11}, \mref{m12}\\
+MS-2 15.2& \mref{m1}, \mref{m2}, \mref{m3}, \mref{m6}, \mref{m17}\\
+MS-3 15.3& \mref{m1}, \mref{m2}, \mref{m7}, \mref{m8}, \mref{m11}\\
 \bottomrule
 \end{tabular}
 \caption{Trace Between Maintainability \& Support Requirements and Modules}
@@ -817,11 +778,11 @@ MS-3 15.3& \mref{m1}, \mref{m2}, \mref{m9}, \mref{m10}, \mref{m11}\\
 \toprule
 \textbf{Req.} & \textbf{Modules}\\
 \midrule
-SEC-1 16.1 & \mref{m15}, \mref{m16}, \mref{m13}, \mref{m12}, \mref{m10}\\
-SEC-2 16.2& \mref{m5}, \mref{m6}, \mref{m7}, \mref{m8}, \mref{m11}\\
-SEC-3 16.3& \mref{m12}, \mref{m13}, \mref{m14}, \mref{m15}, \mref{m16}\\
-SEC-4 16.4& \mref{m14}, \mref{m12}, \mref{m10}, \mref{m15}\\
-SEC-5 16.5& \mref{m11}, \mref{m8}, \mref{m19}, \mref{m7}, \mref{m9}\\
+SEC-1 16.1 & \mref{m12}, \mref{m13}, \mref{m10}, \mref{m9}, \mref{m8}\\
+SEC-2 16.2& \mref{m5}, \mref{m6}, \mref{m7}, \mref{m6}, \mref{m11}\\
+SEC-3 16.3& \mref{m9}, \mref{m10}, \mref{m11}, \mref{m12}, \mref{m13}\\
+SEC-4 16.4& \mref{m11}, \mref{m9}, \mref{m8}, \mref{m12}\\
+SEC-5 16.5& \mref{m11}, \mref{m6}, \mref{m16}, \mref{m7}, \mref{m7}\\
 \bottomrule
 \end{tabular}
 \caption{Trace Between Security Requirements and Modules}
@@ -834,7 +795,7 @@ SEC-5 16.5& \mref{m11}, \mref{m8}, \mref{m19}, \mref{m7}, \mref{m9}\\
 \toprule
 \textbf{Req.} & \textbf{Modules}\\
 \midrule
-CUL-1 17.1& \mref{m2}, \mref{m3}, \mref{m8}, \mref{m20}, \mref{m5}\\
+CUL-1 17.1& \mref{m2}, \mref{m3}, \mref{m6}, \mref{m17}, \mref{m5}\\
 \bottomrule
 \end{tabular}
 \caption{Trace Between Cultural Requirements and Modules}
@@ -847,8 +808,8 @@ CUL-1 17.1& \mref{m2}, \mref{m3}, \mref{m8}, \mref{m20}, \mref{m5}\\
 \toprule
 \textbf{Req.} & \textbf{Modules}\\
 \midrule
-CPL-1 18.1& \mref{m12}, \mref{m13}, \mref{m14}, \mref{m15}, \mref{m16}\\
-CPL-2 18.2& \mref{m1}, \mref{m2}, \mref{m3}, \mref{m8}\\
+CPL-1 18.1& \mref{m9}, \mref{m10}, \mref{m11}, \mref{m12}, \mref{m13}\\
+CPL-2 18.2& \mref{m1}, \mref{m2}, \mref{m3}, \mref{m6}\\
 \bottomrule
 \end{tabular}
 \caption{Trace Between Compliance Requirements and Modules}
@@ -886,7 +847,7 @@ because they use modules from the lower levels.
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.7\textwidth]{../../imgs/UsesHierarchy.png}
+\includegraphics[width=0.7\textwidth]{../../imgs/UseHierarchy.png}
 \caption{Use hierarchy among modules}
 \label{FigUH}
 \end{figure}
@@ -912,7 +873,7 @@ The project is divided into phases with clear objectives, and all tasks are hand
 
 \begin{itemize}
     \item \textbf{Foundational Development Phase (September -- October 2025):} 
-    Core functionality such as speech-to-text, intent interpretation, and command mapping was developed collectively.
+    Core functionality such as speech-to-text and command orchestrator was developed collectively.
     
     \item \textbf{Integration and Testing Phase (November -- December 2025):} 
     The team works together to integrate modules, improve accessibility, and optimize performance.

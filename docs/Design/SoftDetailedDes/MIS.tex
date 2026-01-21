@@ -53,8 +53,9 @@ urlcolor=cyan          % color of external links
 \begin{tabularx}{\textwidth}{p{3cm}p{2cm}X}
 \toprule {\bf Date} & {\bf Version} & {\bf Notes}\\
 \midrule
-Nov 12, 2025 & 1.0 & Added Modules M1-M22\\
+Nov 12, 2025 & 1.0 & Added Modules M1-M19\\
 Jan 11, 2026 & 1.1 & Updated local functions\\
+Jan 21, 2026 & 2.0 & Merged modules in application layer\\
 \bottomrule
 \end{tabularx}
 
@@ -188,7 +189,7 @@ The high-level module decomposition of the system is summarized in Table 1 of th
 \begin{itemize}
   \item Accessibility Layer (M2) to ensure UI semantics, ARIA roles, and announcements.
   \item Feedback Display Module (M3) to present messages, prompts, and recovery options.
-  \item Intent Interpreter (M5) and Command Mapping (M6) for forwarding validated user events.
+  \item Command Orchestrator (M5) for forwarding validated user events.
   \item BrowserController / rendering engine to perform DOM updates and capture input events.
 \end{itemize}
 
@@ -242,7 +243,7 @@ The high-level module decomposition of the system is summarized in Table 1 of th
 
 \noindent\texttt{receiveInput(event)}:
 \begin{itemize}
-\item \textbf{transition:} Validate \texttt{event}; update \texttt{currentState} or forward to Intent Interpreter (M5) / Command Mapping (M6) where appropriate.
+\item \textbf{transition:} Validate \texttt{event}; update \texttt{currentState} or forward to Command Orchestrator (M5) where appropriate.
 \item \textbf{output:} -
 \item \textbf{exception:} \texttt{InputError} if \texttt{event} is malformed or unsupported.
 \end{itemize}
@@ -465,7 +466,7 @@ The high-level module decomposition of the system is summarized in Table 1 of th
   \item Audio capture interface to receive microphone streams.
   \item Noise filtering and Voice Activity Detection (VAD) for preprocessing.
   \item Personalization/Profile store for per-user adaptation.
-  \item Error Feedback (M8) and AuditLogger (M14) for reporting processing failures.
+  \item Error Feedback (M6) and AuditLogger (M11) for reporting processing failures.
 \end{itemize}
 
 \subsection{Syntax:}
@@ -566,9 +567,9 @@ The high-level module decomposition of the system is summarized in Table 1 of th
 \subsection{Uses:}
 \begin{itemize}
   \item External LLM API (e.g., GPT-4o, Claude) for natural language reasoning.
-  \item User Profile Manager (M10) for personalized context and preferences.
-  \item Error Feedback Module (M8) for reporting API or schema validation failures.
-  \item Security Layer (M12) for managing API credentials and encryption.
+  \item User Profile Manager (M8) for personalized context and preferences.
+  \item Error Feedback Module (M6) for reporting API or schema validation failures.
+  \item Security Layer (M9) for managing API credentials and encryption.
 \end{itemize}
 
 \subsection{Syntax:}
@@ -651,153 +652,16 @@ The high-level module decomposition of the system is summarized in Table 1 of th
   \textbf{Description:} Manages the context window by removing the oldest messages if \texttt{MAX\_CONTEXT\_TOKENS} is exceeded.
 \end{itemize}
 
-\newpage
-\section{(M7) MIS of Command Execution Layer} \label{M7}
-\textbf{Module:} CommandExecutionLayer
 
-\subsection{Uses:}
-\begin{itemize}
-  \item BrowserController (M14) to send \texttt{BackendReq} requests and receive \texttt{BackendResp} results.
-  \item Session Manager (M15) to associate \texttt{cmd\_id} with an active session (when applicable).
-  \item Error Handling \& Recovery (M16) for standardized classification, retry/backoff, and compensation decisions.
-  \item AuditLogger (M19) to record execution attempts, outcomes, and failures.
-  \item Error Feedback (M13) to surface user-facing execution errors and recovery prompts.
-\end{itemize}
-
-\subsection{Syntax}
-
-\subsubsection{Exported Constants}
-
-None.
-
-\subsubsection{Exported Access Programs}
-\begin{center}
-\begin{tabular}{|l|l|l|l|}
-\hline
-\textbf{Name} & \textbf{In} & \textbf{Out} & \textbf{Exceptions} \\
-\hline
-\texttt{CommandExecLayer} & \texttt{backend: Client},  & self & - \\
-\texttt{execute} & \texttt{cmd: ExecCmd} & \texttt{Result} & \texttt{PermissionError}, \texttt{TimeoutError} \\
-\texttt{cancel} & \texttt{cmd\_id: UUID} & \texttt{bool} & \texttt{NotFoundError} \\
-\texttt{status} & \texttt{cmd\_id: UUID} & \texttt{ExecStatus} & \texttt{NotFoundError} \\
-\texttt{validate} & \texttt{cmd: ExecCmd} & \texttt{bool} & - \\
-\texttt{map\_to\_backend} & \texttt{cmd: ExecCmd} & \texttt{BackendReq} & \texttt{MappingError} \\
-\texttt{rollback} & \texttt{cmd\_id: UUID} & \texttt{bool} & \texttt{ExecError} \\
-\hline
-\end{tabular}
-\end{center}
-
-\subsection{Semantics}
-
-\subsubsection{State Variables}
-
-\begin{itemize}
-  \item \texttt{pending\_q: map[UUID]$\to$ExecCtx} — commands in flight
-  \item \texttt{default\_timeout\_s: int} — global timeout for executions
-  \item \texttt{retries: int} — max retry attempts for transient failures
-  \item \texttt{backend: Client} — handle to browser automation bridge
-  \item \texttt{audit: Logger} — sink for execution logs
-\end{itemize}
-
-\subsubsection{Environment Variables}
-
-\begin{itemize}
-  \item \texttt{BROWSER\_BRIDGE\_URL} — connection string for automation client
-  \item \texttt{EXEC\_HARD\_LIMIT\_S} — absolute upper bound on execution time
-  \item \texttt{LOG\_LEVEL} — audit verbosity
-\end{itemize}
-
-\subsubsection{Assumptions}
-
-\subsubsection{Access Routine Semantics}
-
-\noindent
-
-\noindent \texttt{CommandExecLayer}(\texttt{backend}, \texttt{timeout\_s}):
-\begin{itemize}
-\item transition: initialize \texttt{pending\_q}, set \texttt{default\_timeout\_s}, bind \texttt{backend}, configure \texttt{audit}
-\item output: initialized instance
-\item exception: -
-\end{itemize}
-
-\noindent \texttt{execute}(\texttt{cmd}):
-\begin{itemize}
-\item transition: add to \texttt{pending\_q}; invoke \texttt{map\_to\_backend}; dispatch to \texttt{backend}; update status; remove on completion
-\item output: \texttt{Result} with success flag, message, and optional payload
-\item exception: \texttt{PermissionError} if disallowed; \texttt{TimeoutError} if exceeds limits; \texttt{ExecError} on backend failure
-\end{itemize}
-
-\noindent \texttt{cancel}(\texttt{cmd\_id}):
-\begin{itemize}
-\item transition: signal cancellation to backend; mark context as cancelled; remove from \texttt{pending\_q}
-\item output: \texttt{true} if cancelled; otherwise \texttt{false}
-\item exception: \texttt{NotFoundError} if \texttt{cmd\_id} not tracked
-\end{itemize}
-
-\noindent \texttt{status}(\texttt{cmd\_id}):
-\begin{itemize}
-\item transition: none
-\item output: \texttt{ExecStatus} in \{\texttt{queued}, \texttt{running}, \texttt{succeeded}, \texttt{failed}, \texttt{cancelled}\}
-\item exception: \texttt{NotFoundError} if unknown
-\end{itemize}
-
-\noindent \texttt{validate}(\texttt{cmd}):
-\begin{itemize}
-\item transition: none
-\item output: \texttt{true} iff command matches allowed action set and guardrails (e.g., requires-confirmation flags met)
-\item exception: -
-\end{itemize}
-
-\noindent \texttt{map\_to\_backend}(\texttt{cmd}):
-\begin{itemize}
-\item transition: none
-\item output: \texttt{BackendReq} (normalized request for the bridge)
-\item exception: \texttt{MappingError} if no mapping exists
-\end{itemize}
-
-\noindent \texttt{rollback}(\texttt{cmd\_id}):
-\begin{itemize}
-\item transition: attempt compensating operation (e.g., reopen tab, revert text entry)
-\item output: \texttt{true} on success; otherwise \texttt{false}
-\item exception: \texttt{ExecError} if rollback fails
-\end{itemize}
-
-% \subsubsection{Local Functions}
-
-% \begin{itemize}
-%   \item \texttt{start\_timer(ctx)} — begin timeout tracking on a context
-%   \item \texttt{complete(ctx, result)} — finalize status, log, and cleanup
-%   \item \texttt{is\_allowed(cmd)} — check guardrails and policy
-%   \item \texttt{retryable(err)} — decide if backend error can be retried
-%   \item \texttt{to\_backend(payload)} — format request for bridge
-% \end{itemize}
-\subsubsection{Local Functions}
-\begin{itemize}
-  \item \texttt{start\_timer}(\texttt{ExecCtx ctx}): \texttt{ExecCtx} $\rightarrow$ \texttt{Timer} \\
-  \textbf{Description:} \texttt{start\_timer(ctx)} returns timer object that tracks timeout for execution context \texttt{ctx}.
-
-  \item \texttt{complete}(\texttt{ExecCtx ctx, Result result}): \texttt{ExecCtx} $\times$ \texttt{Result} $\rightarrow$ \texttt{bool} \\
-  \textbf{Description:} \texttt{complete(ctx, result)} returns \texttt{true} if execution context is finalized and cleaned up.
-
-  \item \texttt{is\_allowed}(\texttt{ExecCmd cmd}): \texttt{ExecCmd} $\rightarrow$ \texttt{bool} \\
-  \textbf{Description:} \texttt{is\_allowed(cmd)} returns \texttt{true} if command passes guardrails and policy checks.
-
-  \item \texttt{retryable}(\texttt{Error err}): \texttt{Error} $\rightarrow$ \texttt{bool} \\
-  \textbf{Description:} \texttt{retryable(err)} returns \texttt{true} if error type can be safely retried.
-
-  \item \texttt{to\_backend}(\texttt{ExecCmd cmd}): \texttt{ExecCmd} $\rightarrow$ \texttt{BackendReq} \\
-  \textbf{Description:} \texttt{to\_backend(cmd)} returns normalized backend request for browser bridge.
-\end{itemize}
-
-\section{(M8) MIS of Error Feedback} \label{M8}
+\section{(M6) MIS of Error Feedback} 
+\label{M6}
 \textbf{Module:} ErrorFeedback
 
 \subsection{Uses:}
 \begin{itemize}
   \item User Interface (M1) and Feedback Display Module (M3) to render notifications and recovery prompts.
   \item Accessibility Layer (M2) to ensure error messages and prompts are announced accessibly.
-  \item Error Handling \& Recovery (M16) to standardize error classification and map internal errors to user-facing recovery options.
-  \item AuditLogger (M19) to record error events and diagnostics.
+  \item AuditLogger (M16) to record error events and diagnostics.
 \end{itemize}
 
 \subsection{Syntax}
@@ -893,14 +757,15 @@ UI client is available and permitted to display notifications.
 %   \item \texttt{make\_recovery(options)} — build prompt content
 % \end{itemize}
 
-\section{(M9) MIS of BrowserController} \label{M9}
+\section{(M7) MIS of BrowserController} 
+\label{M7}
 \textbf{Module:} BrowserController
 
 \subsection{Uses}
 \begin{itemize}
-  \item Credential Manager (M20) to obtain/validate authentication material required to call the controller endpoint (when applicable).
-  \item Error Handling \& Recovery (M16) to standardize timeout/retry decisions and error classification for transport failures.
-  \item AuditLogger (M19) to record request/response summaries, failures, and timeouts.
+  \item Credential Manager (M17) to obtain/validate authentication material required to call the controller endpoint (when applicable).
+  \item Error Feedback (M6) to standardize timeout/retry decisions and error classification for transport failures.
+  \item AuditLogger (M16) to record request/response summaries, failures, and timeouts.
 \end{itemize}
 
 \subsection{Syntax}
@@ -1004,15 +869,15 @@ Controller endpoint is reachable and authenticated.
 % \end{itemize}
 
 
-\section{(M10) MIS of Session Manager} \label{M10}
+\section{(M8) MIS of Session Manager} \label{M8}
 \textbf{Module:} SessionManager
 
 \subsection{Uses}
 
 15.2 Uses:
 \begin{itemize}
-  \item Storage Management Module (M17) as the persistent store/cache for session state.
-  \item AuditLogger (M19) to record session lifecycle events (start/stop/expiry) and state transitions.
+  \item Storage Management Module (M14) as the persistent store/cache for session state.
+  \item AuditLogger (M16) to record session lifecycle events (start/stop/expiry) and state transitions.
 \end{itemize}
 
 \subsection{Syntax}
@@ -1116,16 +981,16 @@ Store operations are atomic per session key.
 %   \item \texttt{is\_idempotent(cmd\_id)} — check compensation safety
 % \end{itemize}
 
-\section{(M12) MIS of Data Management Module}\label{M12}
+\section{(M9) MIS of Data Management Module}\label{M9}
 
 \textbf{Module:} Data Management Module 
 
 \subsection{Uses:}
 \begin{itemize}
-  \item Encryption Manager (M16) for encryption/decryption at rest and in transit (R16.3).
-  \item Credential Manager (M15) for authenticated access to user-specific data (R16.1).
-  \item AuditLogger (M14) to record storage and retrieval events (R16.4).
-  \item UserProfileManager (M13) for storing personalized ASR profiles and preferences.
+  \item Encryption Manager (M13) for encryption/decryption at rest and in transit (R16.3).
+  \item Credential Manager (M12) for authenticated access to user-specific data (R16.1).
+  \item AuditLogger (M11) to record storage and retrieval events (R16.4).
+  \item UserProfileManager (M10) for storing personalized ASR profiles and preferences.
 \end{itemize}
 
 \subsection{Syntax:}
@@ -1164,15 +1029,15 @@ Store operations are atomic per session key.
 
 \subsubsection{Assumptions:}
 \begin{itemize}
-  \item Encryption Manager (M16) is available for encrypting all stored data.
-  \item User authentication is validated by Credential Manager (M15) before access.
+  \item Encryption Manager (M13) is available for encrypting all stored data.
+  \item User authentication is validated by Credential Manager (M12) before access.
 \end{itemize}
 
 \subsubsection{Access Routine Semantics:}
 
 \noindent\texttt{storeTranscript(transcriptData, userID)}:
 \begin{itemize}
-  \item \textbf{transition:} Adds a new entry to \texttt{storageRegistry}, encrypts transcript data via M16, and logs the event via M14.
+  \item \textbf{transition:} Adds a new entry to \texttt{storageRegistry}, encrypts transcript data via M13, and logs the event via M11.
   \item \textbf{output:} Returns confirmation ID.
   \item \textbf{exception:} \texttt{StorageWriteException} if quota exceeded or encryption fails.
 \end{itemize}
@@ -1208,15 +1073,15 @@ Store operations are atomic per session key.
 %   \item \texttt{applyRetentionRule(fileMeta)}
 % \end{itemize}
 
-\section{(M13) MIS of User Profile Manager} \label{M13}
+\section{(M10) MIS of User Profile Manager} \label{M10}
 
 \textbf{Module:} UserProfileManager
 
 \subsection{Uses:}
 \begin{itemize}
-\item Credential Manager (M15) for token validation and secure login (R16.1).
-\item Encryption Manager (M16) for encrypting stored profiles (R16.3).
-\item Storage Management Module (M12) for persistence.
+\item Credential Manager (M12) for token validation and secure login (R16.1).
+\item Encryption Manager (M13) for encrypting stored profiles (R16.3).
+\item Storage Management Module (M9) for persistence.
 \end{itemize}
 
 \subsection{Syntax:}
@@ -1249,7 +1114,7 @@ Store operations are atomic per session key.
 
 \noindent\texttt{createProfile(userToken, initData)}:
 \begin{itemize}
-\item \textbf{transition:} Creates encrypted user profile and saves to M12 storage.
+\item \textbf{transition:} Creates encrypted user profile and saves to M9 storage.
 \item \textbf{exception:} \texttt{ProfileCreationException} on invalid token.
 \end{itemize}
 
@@ -1260,14 +1125,14 @@ Store operations are atomic per session key.
 \end{itemize}
 
 
-\section{(M14) MIS of AuditLogger} \label{M14}
+\section{(M11) MIS of AuditLogger} \label{M11}
 
 \textbf{Module:} AuditLogger
 
 \subsection{Uses:}
 \begin{itemize}
-\item Encryption Manager (M16) for log encryption.
-\item Credential Manager (M15) for secure log access.
+\item Encryption Manager (M13) for log encryption.
+\item Credential Manager (M12) for secure log access.
 \end{itemize}
 
 \subsection{Syntax:}
@@ -1293,20 +1158,20 @@ Store operations are atomic per session key.
 
 \noindent\texttt{detectAnomaly(recentLogs)}:
 \begin{itemize}
-\item \textbf{output:} Triggers OutOfScopeHandler (M17) on suspicious events.
+\item \textbf{output:} Triggers OutOfScopeHandler (M14) on suspicious events.
 \end{itemize}
 
 
-\label{MIS:M15}
 
-\section{(M15) MIS of Credential Manager} \label{M15}
+\section{(M12) MIS of Credential Manager} \label{M12}
+\label{MIS:M12}
 
 \textbf{Module:} Credential Manager (CredentialManagerImpl)
 
 \subsection{Uses:}
 \begin{itemize}
-\item Encryption Manager (M16) for secure key storage.
-\item AuditLogger (M14) to record authentication attempts (R16.4).
+\item Encryption Manager (M13) for secure key storage.
+\item AuditLogger (M11) to record authentication attempts (R16.4).
 \end{itemize}
 
 \subsection{Syntax:}
@@ -1332,13 +1197,13 @@ Store operations are atomic per session key.
 
 \noindent\texttt{rotateKeys(scheduleID)}:
 \begin{itemize}
-\item \textbf{transition:} Calls M16 to rotate key pairs per R16.3.
+\item \textbf{transition:} Calls M13 to rotate key pairs per R16.3.
 \end{itemize}
 
 
-\label{MIS:M16}
 
-\section{(M16) MIS of Encryption Manager} \label{M16}
+\section{(M13) MIS of Encryption Manager} \label{M13}
+\label{MIS:M13}
 
 \textbf{Module:} Encryption Manager (EncryptionManagerImpl)
 
@@ -1366,14 +1231,14 @@ Implements R16.3 (Privacy Requirements): ensures all data is encrypted at rest/i
 Implements R16.2 (Integrity): validates message hashes before use.
 
 
-\section{(M17) MIS of OutOfScopeHandler}\label{M17}
+\section{(M14) MIS of OutOfScopeHandler}\label{M14}
 
 \textbf{Module:} OutOfScopeHandler
 
 \subsection{Uses:}
 \begin{itemize}
-\item AuditLogger (M14) for incident reporting (R16.4).
-\item Command Mapping Module (M6) for validation of user commands.
+\item AuditLogger (M11) for incident reporting (R16.4).
+\item Command Orchestrator (M5) for validation of user commands.
 \item Error Handling \& Recovery (M11) for rollback actions.
 \end{itemize}
 
@@ -1392,7 +1257,7 @@ Implements R16.2 (Integrity): validates message hashes before use.
 \subsection{Semantics}
 
 Implements R16.5 (Immunity Requirements): ensures robustness against unsafe operations.
-Integrates with M14 to log anomaly-triggered safety events.
+Integrates with M11 to log anomaly-triggered safety events.
 
 \subsubsection{Access Routine Semantics:}
 
@@ -1408,15 +1273,15 @@ Integrates with M14 to log anomaly-triggered safety events.
 
 
 
-\section{(M18) MIS of MicrophoneManager} \label{M18}
+\section{(M15) MIS of MicrophoneManager} \label{M15}
 
 \textbf{Module:} MicrophoneManager
 
 \subsection{Uses:}
 \begin{itemize}
-\item VAD Noise Filter (M19) for downstream speech/noise classification.
-\item Session Manager (M10) for tracking active input sessions.
-\item AuditLogger (M14) for logging permission events or device failures.
+\item VAD Noise Filter (M16) for downstream speech/noise classification.
+\item Session Manager (M8) for tracking active input sessions.
+\item AuditLogger (M11) for logging permission events or device failures.
 \end{itemize}
 
 \subsection{Syntax:}
@@ -1434,7 +1299,7 @@ Integrates with M14 to log anomaly-triggered safety events.
 \subsection{Semantics}
 
 Implements audio acquisition requirements (FR1). Provides consistent, normalized microphone
-input to subsequent modules. Integrates with M10 to maintain session continuity.
+input to subsequent modules. Integrates with M8 to maintain session continuity.
 
 \subsubsection{Access Routine Semantics:}
 
@@ -1448,17 +1313,17 @@ input to subsequent modules. Integrates with M10 to maintain session continuity.
 \item \textbf{transition:} Retrieves the latest audio frame for processing.
 \end{itemize}
 
-\label{MIS:M19}
+\label{MIS:M16}
 
-\section{(M19) MIS of VADNoiseFilter} \label{M19}
+\section{(M16) MIS of VADNoiseFilter} \label{M16}
 
 \textbf{Module:} VADNoiseFilter
 
 \subsection{Uses:}
 \begin{itemize}
-\item MicrophoneManager (M18) for raw audio frames.
+\item MicrophoneManager (M15) for raw audio frames.
 \item Speech-to-Text Engine (M4) for improved transcription accuracy.
-\item AuditLogger (M14) for tracking confidence drops or noise anomalies.
+\item AuditLogger (M11) for tracking confidence drops or noise anomalies.
 \end{itemize}
 
 \subsection{Syntax:}
@@ -1490,16 +1355,16 @@ Provides binary VAD detections for downstream timing and segmentation.
 \item \textbf{transition:} Computes speech probability using configured thresholds.
 \end{itemize}
 
-\label{MIS:M20}
+\label{MIS:M17}
 
-\section{(M20) MIS of PromptingModule} \label{M20}
+\section{(M17) MIS of PromptingModule} \label{M17}
 
 \textbf{Module:} PromptingModule
 
 \subsection{Uses:}
 \begin{itemize}
-\item Intent Interpreter (M5) for phrasing confirmations.
-\item Error Feedback (M8) for generating user-facing explanations.
+\item Command Orchestrator (M5) for phrasing confirmations.
+\item Error Feedback (M6) for generating user-facing explanations.
 \item Accessibility Layer (M2) for formatting prompts according to accessibility rules.
 \end{itemize}
 
@@ -1532,17 +1397,17 @@ Ensures consistent phrasing across confirmations, errors, and system messages.
 \item \textbf{transition:} Builds a polite, accessible error message.
 \end{itemize}
 
-\label{MIS:M21}
+\label{MIS:M18}
 
-\section{(M21) MIS of ModelTuner} \label{M21}
+\section{(M18) MIS of ModelTuner} \label{M18}
 
 \textbf{Module:} ModelTuner
 
 \subsection{Uses:}
 \begin{itemize}
-\item Data Management Layer (M12) for retrieving stored audio samples.
+\item Data Management Layer (M9) for retrieving stored audio samples.
 \item ASR Engine (M4) for updating recognition parameters.
-\item AuditLogger (M14) for recording tuning events or failures.
+\item AuditLogger (M11) for recording tuning events or failures.
 \end{itemize}
 
 \subsection{Syntax:}
@@ -1572,48 +1437,6 @@ Updates the user's model profile upon successful tuning.
 \noindent\texttt{applyModel(userID, jobID)}:
 \begin{itemize}
 \item \textbf{transition:} Loads and activates the newly tuned ASR parameters.
-\end{itemize}
-
-\label{MIS:M22}
-
-\section{(M22) MIS of InstructionRegistry} \label{M22}
-
-\textbf{Module:} InstructionRegistry
-
-\subsection{Uses:}
-\begin{itemize}
-\item Command Mapping Module (M6) for resolving intent-to-command mappings.
-\item Data Management Layer (M12) for persistent storage of registered instructions.
-\item AuditLogger (M14) for tracking updates to command schemas.
-\end{itemize}
-
-\subsection{Syntax:}
-
-\subsubsection{Exported Access Programs:}
-
-\begin{tabular}{|l|l|l|l|}
-\hline
-\textbf{Name} & \textbf{In} & \textbf{Out} & \textbf{Exceptions} \\ \hline
-\texttt{lookup} & \texttt{intent: Intent} & \texttt{instruction: Command} & \texttt{NotFoundException} \\ 
-\texttt{registerInstr} & \texttt{instruction: Command} & \texttt{status: bool} & \texttt{StoreException} \\ 
-\texttt{updateInstr} & id, instruction & status & StoreException \\ \hline
-\end{tabular}
-
-\subsection{Semantics}
-
-Supports command mapping requirements (FR4) and safety guardrails (SEC-2).
-Maintains the authoritative index of allowed command definitions.
-
-\subsubsection{Access Routine Semantics:}
-
-\noindent\texttt{lookup(intent)}:
-\begin{itemize}
-\item \textbf{transition:} Retrieves matching instruction from registry.
-\end{itemize}
-
-\noindent\texttt{updateInstr(id, instruction)}:
-\begin{itemize}
-\item \textbf{transition:} Overwrites stored schema with the updated definition.
 \end{itemize}
 
 
