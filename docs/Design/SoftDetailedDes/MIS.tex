@@ -453,9 +453,8 @@ The high-level module decomposition of the system is summarized in Table 1 of th
 %   \item \texttt{format\_message(msg, type)} — apply template, icons, and localization.
 %   \item \texttt{schedule\_dismiss(feedbackId, ttl\_s)} — auto-dismiss transient messages.
 % \end{itemize}
-
 \newpage
-\section{(M4) MIS Speech-to-Text Engine}
+\section{MIS of Speech-to-Text Engine}
 \label{M4}
 
 \textbf{Module:} SpeechToTextEngine
@@ -464,28 +463,39 @@ The high-level module decomposition of the system is summarized in Table 1 of th
 \begin{itemize}
   \item Audio capture interface to receive microphone streams.
   \item Noise filtering and Voice Activity Detection (VAD) for preprocessing.
-  \item Personalization/Profile store for per-user adaptation.
-  \item Error Feedback (M8) and AuditLogger (M14) for reporting processing failures.
+  \item Error Feedback (M8) for reporting processing failures.
+  \item AuditLogger (M14) for logging processing events and errors.
+  \item Command Orchestrator for integration with downstream modules.
+  \item Loading ASR model for speech-to-text processing.
 \end{itemize}
 
 \subsection{Syntax:}
 
 \subsubsection{Exported Constants:}
 \begin{itemize}
-  \item None.
+  \item \texttt{EXPECTED\_SAMPLE\_RATE: int = 16000} — Expected audio sample rate in Hz.
+  \item \texttt{EXPECTED\_FORMAT: str = "PCM\_16K\_MONO"} — Expected audio format.
 \end{itemize}
 
-\subsubsection{Exported Access Programs:}
 
-\begin{tabular}{|l|l|l|l|}
+\subsubsection{Exported Access Programs}
+
+\begin{center}
+\begin{tabularx}{\textwidth}{|l|>{\raggedright\arraybackslash\ttfamily}X|l|l|}
 \hline
 \textbf{Name} & \textbf{In} & \textbf{Out} & \textbf{Exceptions} \\ \hline
-\texttt{SpeechToTextEngine} & \texttt{config: AsrConfig} & self & InitializationError \\ 
-\texttt{processAudio} & \texttt{audioData: AudioStream} & \texttt{Transcript} & \texttt{ProcessingError} \\ 
-\texttt{reset} & - & - & - \\ \hline
-\texttt{validateAudioFormat} & \texttt{audioData: AudioStream} & bool & - \\ 
-\texttt{validateModelReady} & - & \texttt{bool} & \texttt{ModelValidationError} \\ 
-\end{tabular}
+
+SpeechToTextEngine &
+config: AsrConfig, model\_endpoint: str, api\_key: str, device: str, vad: VadInterface, noise\_filter: NoiseFilterInterface
+& self & InitializationError \\
+
+processAudio & audioData: AudioStream & Transcript & ProcessingError \\
+reset & - & - & - \\
+validateAudioFormat & audioData: AudioStream & bool & - \\
+validateModelReady & - & bool & ModelValidationError \\ \hline
+\end{tabularx}
+\end{center}
+
 
 \subsection{Semantics}
 
@@ -498,64 +508,59 @@ The high-level module decomposition of the system is summarized in Table 1 of th
 
 \subsubsection{Environment Variables:}
 \begin{itemize}
-  \item None.
+  \item \texttt{ASR\_CLOUD\_ENDPOINT} — URL of the cloud-hosted ASR model.
+  \item \texttt{ASR\_API\_KEY} — API key for authenticating with the cloud-hosted ASR model.
 \end{itemize}
 
 \subsubsection{Assumptions:}
 \begin{itemize}
-  \item None.
-  % \item Input audio meets expected format and sample rate.
-  % \item Model artifacts are present and validated at initialization.
+  \item Input audio meets expected format and sample rate.
+  \item The ASR model is accessible via the provided endpoint and API key.
 \end{itemize}
 
 \subsubsection{Access Routine Semantics:}
 
-\noindent\texttt{SpeechToTextEngine(config)}:
+\noindent\texttt{SpeechToTextEngine(config, model\_endpoint, api\_key, device, vad, noise\_filter)}:
 \begin{itemize}
-  \item \textbf{transition:} initialize engine internals, allocate \texttt{audio\_buffer}, and load \texttt{model}.
-  \item \textbf{output:} initialized engine instance.
-  \item \textbf{exception:} \texttt{InitializationError} if models or resources are missing.
+  \item \textbf{transition:} Initialize engine internals, allocate \texttt{audio\_buffer}, and set \texttt{model\_endpoint} and \texttt{api\_key}.
+  \item \textbf{output:} Initialized engine instance.
+  \item \textbf{exception:} \texttt{InitializationError} if the endpoint or API key is invalid or inaccessible.
 \end{itemize}
 
 \noindent\texttt{processAudio(audioData)}:
 \begin{itemize}
-  \item \textbf{transition:} validateAudioFormat(audioData) $\wedge$ preprocess (VAD, noise suppression), extract features, decode with models, and apply personalization.
+  \item \textbf{transition:} Validate audio format, preprocess (VAD, noise suppression), send audio to the cloud-based ASR model via \texttt{model\_endpoint} with \texttt{api\_key}, and decode the response.
   \item \textbf{output:} \texttt{Transcript} containing recognized text and confidence metadata.
-  \item \textbf{exception:} \texttt{ProcessingError} if format invalid or processing fails.
+  \item \textbf{exception:} \texttt{ProcessingError} if format invalid, preprocessing fails, or the cloud model is unreachable.
 \end{itemize}
 
 \noindent\texttt{reset()}:
 \begin{itemize}
-  \item \textbf{transition:} clear \texttt{audio\_buffer} and reset decoder/model state.
+  \item \textbf{transition:} Clear \texttt{audio\_buffer}.
   \item \textbf{output:} -.
   \item \textbf{exception:} -.
 \end{itemize}
 
 \noindent\texttt{validateAudioFormat(audio)}:
 \begin{itemize}
-  \item \textbf{transition:} None
-  \item \textbf{output:} \texttt{true} iff \texttt{audio.sampleRate = EXPECTED\_SAMPLE\_RATE $\wedge$ audio.format = EXPECTED\_FORMAT}
-  \item \textbf{exception:} -
+  \item \textbf{transition:} None.
+  \item \textbf{output:} \texttt{true} iff \texttt{audio.sampleRate = EXPECTED\_SAMPLE\_RATE $\wedge$ audio.format = EXPECTED\_FORMAT}.
+  \item \textbf{exception:} -.
 \end{itemize}
 
 \noindent\texttt{validateModelReady()}:
 \begin{itemize}
-  \item \textbf{transition:} None
-  \item \textbf{output:} \texttt{true} iff model is loaded $\wedge$ model is validated
-  \item \textbf{exception:} \texttt{exc := ModelValidationError} if model files missing or corrupted
+  \item \textbf{transition:} None.
+  \item \textbf{output:} \texttt{true} iff the cloud-based ASR model is accessible via \texttt{model\_endpoint} and the \texttt{api\_key} is valid.
+  \item \textbf{exception:} \texttt{ModelValidationError} if the endpoint is unreachable or the API key is invalid.
 \end{itemize}
 
 \subsubsection{Local Functions:}
 \begin{itemize}
-  \item \texttt{extract\_features}(\texttt{AudioStream audio}): \texttt{AudioStream} $\rightarrow$ \texttt{FeatureVector} \\
-  \textbf{Description:} \texttt{extract\_features(audio)} returns feature vector (spectrogram, MFCCs) computed from input audio.
-
-  \item \texttt{decode}(\texttt{FeatureVector features}): \texttt{FeatureVector} $\rightarrow$ \texttt{Transcript} \\
-  \textbf{Description:} \texttt{decode(features)} returns recognized text and confidence scores from model decoding.
-
-  \item \texttt{apply\_personalization}(\texttt{Transcript transcript, UserProfile profile}): \texttt{Transcript} $\times$ \texttt{UserProfile} $\rightarrow$ \texttt{Transcript} \\
-  \textbf{Description:} \texttt{apply\_personalization(transcript, profile)} returns transcript adjusted using user profile adaptation.
+  \item \texttt{extract\_features(audio: AudioStream) -> FeatureVector}: Returns feature vector (e.g., spectrogram) computed from input audio.
+  \item \texttt{send\_to\_cloud(features: FeatureVector) -> Transcript}: Sends the feature vector to the cloud-based ASR model using the \texttt{model\_endpoint} and \texttt{api\_key}, and returns the decoded transcript.
 \end{itemize}
+
 
 
 \newpage
