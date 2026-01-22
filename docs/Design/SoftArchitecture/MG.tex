@@ -55,6 +55,7 @@ Nov 26, 2025 & 1.3 & Added Modules M1-M6\\
 Jan 10, 2026 & 1.4 & Implemented TA Feedback for M7-M11\\
 Jan 10, 2026 & 1.4 & Implemented TA and Peer Feedback for AC/UC distinctions\\
 Jan 21, 2026 & 2.0 & Merged modules in application layer and updated timeline\\
+Jan 21, 2026 & 2.1 & Added communication protocol details\\
 \bottomrule
 \end{tabularx}
 
@@ -910,9 +911,19 @@ The speech input interface, shown in Figure 6, provides clear feedback on the sy
 Figure 7 shows the command detection interface that appears after a voice command has been successfully recognized. The detected intent (e.g., opening a new browser tab) is displayed, along with the interpreted spoken phrase. 
 
 
+
 \section{Design of Communication Protocols}
 
-Not applicable at this time.
+VoiceBridge uses typed procedure calls between modules following the \href{https://github.com/speech-buddies/VoiceBridge/blob/main/docs/Design/SoftDetailedDes/MIS.pdf}{MIS} details. All communication is synchronous with structured data types and exception handling.
+
+\begin{itemize}
+\item \textbf{Typed Access Programs}: Module interfaces are defined in the \href{https://github.com/speech-buddies/VoiceBridge/blob/main/docs/Design/SoftDetailedDes/MIS.pdf}{MIS}, utilizing request-response patterns for inter-module communication.
+\item \textbf{Structured Messages}: Data types such as \texttt{UiEvent}, \texttt{Transcript}, \texttt{Command}, and \texttt{FeedbackItem} are used to standardize communication.
+\item \textbf{Exception Handling}: Typed errors (e.g., \texttt{TimeoutError}, \texttt{StoreError}) are propagated and converted into user feedback where applicable.
+\item \textbf{Session Tokens}: UUID-based authentication is managed via the \mref{m12} Credential Manager to ensure secure communication.
+\item \textbf{Data Encryption}: The \mref{m13} Encryption Manager handles encryption at storage and communication boundaries to maintain data security.
+\end{itemize}
+
 \section{Timeline}
 
 % \wss{Schedule of tasks and who is responsible}
