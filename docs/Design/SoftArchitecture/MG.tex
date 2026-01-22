@@ -857,9 +857,59 @@ because they use modules from the lower levels.
 
 \section{User Interfaces}
 
-Will be defined in later design iterations.
-% \wss{Design of user interface for software and hardware.  Attach an appendix if
-% needed. Drawings, Sketches, Figma}
+This section presents the primary user interface components of the VoiceBridge system. The interfaces are designed with accessibility, clarity, and low cognitive load in mind.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.4\textwidth]{../../imgs/mg-ui1.png}
+    \caption{VoiceBridge browser toolbar icon}
+\end{figure}
+
+The browser toolbar icon displayed in Figure 2 serves as the primary entry point for VoiceBridge within the browser environment. 
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.6\textwidth]{../../imgs/mg-ui2.png}
+    \caption{Browser extension widget toggle interface}
+\end{figure}
+The browser extension control panel allows users to enable or disable the VoiceBridge widget on the current webpage using a single-action toggle.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.45\textwidth]{../../imgs/mg-ui3.png}
+    \caption{Main VoiceBridge application interface}
+    \label{fig:main-ui}
+\end{figure}
+
+The main application interface shown in Figure 4 integrates system status, speech input, and transcription components into a single cohesive layout. 
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.45\textwidth]{../../imgs/mg-ui4.png}
+    \caption{Live transcription output panel}
+    \label{fig:transcription}
+\end{figure}
+
+Figure 5 presents the transcription panel where speech is displayed after the user finishes speaking. This component allows users to visually verify the system’s interpretation of their speech before any further action is taken.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.45\textwidth]{../../imgs/mg-ui5.png}
+    \caption{Speech input interface while listening}
+    \label{fig:speech-input}
+\end{figure}
+
+The speech input interface, shown in Figure 6, provides clear feedback on the system’s listening state. A large microphone icon indicates when speech input is active, while supporting text guides the user to speak their command. 
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.45\textwidth]{../../imgs/mg-ui6.png}
+    \caption{Detected voice command confirmation screen}
+    \label{fig:command-detected}
+\end{figure}
+
+Figure 7 shows the command detection interface that appears after a voice command has been successfully recognized. The detected intent (e.g., opening a new browser tab) is displayed, along with the interpreted spoken phrase. 
+
 
 
 \section{Design of Communication Protocols}
