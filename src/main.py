@@ -2,6 +2,7 @@ import asyncio
 import sys
 from fastapi import FastAPI, Body, HTTPException
 from control.browser_use_runner import run_command, run_command_sync
+from control.session_manager import start_session, stop_session
 
 app = FastAPI()
 
@@ -16,3 +17,15 @@ async def control_command(command: str = Body(..., media_type="text/plain")):
 
     history = await asyncio.to_thread(run_command_sync, command)
     return {"command": command, "history": str(history)}
+
+@app.post("/control/session/{action}")
+async def control_session(action: str):
+    if action == "start":
+        msg = await start_session()
+        return {"ok": True, "message": msg}
+
+    if action == "stop":
+        msg = await stop_session()
+        return {"ok": True, "message": msg}
+
+    return {"ok": False, "message": "action must be start or stop"}
