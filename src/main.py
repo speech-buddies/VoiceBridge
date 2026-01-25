@@ -1,8 +1,8 @@
 import asyncio
 import sys
 from fastapi import FastAPI, Body, HTTPException
-from control.browser_use_runner import run_command, run_command_sync
-from control.session_manager import start_session, stop_session
+from control.browser_use_runner import run_command
+from control.session_manager import get_browser, start_session, stop_session
 
 app = FastAPI()
 
@@ -15,7 +15,11 @@ async def control_command(command: str = Body(..., media_type="text/plain")):
     if not command:
         raise HTTPException(status_code=400, detail="command cannot be empty")
 
-    history = await asyncio.to_thread(run_command_sync, command)
+    browser = get_browser()
+    if browser is None:
+        raise HTTPException(status_code=409, detail="No active session. Call /control/session/start first.")
+
+    history = await run_command(command, browser)
     return {"command": command, "history": str(history)}
 
 @app.post("/control/session/{action}")

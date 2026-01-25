@@ -14,8 +14,8 @@ ENV_PATH = Path(__file__).resolve().parents[1] / ".env"   # src/.env
 load_dotenv()
 BROWSER_USE_API_KEY = os.getenv("BROWSER_USE_API_KEY")
 
-async def run_command(command: str):
-    browser = Browser(keep_alive=True)
+async def run_command(command: str, browser: Browser):
+
     llm = ChatBrowserUse()
 
     agent = Agent(
@@ -28,9 +28,6 @@ async def run_command(command: str):
     return history
 
 
-def run_command_sync(command: str):
-    # lets FastAPI call it without you thinking about event loops
-    return asyncio.run(run_command(command))
 
 # async def example():
 #     browser = Browser(

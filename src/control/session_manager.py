@@ -11,7 +11,7 @@ async def start_session() -> str:
     if _browser is not None:
         return "Browser already running"
 
-    _browser = Browser()
+    _browser = Browser(keep_alive=True)  # keep it alive across commands
     await _browser.start()
     return "Browser started"
 
@@ -26,3 +26,6 @@ async def stop_session() -> str:
     await _browser.stop()
     _browser = None
     return "Browser stopped"
+
+def get_browser() -> Browser | None:
+    return _browser
