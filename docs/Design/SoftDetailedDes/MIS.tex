@@ -56,6 +56,7 @@ urlcolor=cyan          % color of external links
 Nov 12, 2025 & 1.0 & Added Modules M1-M19\\
 Jan 11, 2026 & 1.1 & Updated local functions\\
 Jan 21, 2026 & 2.0 & Merged modules in application layer\\
+Jan 28, 2026 & 2.1 & Added reflection for peer module implementation\\
 \bottomrule
 \end{tabularx}
 
@@ -1491,6 +1492,13 @@ graduate attribute of Problem Analysis and Design.
 
   \item \textbf{Give a brief overview of other design solutions you considered. What are the benefits and tradeoffs of those other designs compared with the chosen design? From all the potential options, why did you select the documented design? (LO\_Explores)}  
   Alternative designs considered included monolithic architectures and different modular breakdowns. Monolithic design offered simplicity but reduced maintainability and scalability. Various modular structures were explored; the chosen modular design balances separation of concerns, ease of integration, and parallel development capability. This approach was selected to optimize maintainability and accommodate future enhancements efficiently.
+
+  \item \textbf{What did you learn by implementing another team's module? Were all the details you needed in the documentation, or did you need to make assumptions, or ask the other team questions?  If your team also had another team implement one of your modules, what was this experience like?  Are there things in your documentation you could have changed to make the process go more smoothly for when an ``outsider'' completes some of the implementation?}
+  Implementing the Mel Filter Module demonstrated how much a formal mathematical foundation simplifies cross-team collaboration. Because the documentation provided a specific matrix summation formula, we could translate signal processing requirements into C++ logic with very little ambiguity. We briefly struggled with the index mapping for the filterbank matrix $H$, but the provided semantic notation allowed us to resolve the structure ourselves. This experience showed that a rigorous mathematical contract reduces the need for an external implementer to make arbitrary assumptions or constantly ask the original designers for clarification.
+  In contrast, having another team implement our User Profile module revealed that our specifications relied too heavily on implicit context. Since we didn't formalize the internal logic or state changes, the module's behavior wasn't immediately clear to an outsider. To make our documentation more self-contained, we should have included detailed logic in the future. This highlighted that documentation requires a much higher level of formal detail when the developer is not the original designer.
+
+
+
 \end{enumerate}
 
 \end{document}
