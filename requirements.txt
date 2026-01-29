@@ -3,3 +3,4 @@ soundfile
 torch
 transformers
 peft
+librosa
