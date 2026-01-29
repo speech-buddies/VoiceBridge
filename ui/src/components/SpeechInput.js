@@ -1,31 +1,63 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import './SpeechInput.css';
 
 const SpeechInput = ({
   isListening,
-  onStartListening,
-  onStopListening,
-  onTranscription,
+  onAudioData,
   onError,
   isLightMode,
 }) => {
   const [audioLevel, setAudioLevel] = useState(0);
   const mediaStreamRef = useRef(null);
   const animationFrameRef = useRef(null);
+  const mediaRecorderRef = useRef(null);
+  const chunkTimerRef = useRef(null);
 
-  useEffect(() => {
-    if (isListening) {
-      startMicrophone();
-    } else {
-      stopMicrophone();
+  const startRecorder = useCallback(() => {
+    if (!mediaStreamRef.current) return;
+
+    if (!window.MediaRecorder) {
+      onError('MediaRecorder is not supported in this browser.');
+      return;
     }
 
-    return () => {
-      stopMicrophone();
-    };
-  }, [isListening]);
+    const stream = mediaStreamRef.current;
+    const mediaRecorder = new MediaRecorder(stream);
 
-  const startMicrophone = async () => {
+    mediaRecorder.ondataavailable = (event) => {
+      if (event.data && event.data.size > 0) {
+        onAudioData(event.data);
+      }
+    };
+
+    mediaRecorder.onerror = (event) => {
+      console.error('MediaRecorder error:', event);
+      onError('Error while recording audio.');
+    };
+
+    mediaRecorder.onstop = () => {
+      if (chunkTimerRef.current) {
+        clearTimeout(chunkTimerRef.current);
+        chunkTimerRef.current = null;
+      }
+      // Start a new recorder for the next chunk if still listening
+      if (isListening && mediaStreamRef.current) {
+        startRecorder();
+      }
+    };
+
+    mediaRecorderRef.current = mediaRecorder;
+    mediaRecorder.start();
+
+    // Stop this recorder after ~10s to finalize a standalone, playable file
+    chunkTimerRef.current = setTimeout(() => {
+      if (mediaRecorder.state === 'recording') {
+        mediaRecorder.stop();
+      }
+    }, 10000);
+  }, [isListening, onAudioData, onError]);
+
+  const startMicrophone = useCallback(async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       mediaStreamRef.current = stream;
@@ -46,13 +78,15 @@ const SpeechInput = ({
       };
 
       updateAudioLevel();
+
+      startRecorder();
     } catch (error) {
       console.error('Error accessing microphone:', error);
       onError('Unable to access microphone. Please check permissions.');
     }
-  };
+  }, [onError, startRecorder]);
 
-  const stopMicrophone = () => {
+  const stopMicrophone = useCallback(() => {
     if (mediaStreamRef.current) {
       mediaStreamRef.current.getTracks().forEach(track => track.stop());
       mediaStreamRef.current = null;
@@ -61,30 +95,43 @@ const SpeechInput = ({
       cancelAnimationFrame(animationFrameRef.current);
       animationFrameRef.current = null;
     }
-    setAudioLevel(0);
-  };
-
-  const handleToggleListening = () => {
-    if (isListening) {
-      onStopListening();
-      // Simulate transcription after speaking stops
-      setTimeout(() => {
-        const sampleTexts = [
-          'Open new tab',
-          'Close tab',
-          'Go back',
-          'Go forward',
-          'Refresh page',
-          'Scroll down',
-          'Scroll up',
-        ];
-        const randomText = sampleTexts[Math.floor(Math.random() * sampleTexts.length)];
-        onTranscription(randomText);
-      }, 500);
-    } else {
-      onStartListening();
+    if (chunkTimerRef.current) {
+      clearTimeout(chunkTimerRef.current);
+      chunkTimerRef.current = null;
     }
-  };
+    setAudioLevel(0);
+  }, []);
+
+  const stopRecognition = useCallback(() => {
+    if (chunkTimerRef.current) {
+      clearTimeout(chunkTimerRef.current);
+      chunkTimerRef.current = null;
+    }
+    if (mediaRecorderRef.current) {
+      try {
+        if (mediaRecorderRef.current.state === 'recording') {
+          mediaRecorderRef.current.stop();
+        }
+      } catch (e) {
+        // Ignore if already stopped
+      }
+      mediaRecorderRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isListening) {
+      startMicrophone();
+    } else {
+      stopMicrophone();
+      stopRecognition();
+    }
+
+    return () => {
+      stopMicrophone();
+      stopRecognition();
+    };
+  }, [isListening, startMicrophone, stopMicrophone, stopRecognition]);
 
   return (
     <div className={`speech-input ${isLightMode ? 'light-mode' : 'dark-mode'}`}>
@@ -92,8 +139,7 @@ const SpeechInput = ({
       <div className="microphone-container">
         <button
           className={`microphone-button ${isListening ? 'listening' : ''}`}
-          onClick={handleToggleListening}
-          aria-label={isListening ? 'Stop listening' : 'Start listening'}
+          aria-label="Listening for speech"
           aria-pressed={isListening}
         >
           <svg
