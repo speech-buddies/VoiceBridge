@@ -9,7 +9,6 @@ class AudioStream:
 @dataclass
 class Transcript:
     text: str
-    confidence: float
     metadata: dict
 
 @dataclass

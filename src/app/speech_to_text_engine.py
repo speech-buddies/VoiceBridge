@@ -45,7 +45,9 @@ class SpeechToTextEngine:
 
         try:
             self.model: Optional[WhisperLoraAsrModel] = WhisperLoraAsrModel(
-                model_checkpoint, device=device
+                model_checkpoint=model_checkpoint,
+                device=device,
+                adapter_path=model_checkpoint
             )
         except Exception as exc:
             raise InitializationError(f"Failed to initialize ASR model: {exc}") from exc
@@ -91,7 +93,7 @@ class SpeechToTextEngine:
             except Exception as exc:
                 raise ProcessingError(f"VAD failed: {exc}") from exc
             if not has_speech:
-                return Transcript(text="", confidence=0.0, metadata={"reason": "no_speech"})
+                return Transcript(text="", metadata={"reason": "no_speech"})
 
         self.validateModelReady()
 
@@ -104,7 +106,7 @@ class SpeechToTextEngine:
         return self._apply_personalization(transcript)
 
     def _apply_personalization(self, transcript: Transcript) -> Transcript:
-        """Adjust transcript confidence and metadata using user profile."""
+        """Optionally adjust transcript metadata using user profile."""
         if not self._personalization_store:
             return transcript
 
@@ -112,11 +114,33 @@ class SpeechToTextEngine:
         if not profile:
             return transcript
 
-        boost = float(profile.get("confidence_boost", 0.0))
-        new_conf = max(0.0, min(1.0, transcript.confidence + boost))
-
         metadata = dict(transcript.metadata or {})
         if "id" in profile:
             metadata["profile_id"] = profile["id"]
 
-        return Transcript(text=transcript.text, confidence=new_conf, metadata=metadata)
+        return Transcript(text=transcript.text, metadata=metadata)
+
+    def transcribe_folder(self, folder_path: str) -> Transcript:
+        """Transcribe all WAV files in a folder, ordered by filename, and combine results."""
+        import os
+        from src.input.wav_loader import wav_to_audiostream
+
+        wav_files = sorted(
+            [f for f in os.listdir(folder_path) if f.lower().endswith(".wav")]
+        )
+        combined_text = []
+        metadatas = []
+
+        for fname in wav_files:
+            fpath = os.path.join(folder_path, fname)
+            audio = wav_to_audiostream(fpath)
+            transcript = self.processAudio(audio)
+            combined_text.append(transcript.text)
+            metadatas.append(transcript.metadata)
+
+        final_text = " ".join(combined_text).strip()
+        combined_metadata = {"chunks": len(wav_files), "sources": wav_files}
+        if metadatas:
+            combined_metadata.update(metadatas[0])
+
+        return Transcript(text=final_text, metadata=combined_metadata)

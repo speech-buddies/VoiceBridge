@@ -1,5 +1,7 @@
+
 import soundfile as sf
 import numpy as np
+import librosa
 from src.models.audio_data import AudioStream
 
 def wav_to_audiostream(wav_path: str) -> AudioStream:
@@ -27,5 +29,11 @@ def wav_to_audiostream(wav_path: str) -> AudioStream:
             samples = samples.astype(np.float32) / 2**31
         else:
             samples = samples.astype(np.float32)
+
+    # Resample to 16kHz if needed
+    target_sr = 16000
+    if sample_rate != target_sr:
+        samples = librosa.resample(samples, orig_sr=sample_rate, target_sr=target_sr)
+        sample_rate = target_sr
 
     return AudioStream(samples=samples, sample_rate=sample_rate)

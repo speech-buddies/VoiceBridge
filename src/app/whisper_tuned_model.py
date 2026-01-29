@@ -26,7 +26,6 @@ class WhisperLoraAsrModel:
         base_model = WhisperForConditionalGeneration.from_pretrained(self.BASE_MODEL_NAME)
 
         self.adapter_path = adapter_path
-
         state_dict = torch.load(self.adapter_path, map_location=self.device)
 
         vocab_ckpt = state_dict["base_model.model.model.decoder.embed_tokens.weight"].shape[0]
@@ -84,6 +83,5 @@ class WhisperLoraAsrModel:
 
         return Transcript(
             text=text.strip(),
-            confidence=0.75,
             metadata={"model": "whisper-small-lora"},
         )
