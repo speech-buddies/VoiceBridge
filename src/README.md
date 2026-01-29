@@ -67,3 +67,20 @@ src/
     ├── logger.py                    # Logging utilities
     ├── validators.py                # Input validation
     └── exceptions.py                # Custom exceptions
+
+
+For installing all requirements, its best to create a virtual environment:
+
+`python -m venv .venv`
+
+and activate it:
+
+` source venv/scripts/activate` (might differ depending on machine/terminal)
+
+then install:
+
+`pip install -r requirements.txt` 
+
+To allow modules to access and import each other, we need to run 
+
+` pip install -e .` 
