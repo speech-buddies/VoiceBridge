@@ -371,3 +371,25 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+# Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+backend/Recordings/
+
+# Node / UI build (ui/ has its own .gitignore for build/ and extension/)
+node_modules/
+
+# Root package-lock without package.json (keep ui/package-lock.json)
+/package-lock.json
+# env
+.env
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
