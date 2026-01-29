@@ -1,0 +1,7 @@
+# Audio processing
+sounddevice>=0.4.6
+numpy>=1.23.0
+scipy>=1.10.0
+
+# Voice Activity Detection
+webrtcvad>=2.0.10
