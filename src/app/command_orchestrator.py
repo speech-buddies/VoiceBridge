@@ -120,8 +120,8 @@ class InferenceError(Exception):
 
 class CommandOrchestrator:
     """
-    Orchestrates natural language to browser command translation using LLM API.
-    
+    Orchestrates natural language to browser command translation using a stateful 
+    three-prompt architecture (Primary, Error, Recovery) using LLM API.
     Maintains conversation context, validates outputs, and applies safety guardrails.
     """
     
@@ -145,8 +145,16 @@ class CommandOrchestrator:
         self.client = genai.Client(api_key=self._api_key)
         self.model_id = model_id
         self.prompt_path = prompt_path
-        
-        self.system_prompt = self._load_system_prompt(self.prompt_path)
+        # Load the persistent primary prompt and specific role overlays from prompts directory
+        prompt_dir = Path(__file__).parent / "prompts"
+        # primary_prompt.md is the base system role required on every call
+        self.primary_prompt = self._load_system_prompt(str(prompt_dir / "primary_prompt.md"))
+        # error and recovery overlays (UI-facing / recovery role)
+        self.error_evaluation_prompt = self._load_system_prompt(str(prompt_dir / "error_evaluation_prompt.md"))
+        self.recovery_prompt = self._load_system_prompt(str(prompt_dir / "recovery_prompt.md"))
+
+        # system_prompt remains the base persistent prompt (primary)
+        self.system_prompt = self.primary_prompt
 
         # Conversation history uses local Message dataclass for compact bookkeeping
         self.conversation_history: List[Message] = []
@@ -157,9 +165,17 @@ class CommandOrchestrator:
         self.security_layer = security_layer
 
         # Minimal orchestrator state per design
+        # `primary_goal` is captured from the first user transcript and remains immutable
         self.primary_goal: Optional[str] = None
         self.mode: Mode = Mode.BASELINE
+        # Active browser error metadata when a substep fails
         self.active_browser_error: Optional[Dict[str, Any]] = None
+
+        # Track if we are awaiting user confirmation for the primary goal
+        self.awaiting_primary_goal_confirmation: bool = False
+        # Store the last proposed command and user text for confirmation
+        self._pending_primary_command: Optional[Command] = None
+        self._pending_primary_user_text: Optional[str] = None
 
         # API config used by the low-level caller (defaults can be overridden)
         self.api_config = Config(
@@ -173,8 +189,8 @@ class CommandOrchestrator:
         # Small role overlays (kept minimal/token-efficient)
         self._role_overlays = {
             "BASELINE": "Convert the user's transcript into ONE high-level browser command. Do NOT reason about errors or recovery. Output must conform to the JSON command schema.",
-            "ERROR": "Analyze the browser error relative to the primary goal. Produce a short user-facing explanation and TWO options: (a) manual resolution instructions, (b) assisted automation listing exact info required. DO NOT output browser commands or JSON.",
-            "RECOVERY": "Take the user's recovery input and produce the minimal browser command required to unblock the failed substep. Output must be valid JSON matching the command schema and scope-limited to the failed substep.",
+            "ERROR": self.error_evaluation_prompt,
+            "RECOVERY": self.recovery_prompt,
         }
 
         # Attempt to load overlay prompt files from the same directory as prompt_path.
@@ -196,6 +212,32 @@ class CommandOrchestrator:
         except FileNotFoundError:
             print(f"Warning: Prompt file {path} not found. Using default.")
             return "You are a helpful browser assistant."
+
+    def _construct_system_instruction(self, role: str = "BASELINE") -> List[Dict[str, str]]:
+        """
+        Aggregate the prompt stack for every LLM call as a list of system messages.
+
+        Stack order (injected every call):
+          1) primary_prompt.md (persistent base system role)
+          2) compact shared context (primary goal, execution contract, optional error metadata)
+          3) role-specific overlay (ERROR or RECOVERY) if applicable
+
+        Returns a list of dicts suitable for the `messages` payload.
+        """
+        base = self.primary_prompt or self.system_prompt
+        shared_ctx = self._build_shared_context()
+
+        # Choose overlay content for role if available
+        overlay = self._role_overlays.get(role, "")
+
+        system_blocks = [
+            {"role": "system", "content": base},
+            {"role": "system", "content": shared_ctx},
+        ]
+        if overlay:
+            system_blocks.append({"role": "system", "content": overlay})
+
+        return system_blocks
     
     def _load_overlay_prompts_from_dir(self, prompt_dir: str) -> None:
         """Load role overlay markdown files from a directory into self._role_overlays.
@@ -253,62 +295,58 @@ class CommandOrchestrator:
             pass
 
 
-    def processTranscript(self, text: str) -> Command:
+    def processTranscript(self, text: str):
         """
         Converts natural language to a Command using Structured Outputs.
+        Handles confirmation/decline of the primary goal before setting it.
+        Returns:
+            - If awaiting confirmation: None (wait for accept/decline)
+            - If error: Command or clarifying question
+            - If baseline: Command (if confirmed), or Command (pending confirmation)
         """
-        # If no primary goal is set yet, keep it external: we don't auto-set here.
-        # Routing by mode
-        if self.mode == Mode.BLOCKED:
-            # In BLOCKED mode, treat incoming transcript as recovery input
+        # If an error is active, route to recovery
+        if self.active_browser_error:
             return self.processRecoveryInput(text)
 
-        # BASELINE happy path: produce a single high-level browser command
-        # Build payload using layered context
-        payload = self._construct_payload(text=text, role="BASELINE")
+        # If awaiting confirmation, ignore new user input until accept/decline is called
+        if self.awaiting_primary_goal_confirmation:
+            # Optionally, could allow user to provide a new instruction here, but for now, require explicit accept/decline
+            return None
 
+        # If no primary goal, propose a command and require confirmation
+        if self.primary_goal is None:
+            payload = self._construct_payload(text=text, role="BASELINE")
+            try:
+                raw = self._call_llm_api(payload)
+                command_dict = self._parse_llm_response(raw)
+                messages_from_model = None
+                if isinstance(command_dict, dict) and "messages" in command_dict:
+                    messages_from_model = command_dict.pop("messages")
+                command = Command(**command_dict)
+                command = self._apply_guardrails(command)
+                # Store for confirmation
+                self.awaiting_primary_goal_confirmation = True
+                self._pending_primary_command = command
+                self._pending_primary_user_text = text
+                # Optionally, add to history as a pending proposal
+                return command
+            except Exception as e:
+                if self.error_feedback_module:
+                    self.error_feedback_module.report_error("CommandOrchestrator", str(e))
+                raise InferenceError(f"GenAI inference failed: {str(e)}")
+
+        # If primary goal is set, proceed as normal (BASELINE)
+        payload = self._construct_payload(text=text, role="BASELINE")
         try:
             raw = self._call_llm_api(payload)
-            # parse LLM output
             command_dict = self._parse_llm_response(raw)
-
-            # Support optional 'messages' returned by the model; remove before building Command
             messages_from_model = None
             if isinstance(command_dict, dict) and "messages" in command_dict:
                 messages_from_model = command_dict.pop("messages")
-
-            # Build Command object from remaining keys
             command = Command(**command_dict)
             command = self._apply_guardrails(command)
-
-            # If the model provided compact assistant messages, append them to history
-            try:
-                if messages_from_model and isinstance(messages_from_model, list):
-                    for m in messages_from_model:
-                        role = m.get("role", "assistant")
-                        content = m.get("content", "")
-                        if content:
-                            self._update_history(Message(role=role, content=content, tokens=max(1, len(content.split()))))
-            except Exception:
-                pass
-           
-            # command_dict = self._parse_llm_response(raw)
-
-            # # Command dict should only contain command fields
-            # command = Command(**command_dict)
-            # command = self._apply_guardrails(command)
-
-            # # Record minimal history entry (avoid large tokens) using Message dataclass
-            # try:
-            #     user_msg = Message(role="user", content=text, tokens=max(1, len(text.split())))
-            #     assistant_msg = Message(role="assistant", content=json.dumps(command.to_dict()), tokens=max(1, len(json.dumps(command.to_dict()).split())))
-            #     self._update_history(user_msg)
-            #     self._update_history(assistant_msg)
-            # except Exception:
-            #     pass
-
+            # Optionally, add to history
             return command
-
         except Exception as e:
             if self.error_feedback_module:
                 self.error_feedback_module.report_error("CommandOrchestrator", str(e))
@@ -372,14 +410,9 @@ class CommandOrchestrator:
         Returns:
             JSON payload for LLM API
         """
-        # Layer 1: persistent base system prompt
-        base = self.system_prompt
 
-        # Layer 2: compact shared context always regenerated
-        shared_ctx = self._build_shared_context()
-
-        # Layer 3: small role overlay
-        overlay = self._role_overlays.get(role, "")
+        # Construct system instruction stack (base + shared context + role overlay)
+        system_blocks = self._construct_system_instruction(role)
 
         # Layer 4: very short rolling conversation history (trim aggressively)
         short_history: List[Dict[str, str]] = []
@@ -405,12 +438,9 @@ class CommandOrchestrator:
         except Exception:
             short_history = []
 
-        messages = [
-            {"role": "system", "content": base},
-            {"role": "system", "content": shared_ctx},
-            {"role": "system", "content": overlay},
-            {"role": "user", "content": text},
-        ]
+        messages = []
+        messages.extend(system_blocks)
+        messages.append({"role": "user", "content": text})
         messages.extend(short_history)
 
         payload = {
@@ -434,7 +464,8 @@ class CommandOrchestrator:
             parts.append(f"Primary user goal: {self.primary_goal}")
         else:
             parts.append("Primary user goal: <not set>")
-
+        # Encourage token efficiency
+        parts.append("Token-efficiency: prefer concise outputs and avoid verbose internal deliberation.")
         contract = (
             "Execution contract: The browser controller executes all substeps autonomously. "
             "The model MUST NOT plan substeps or restart the primary goal. "
@@ -451,28 +482,85 @@ class CommandOrchestrator:
 
         return "\n".join(parts)
 
-    def set_primary_goal(self, goal: str) -> None:
-        """Set or overwrite the primary goal for the session."""
-        # allowed to set or overwrite via explicit API
-        self.primary_goal = goal
 
-    def report_browser_error(self, error_meta: Dict[str, Any]) -> str:
-        """Called by Browser Controller to notify an error; returns error explanation string."""
+
+    def accept_command_as_primary(self, cmd: Optional[Command] = None, user_text: Optional[str] = None) -> None:
+        """
+        Mark the given command (or the stored pending command) as the immutable primary goal.
+        This should be called after the assistant's BASELINE command is presented to the user
+        and the user confirms it represents their intended primary goal.
+        """
+        if self.primary_goal is not None:
+            raise InitializationError("Primary goal already set for this session and is immutable.")
+        if not self.awaiting_primary_goal_confirmation:
+            raise InitializationError("No pending primary command to accept.")
+        # Use the stored pending command and user text if not provided
+        cmd = cmd or self._pending_primary_command
+        user_text = user_text or self._pending_primary_user_text
+        if cmd is None or user_text is None:
+            raise InitializationError("No pending command or user text to accept as primary goal.")
+        # Set the primary goal as the user text (or command as string)
+        self.primary_goal = user_text
+        self.awaiting_primary_goal_confirmation = False
+        self._pending_primary_command = None
+        self._pending_primary_user_text = None
+
+    def _reset_pending_goal_state(self) -> None:
+        """
+        Reset all state related to pending or proposed primary goal, including confirmation and mode.
+        """
+        self.awaiting_primary_goal_confirmation = False
+        self._pending_primary_command = None
+        self._pending_primary_user_text = None
+        self.mode = Mode.BASELINE
+
+    def decline_proposed_command(self) -> None:
+        """
+        Called when the user declines the assistant's proposed command as their primary goal.
+        This leaves `primary_goal` unset so the user can provide a corrected instruction.
+        """
+        self._reset_pending_goal_state()
+
+    def cancel_primary_goal(self) -> None:
+        """
+        Explicitly cancel the current primary goal (developer-controlled). Clears state
+        so a new primary goal can be set later.
+        """
+        self.primary_goal = None
+        self._reset_pending_goal_state()
+
+
+    def handle_browser_feedback(self, error_data: Dict[str, Any]) -> str:
+        """
+        Sets active error metadata and returns the plain human-readable text generated by the ERROR overlay. This bypasses
+        JSON schema validation for the ERROR role.
+        """
         self.mode = Mode.BLOCKED
-        self.active_browser_error = error_meta
+        self.active_browser_error = error_data
 
         payload = self._construct_payload(text="", role="ERROR")
         raw = self._call_llm_api(payload)
         return raw
 
-    def processRecoveryInput(self, text: str) -> Command:
-        """Convert user's recovery input into a minimal command scoped to the failed substep."""
+    def processRecoveryInput(self, text: str):
+        """Convert user's recovery input into a minimal command scoped to the failed substep.
+
+        Returns either a `Command` when the LLM provides valid RECOVERY JSON, or a
+        plain-text clarifying question (str) when the model requests a single piece
+        of missing information.
+        """
         if not self.active_browser_error:
             raise InferenceError("No active browser error to recover from")
 
         payload = self._construct_payload(text=text, role="RECOVERY")
         raw = self._call_llm_api(payload)
-        cmd_dict = self._parse_llm_response(raw)
+
+        # Try to parse JSON; if it fails, treat response as a single concise plain-text question
+        try:
+            cmd_dict = self._parse_llm_response(raw)
+        except InferenceError:
+            # Return the plain clarifying question to the user
+            return raw
 
         # Support optional 'messages' field in RECOVERY JSON. Extract before Command construction.
         messages_from_model = None
@@ -482,7 +570,7 @@ class CommandOrchestrator:
         cmd = Command(**cmd_dict)
         cmd = self._apply_guardrails(cmd)
 
-        # If the model supplied messages for history bookkeeping, append them.
+        # If the model supplied messages for compact history bookkeeping, append them
         try:
             if messages_from_model and isinstance(messages_from_model, list):
                 for m in messages_from_model:
