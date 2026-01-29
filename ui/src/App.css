@@ -1,0 +1,261 @@
+.App {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Extension overlay styles */
+.App.extension-overlay {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  position: relative;
+  background: transparent !important;
+}
+
+.extension-container {
+  background: transparent;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+  width: 100%;
+  max-height: 90vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  margin: 0;
+  border: none;
+}
+
+.App.dark-mode {
+  background: transparent;
+  color: #ffffff;
+}
+
+.App.extension-overlay.dark-mode {
+  background: transparent !important;
+}
+
+.App.light-mode {
+  background: transparent;
+  color: #000000;
+}
+
+.App.extension-overlay.light-mode {
+  background: transparent !important;
+}
+
+.App-header {
+  padding: 2rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  transition: background 0.3s ease, border-color 0.3s ease;
+  border-radius: 16px 16px 0 0;
+}
+
+.dark-mode .App-header {
+  background: linear-gradient(135deg, #1a1a1a 0%, #000000 100%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.light-mode .App-header {
+  background: linear-gradient(135deg, #ffffff 0%, #f0f0f0 100%);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.header-content {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  max-width: 1400px;
+  margin: 0 auto;
+  width: 100%;
+  position: relative;
+  gap: 2rem;
+}
+
+.header-controls {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: center;
+}
+
+.header-content > div {
+  text-align: center;
+}
+
+.theme-toggle,
+.minimize-button {
+  background: transparent;
+  border: 2px solid;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  outline: none;
+  line-height: 1;
+  padding: 0;
+  text-align: center;
+  font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji', sans-serif;
+}
+
+.minimize-button {
+  font-size: 1.5rem;
+  font-weight: bold;
+}
+
+.dark-mode .theme-toggle,
+.dark-mode .minimize-button {
+  border-color: rgba(255, 255, 255, 0.3);
+  color: #ffffff;
+}
+
+.dark-mode .theme-toggle:hover,
+.dark-mode .minimize-button:hover {
+  border-color: rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.light-mode .theme-toggle,
+.light-mode .minimize-button {
+  border-color: rgba(0, 0, 0, 0.3);
+  color: #000000;
+}
+
+.light-mode .theme-toggle:hover,
+.light-mode .minimize-button:hover {
+  border-color: rgba(0, 0, 0, 0.6);
+  background: rgba(0, 0, 0, 0.05);
+}
+
+/* Keyboard focus: visible ring */
+.theme-toggle:focus-visible,
+.minimize-button:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+.App-header h1 {
+  font-size: 2.5rem;
+  margin-bottom: 0.5rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  transition: background 0.3s ease;
+}
+
+.dark-mode .App-header h1 {
+  background: linear-gradient(135deg, #ffffff 0%, #a0a0a0 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.light-mode .App-header h1 {
+  background: linear-gradient(135deg, #000000 0%, #404040 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.subtitle {
+  font-size: 1.1rem;
+  font-weight: 300;
+  transition: color 0.3s ease;
+}
+
+.dark-mode .subtitle {
+  color: #a0a0a0;
+}
+
+.light-mode .subtitle {
+  color: #666666;
+}
+
+.App-main {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+  padding: 2rem;
+  transition: background 0.3s ease;
+  overflow-y: auto;
+  border-radius: 0 0 16px 16px;
+}
+
+.dark-mode .App-main {
+  background: linear-gradient(135deg, #0a0a0a 0%, #000000 50%, #0a0a0a 100%);
+}
+
+.light-mode .App-main {
+  background: linear-gradient(135deg, #f0f0f0 0%, #f5f5f5 50%, #f0f0f0 100%);
+}
+
+.main-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  max-width: 1400px;
+  width: 100%;
+  align-items: stretch;
+}
+
+.left-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.right-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 100%;
+}
+
+.App-footer {
+  padding: 1.5rem;
+  text-align: center;
+  font-size: 0.9rem;
+  transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+.dark-mode .App-footer {
+  background: linear-gradient(135deg, #000000 0%, #1a1a1a 100%);
+  color: #808080;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.light-mode .App-footer {
+  background: linear-gradient(135deg, #f5f5f5 0%, #ffffff 100%);
+  color: #666666;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+@media (max-width: 1024px) {
+  .main-container {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .App-header h1 {
+    font-size: 2rem;
+  }
+
+  .App-main {
+    padding: 1rem;
+  }
+
+  .main-container {
+    gap: 1rem;
+  }
+}
