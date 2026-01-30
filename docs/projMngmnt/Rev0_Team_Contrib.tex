@@ -134,46 +134,46 @@ Some team members had more, smaller commits, so total counts do not fully reflec
 
 \section{Issue Tracker}
 
-\wss{For each team member how many issues have they authored (including open and
-closed issues (O+C)) and how many have they been assigned (only counting closed
-issues (C only)) over the time period of interest.}
-
 \begin{table}[H]
 \centering
 \begin{tabular}{lll}
 \toprule
 \textbf{Student} & \textbf{Authored (O+C)} & \textbf{Assigned (C only)}\\
 \midrule
-Name 1 & Num & Num \\
-Name 2 & Num & Num \\
-Name 3 & Num & Num \\
-Name 4 & Num & Num \\
-Name 5 & Num & Num \\
+Luna & 14 & 19 \\
+Kelvin & 7 & 14 \\
+Mazen & 11 & 17 \\
+Rawan & 9  & 26 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\wss{If needed, an explanation for the counts can be provided here.}
+The difference in the Authored column is attributed to the creation of team meeting issues, which contributes significantly to the counts for some members. 
+
+
 
 \section{CICD}
 
-\wss{Say how CICD is used in your project}
+Two GitHub Actions workflows run on the \texttt{main} branch for both push and pull events:
+\begin{itemize}
+    \item \textbf{buildtex}: Triggered when files under \texttt{docs/**} change. This workflow builds the modified \LaTeX{} files into PDF artifacts and commits the generated PDFs back to the \texttt{main} branch.
+    \item \textbf{Python CI}: Triggered when \texttt{.py} files, \texttt{requirements.txt}, or the workflow configuration change. This workflow uses Python~3.11 and runs \texttt{pylint} and \texttt{pytest} to validate code quality and correctness.
+\end{itemize}
+
 
 \section{Team Charter Trigger Items}
 
-\wss{Provide a summary of the quantified triggers identified in the team's
-charter.}
+The following quantified triggers are established in our team charter:
+\begin{itemize}
+    \item \textbf{Meeting Attendance:} All members are expected to attend every meeting unless they have communicated in advance.
+    \item \textbf{Timely Task Updates:} Assigned tasks should be completed on time or any delays must be communicated ahead through Discord.
+    \item \textbf{Review Before Merge:} No code or document changes may be merged without review and approval from at least one other team member.
+\end{itemize}
 
-\wss{Provide a list of any violations of the triggers.  If the team wishes, the
-violations can be summarized on aggregate, instead of naming specific team
-members.}
+There have been no violations of the team charter triggers during this reporting period. As no violations have occurred, no corrective actions are currently necessary. 
 
-\wss{Provide a plan to address the violations.  This could include revising the
-triggers, if they are found to be too weak, strong or ambiguous.}
 
 \section{Additional Productivity Metrics}
-
-\wss{If your team has additional metrics of productivity, please feel free to
-add them to this report.}
+N/A as of this moment.
 
 \end{document}
