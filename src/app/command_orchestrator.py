@@ -119,6 +119,7 @@ class InferenceError(Exception):
 # ============================================================================
 
 class CommandOrchestrator:
+
     """
     Orchestrates natural language to browser command translation using a stateful 
     three-prompt architecture (Primary, Error, Recovery) using LLM API.
@@ -297,7 +298,7 @@ class CommandOrchestrator:
 
     def processTranscript(self, text: str):
         """
-        Converts natural language to a Command using Structured Outputs.
+        Converts natural language to a plain-text browser command or sequence of commands.
         Handles confirmation/decline of the primary goal before setting it.
         Returns:
             - If awaiting confirmation: None (wait for accept/decline)
@@ -310,26 +311,22 @@ class CommandOrchestrator:
 
         # If awaiting confirmation, ignore new user input until accept/decline is called
         if self.awaiting_primary_goal_confirmation:
-            # Optionally, could allow user to provide a new instruction here, but for now, require explicit accept/decline
             return None
+
+        # Always track user input
+        self._update_history(Message(role="user", content=text, tokens=max(1, len(text.split()))))
 
         # If no primary goal, propose a command and require confirmation
         if self.primary_goal is None:
             payload = self._construct_payload(text=text, role="BASELINE")
             try:
                 raw = self._call_llm_api(payload)
-                command_dict = self._parse_llm_response(raw)
-                messages_from_model = None
-                if isinstance(command_dict, dict) and "messages" in command_dict:
-                    messages_from_model = command_dict.pop("messages")
-                command = Command(**command_dict)
-                command = self._apply_guardrails(command)
-                # Store for confirmation
+                guarded = self._apply_guardrails(raw)
+                self._update_history(Message(role="assistant", content=guarded, tokens=max(1, len(guarded.split()))))
                 self.awaiting_primary_goal_confirmation = True
-                self._pending_primary_command = command
+                self._pending_primary_command = guarded
                 self._pending_primary_user_text = text
-                # Optionally, add to history as a pending proposal
-                return command
+                return guarded
             except Exception as e:
                 if self.error_feedback_module:
                     self.error_feedback_module.report_error("CommandOrchestrator", str(e))
@@ -339,14 +336,9 @@ class CommandOrchestrator:
         payload = self._construct_payload(text=text, role="BASELINE")
         try:
             raw = self._call_llm_api(payload)
-            command_dict = self._parse_llm_response(raw)
-            messages_from_model = None
-            if isinstance(command_dict, dict) and "messages" in command_dict:
-                messages_from_model = command_dict.pop("messages")
-            command = Command(**command_dict)
-            command = self._apply_guardrails(command)
-            # Optionally, add to history
-            return command
+            guarded = self._apply_guardrails(raw)
+            self._update_history(Message(role="assistant", content=guarded, tokens=max(1, len(guarded.split()))))
+            return guarded
         except Exception as e:
             if self.error_feedback_module:
                 self.error_feedback_module.report_error("CommandOrchestrator", str(e))
@@ -543,85 +535,28 @@ class CommandOrchestrator:
         return raw
 
     def processRecoveryInput(self, text: str):
-        """Convert user's recovery input into a minimal command scoped to the failed substep.
+        """Convert user's recovery input into a minimal plain-text command scoped to the failed substep.
 
-        Returns either a `Command` when the LLM provides valid RECOVERY JSON, or a
-        plain-text clarifying question (str) when the model requests a single piece
-        of missing information.
+        Returns either a plain-text command or a clarifying question (str) when the model requests a single piece of missing information.
+        Tracks all steps in the messages array.
         """
         if not self.active_browser_error:
             raise InferenceError("No active browser error to recover from")
 
+        self._update_history(Message(role="recovery", content=text, tokens=max(1, len(text.split()))))
         payload = self._construct_payload(text=text, role="RECOVERY")
-        raw = self._call_llm_api(payload)
-
-        # Try to parse JSON; if it fails, treat response as a single concise plain-text question
         try:
-            cmd_dict = self._parse_llm_response(raw)
-        except InferenceError:
-            # Return the plain clarifying question to the user
-            return raw
-
-        # Support optional 'messages' field in RECOVERY JSON. Extract before Command construction.
-        messages_from_model = None
-        if isinstance(cmd_dict, dict) and "messages" in cmd_dict:
-            messages_from_model = cmd_dict.pop("messages")
-
-        cmd = Command(**cmd_dict)
-        cmd = self._apply_guardrails(cmd)
-
-        # If the model supplied messages for compact history bookkeeping, append them
-        try:
-            if messages_from_model and isinstance(messages_from_model, list):
-                for m in messages_from_model:
-                    role = m.get("role", "assistant")
-                    content = m.get("content", "")
-                    if content:
-                        self._update_history(Message(role=role, content=content, tokens=max(1, len(content.split()))))
-        except Exception:
-            pass
-
-        # Clear error and resume baseline
-        self.active_browser_error = None
-        self.mode = Mode.BASELINE
-
-        return cmd
-    
-    def _apply_guardrails(self, cmd: Command) -> Command:
-        """
-        Check generated command against safety policies.
+            raw = self._call_llm_api(payload)
+            guarded = self._apply_guardrails(raw)
+            self._update_history(Message(role="assistant", content=guarded, tokens=max(1, len(guarded.split()))))
+            self.active_browser_error = None
+            self.mode = Mode.BASELINE
+            return guarded
+        except Exception as e:
+            if self.error_feedback_module:
+                self.error_feedback_module.report_error("CommandOrchestrator", str(e))
+            raise InferenceError(f"GenAI inference failed: {str(e)}")
         
-        Args:
-            cmd: Command to validate
-            
-        Returns:
-            Modified command with safety flags applied
-        """
-        # TODO: update guardrails
-        # Dangerous actions that require confirmation
-        dangerous_keywords = [
-            "delete", "clear", "remove", "reset", "logout",
-            "purchase", "buy", "payment", "transfer"
-        ]
-        
-        # Check if target or value contains dangerous keywords
-        target_lower = cmd.target.lower()
-        value_lower = (cmd.value or "").lower()
-        
-        for keyword in dangerous_keywords:
-            if keyword in target_lower or keyword in value_lower:
-                cmd.confirmation_required = True
-                break
-        
-        # Financial URLs require confirmation
-        financial_domains = ["bank", "paypal", "stripe", "payment"]
-        if cmd.action == "navigate":
-            for domain in financial_domains:
-                if domain in cmd.target.lower():
-                    cmd.confirmation_required = True
-                    break
-        
-        return cmd
     
     def _update_history(self, msg: Message) -> None:
         """
@@ -726,3 +661,44 @@ class CommandOrchestrator:
             
         except json.JSONDecodeError as e:
             raise InferenceError(f"Failed to parse LLM response as JSON: {str(e)}")
+
+    def _apply_guardrails(self, obj):
+        """
+        Apply safety guardrails to either a Command object or a plain-text command string.
+        For Command: sets confirmation_required if dangerous.
+        For str: prepends a warning if dangerous.
+        """
+        dangerous_keywords = [
+            "delete", "clear", "remove", "reset", "logout",
+            "purchase", "buy", "payment", "transfer",
+            "bank", "paypal", "stripe"
+        ]
+        if isinstance(obj, Command):
+            # Check if target or value contains dangerous keywords
+            target_lower = obj.target.lower()
+            value_lower = (obj.value or "").lower()
+            for keyword in dangerous_keywords:
+                if keyword in target_lower or keyword in value_lower:
+                    obj.confirmation_required = True
+                    break
+            # Financial URLs require confirmation
+            financial_domains = ["bank", "paypal", "stripe", "payment"]
+            if obj.action == "navigate":
+                for domain in financial_domains:
+                    if domain in obj.target.lower():
+                        obj.confirmation_required = True
+                        break
+            return obj
+        elif isinstance(obj, str):
+            lower = obj.lower()
+            flagged = False
+            for keyword in dangerous_keywords:
+                if keyword in lower:
+                    flagged = True
+                    break
+            if flagged:
+                warning = "[CONFIRMATION REQUIRED] This command may be dangerous. Please review before executing.\n"
+                return warning + obj
+            return obj
+        else:
+            return obj
