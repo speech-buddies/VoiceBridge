@@ -1,0 +1,61 @@
+.status-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 1rem 1.5rem;
+  border-radius: 12px;
+  border-left: 4px solid var(--status-color, #808080);
+  transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.status-indicator.dark-mode {
+  background: linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.status-indicator.light-mode {
+  background: linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.status-indicator.dark-mode.error {
+  background: linear-gradient(135deg, #2a1a1a 0%, #1a0a0a 100%);
+  border-left-color: #ff4444;
+  border-color: rgba(255, 68, 68, 0.3);
+}
+
+.status-indicator.light-mode.error {
+  background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+  border-left-color: #ff4444;
+  border-color: rgba(255, 68, 68, 0.3);
+}
+
+.status-icon {
+  font-size: 1.5rem;
+}
+
+.status-text {
+  font-size: 1.1rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  transition: color 0.3s ease;
+}
+
+.status-indicator.dark-mode .status-text {
+  color: #ffffff;
+}
+
+.status-indicator.light-mode .status-text {
+  color: #000000;
+}
+
+.status-indicator.dark-mode.error .status-text {
+  color: #ff8888;
+}
+
+.status-indicator.light-mode.error .status-text {
+  color: #cc0000;
+}
