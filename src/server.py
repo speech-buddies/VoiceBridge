@@ -44,6 +44,7 @@ class StatusResponse(BaseModel):
     error: Optional[str]
     transcript: Optional[str] = None
     last_command: Optional[str] = None
+    user_prompt: Optional[str] = None 
 
 
 class ManualCommandRequest(BaseModel):
@@ -52,12 +53,18 @@ class ManualCommandRequest(BaseModel):
     metadata: Optional[dict] = None
 
 
+class UserInputRequest(BaseModel):
+    """User input in response to orchestrator prompt"""
+    input: str
+    metadata: Optional[dict] = None
+
 class CommandResponse(BaseModel):
     """Response from command execution"""
     success: bool
     message: str
     command: Optional[str] = None
     result: Optional[dict] = None
+
 
 # ============================================================================
 # WebSocket Connection Manager
@@ -112,7 +119,7 @@ class VoiceBridgeServer:
         self.connection_manager = ConnectionManager()
         self.is_voice_mode_active = False
         
-        # TODO: Initialize our modules
+        # TODO: Initialize your modules
         # self.audio_capture = AudioCapture()
         # self.speech_to_text = SpeechToText()
         # self.command_orchestrator = CommandOrchestrator()
@@ -124,6 +131,10 @@ class VoiceBridgeServer:
         # Store last transcript and command for status endpoint
         self._last_transcript: Optional[str] = None
         self._last_command: Optional[str] = None
+        
+        # Conversation context for multi-turn interactions
+        self._conversation_context: List[dict] = []
+        self._current_user_prompt: Optional[str] = None
     
     def _broadcast_state_change(self, state_data, old_state):
         """Broadcast state changes to all WebSocket clients"""
@@ -134,11 +145,16 @@ class VoiceBridgeServer:
             'timestamp': state_data.timestamp.isoformat(),
             'has_transcript': state_data.transcript is not None,
             'transcript': state_data.transcript,
-            'error': state_data.error
+            'error': state_data.error,
+            'user_prompt': self._current_user_prompt
         }
         
         logger.info(f"State: {old_state.value} → {state_data.state.value}")
+        if self._current_user_prompt:
+            logger.info(f"User prompt: {self._current_user_prompt}")
+        
         asyncio.create_task(self.connection_manager.broadcast(message))
+    
     
     # ========================================================================
     # Module Integration - Implement these with our actual modules
@@ -191,26 +207,57 @@ class VoiceBridgeServer:
         await asyncio.sleep(0.5)
         return "example transcript"
     
-    async def parse_and_execute_command(self, transcript: str) -> dict:
+    async def parse_and_execute_command(self, transcript: str, user_context: Optional[List[dict]] = None) -> dict:
         """
         Parse transcript and execute browser command.
+        Can return a prompt if LLM needs clarification.
         
-        TODO: Implement with our command orchestrator and browser controller
+        TODO: Implement with your command orchestrator and browser controller
         Example:
-            command = await self.command_orchestrator.parse(transcript)
-            result = await self.browser_controller.execute(command)
-            return result
+            result = await self.command_orchestrator.parse(
+                transcript, 
+                context=self._conversation_context
+            )
+            
+            # If orchestrator needs clarification
+            if result.get('needs_clarification'):
+                return {
+                    "needs_input": True,
+                    "user_prompt": result['user_prompt'],
+                    "context": result.get('context')
+                }
+            
+            # Otherwise execute command
+            command = result['command']
+            execution_result = await self.browser_controller.execute(command)
+            
+            return {
+                "needs_input": False,
+                "success": True,
+                "action": command['action'],
+                "details": execution_result
+            }
         """
         logger.info(f"Parsing and executing: {transcript}")
         
-        # our command parsing and execution here
-        # Placeholder for testing
+        # Your command parsing and execution here
+        # This is a placeholder showing the two possible outcomes
+        
+        # Example 1: Command is clear, execute it
         await asyncio.sleep(0.3)
         return {
+            "needs_input": False,
             "success": True,
             "action": "navigate",
             "details": f"Executed command from: {transcript}"
         }
+        
+        # Example 2: Need clarification (uncomment to test)
+        # return {
+        #     "needs_input": True,
+        #     "prompt": "Which Google product did you want? Google.com, Gmail, or Google Drive?",
+        #     "context": {"ambiguous_command": transcript}
+        # }
     
     # ========================================================================
     # Callbacks from Audio Capture Module
@@ -218,7 +265,7 @@ class VoiceBridgeServer:
     
     def on_voice_detected(self):
         """
-        Called by our audio capture module when VAD detects voice.
+        Called by your audio capture module when VAD detects voice.
         Transitions from LISTENING → RECORDING
         """
         logger.info("Voice detected by VAD")
@@ -228,7 +275,7 @@ class VoiceBridgeServer:
     
     async def on_silence_detected(self, audio_data: bytes):
         """
-        Called by our audio capture module when VAD detects silence.
+        Called by your audio capture module when VAD detects silence.
         Transitions from RECORDING → PROCESSING and processes the audio.
         
         Args:
@@ -236,10 +283,22 @@ class VoiceBridgeServer:
         """
         logger.info(f"Silence detected by VAD, processing {len(audio_data)} bytes")
         
-        if self.state_manager.current_state != AppState.RECORDING:
-            logger.warning("Received audio but not in RECORDING state")
-            return
+        current_state = self.state_manager.current_state
         
+        # Handle different states
+        if current_state == AppState.RECORDING:
+            # Normal flow: user spoke a new command
+            await self._process_new_command(audio_data)
+            
+        elif current_state == AppState.AWAITING_INPUT:
+            # User is responding to a prompt
+            await self._process_user_response(audio_data)
+            
+        else:
+            logger.warning(f"Received audio but in unexpected state: {current_state.value}")
+    
+    async def _process_new_command(self, audio_data: bytes):
+        """Process a new voice command from the user"""
         # Transition to processing
         self.state_manager.transition_to(AppState.PROCESSING, audio_data=audio_data)
         
@@ -248,22 +307,60 @@ class VoiceBridgeServer:
             transcript = await self.transcribe_audio(audio_data)
             self._last_transcript = transcript
             
-            # Transition to executing
-            self.state_manager.transition_to(AppState.EXECUTING, transcript=transcript)
+            # Add to conversation context
+            self._conversation_context.append({
+                "role": "user",
+                "content": transcript,
+                "timestamp": self.state_manager.state_data.timestamp.isoformat()
+            })
             
-            # Parse and execute the command
-            result = await self.parse_and_execute_command(transcript)
-            self._last_command = transcript
+            # Parse and potentially execute the command
+            result = await self.parse_and_execute_command(transcript, self._conversation_context)
             
-            # Back to listening (if voice mode still active) or idle
-            if self.is_voice_mode_active:
-                self.state_manager.transition_to(AppState.LISTENING)
-            else:
-                self.state_manager.transition_to(AppState.IDLE)
+            # Check if orchestrator needs clarification
+            if result.get("needs_input"):
+                # Transition to awaiting input
+                self._current_user_prompt = result["user_prompt"]
+                self.state_manager.transition_to(
+                    AppState.AWAITING_INPUT,
+                    transcript=transcript,
+                    metadata={"user_prompt": result["user_prompt"], "context": result.get("context")}
+                )
                 
+                # Add user_prompt to conversation context
+                self._conversation_context.append({
+                    "role": "assistant",
+                    "content": result["user_prompt"],
+                    "timestamp": self.state_manager.state_data.timestamp.isoformat()
+                })
+                
+                # Automatically start listening for user's response
+                if self.is_voice_mode_active:
+                    await asyncio.sleep(0.1)  # Small delay
+                    self.state_manager.transition_to(AppState.LISTENING)
+                
+            else:
+                # Command executed successfully
+                self._last_command = transcript
+                self._current_user_prompt = None
+                
+                # Clear conversation context after successful execution
+                self._conversation_context = []
+                
+                # Transition to executing
+                self.state_manager.transition_to(AppState.EXECUTING, transcript=transcript)
+                
+                # Back to listening (if voice mode still active) or idle
+                await asyncio.sleep(0.1)  # Small delay to let execution finish
+                if self.is_voice_mode_active:
+                    self.state_manager.transition_to(AppState.LISTENING)
+                else:
+                    self.state_manager.transition_to(AppState.IDLE)
+                    
         except Exception as e:
             logger.error(f"Error in voice processing pipeline: {e}")
             self.state_manager.handle_error(str(e))
+            self._current_user_prompt = None
             
             # Return to listening or idle after error
             await asyncio.sleep(2)
@@ -272,6 +369,78 @@ class VoiceBridgeServer:
             else:
                 self.state_manager.transition_to(AppState.IDLE)
     
+    async def _process_user_response(self, audio_data: bytes):
+        """Process user's response to a clarification user prompt"""
+        # Transition to processing
+        self.state_manager.transition_to(AppState.PROCESSING, audio_data=audio_data)
+        
+        try:
+            # Transcribe the response
+            response = await self.transcribe_audio(audio_data)
+            self._last_transcript = response
+            
+            # Add response to conversation context
+            self._conversation_context.append({
+                "role": "user",
+                "content": response,
+                "timestamp": self.state_manager.state_data.timestamp.isoformat()
+            })
+            
+            # Parse and execute with full context
+            result = await self.parse_and_execute_command(response, self._conversation_context)
+            
+            # Check if still needs more clarification
+            if result.get("needs_input"):
+                # Still need more info
+                self._current_user_prompt = result["user_prompt"]
+                self.state_manager.transition_to(
+                    AppState.AWAITING_INPUT,
+                    transcript=response,
+                    metadata={"user_prompt": result["user_prompt"], "context": result.get("context")}
+                )
+                
+                # Add new user prompt to conversation context
+                self._conversation_context.append({
+                    "role": "assistant",
+                    "content": result["user_prompt"],
+                    "timestamp": self.state_manager.state_data.timestamp.isoformat()
+                })
+                
+                # Automatically start listening for next response
+                if self.is_voice_mode_active:
+                    await asyncio.sleep(0.1)
+                    self.state_manager.transition_to(AppState.LISTENING)
+                    
+            else:
+                # Got all the info needed, execute command
+                self._last_command = response
+                self._current_user_prompt = None
+                
+                # Clear conversation context after successful execution
+                self._conversation_context = []
+                
+                # Transition to executing
+                self.state_manager.transition_to(AppState.EXECUTING, transcript=response)
+                
+                # Back to listening or idle
+                await asyncio.sleep(0.1)
+                if self.is_voice_mode_active:
+                    self.state_manager.transition_to(AppState.LISTENING)
+                else:
+                    self.state_manager.transition_to(AppState.IDLE)
+                    
+        except Exception as e:
+            logger.error(f"Error processing user response: {e}")
+            self.state_manager.handle_error(str(e))
+            self._current_user_prompt = None
+            self._conversation_context = []
+            
+            # Return to listening or idle after error
+            await asyncio.sleep(2)
+            if self.is_voice_mode_active:
+                self.state_manager.transition_to(AppState.LISTENING)
+            else:
+                self.state_manager.transition_to(AppState.IDLE)
     # ========================================================================
     # Public API Methods
     # ========================================================================
@@ -348,20 +517,109 @@ class VoiceBridgeServer:
             logger.error(f"Error executing manual command: {e}")
             self.state_manager.handle_error(str(e))
             raise HTTPException(status_code=500, detail=str(e))
-    
     def get_status(self) -> dict:
         """Get current server status"""
         status = self.state_manager.get_state_info()
         status['voice_mode_active'] = self.is_voice_mode_active
         status['last_transcript'] = self._last_transcript
         status['last_command'] = self._last_command
+        status['user_prompt'] = self._current_user_prompt
+        status['has_conversation_context'] = len(self._conversation_context) > 0
         return status
     
     def reset(self) -> dict:
         """Reset to idle state"""
         self.is_voice_mode_active = False
+        self._current_user_prompt = None
+        self._conversation_context = []
         self.state_manager.reset()
         return {"success": True, "state": "idle"}
+    
+    async def submit_user_input(self, user_input: str, metadata: Optional[dict] = None) -> dict:
+        """
+        Submit user input in response to a prompt (for manual text input).
+        Only works when in AWAITING_INPUT state.
+        
+        This is useful if user wants to type their response instead of speaking.
+        """
+        current_state = self.state_manager.current_state
+        
+        if current_state != AppState.AWAITING_INPUT:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Not awaiting input. Current state: {current_state.value}"
+            )
+        
+        # Transition to processing
+        self.state_manager.transition_to(AppState.PROCESSING, transcript=user_input, metadata=metadata)
+        
+        try:
+            # Add input to conversation context
+            self._conversation_context.append({
+                "role": "user",
+                "content": user_input,
+                "timestamp": self.state_manager.state_data.timestamp.isoformat(),
+                "source": "text_input"
+            })
+            
+            # Parse and execute with full context
+            result = await self.parse_and_execute_command(user_input, self._conversation_context)
+            
+            # Check if still needs more clarification
+            if result.get("needs_input"):
+                # Still need more info
+                self._current_user_prompt = result["user_prompt"]
+                self.state_manager.transition_to(
+                    AppState.AWAITING_INPUT,
+                    transcript=user_input,
+                    metadata={"user_prompt": result["user_prompt"], "context": result.get("context")}
+                )
+                
+                # Add new prompt to conversation context
+                self._conversation_context.append({
+                    "role": "assistant",
+                    "content": result["user_prompt"],
+                    "timestamp": self.state_manager.state_data.timestamp.isoformat()
+                })
+                
+                return {
+                    "success": True,
+                    "needs_more_input": True,
+                    "user_prompt": result["user_prompt"]
+                }
+                
+            else:
+                # Got all the info needed, execute command
+                self._last_command = user_input
+                self._current_user_prompt = None
+                
+                # Clear conversation context after successful execution
+                self._conversation_context = []
+                
+                # Transition to executing
+                self.state_manager.transition_to(AppState.EXECUTING, transcript=user_input)
+                
+                # Back to listening or idle
+                await asyncio.sleep(0.1)
+                if self.is_voice_mode_active:
+                    self.state_manager.transition_to(AppState.LISTENING)
+                else:
+                    self.state_manager.transition_to(AppState.IDLE)
+                
+                return {
+                    "success": True,
+                    "needs_more_input": False,
+                    "result": result
+                }
+                
+        except Exception as e:
+            logger.error(f"Error processing user input: {e}")
+            self.state_manager.handle_error(str(e))
+            self._current_user_prompt = None
+            self._conversation_context = []
+            raise HTTPException(status_code=500, detail=str(e))
+
+
 
 
 # ============================================================================
@@ -512,6 +770,43 @@ async def execute_manual_command(request: ManualCommandRequest):
         result=result.get("result")
     )
 
+
+
+
+@app.post("/input/submit")
+async def submit_user_input(request: UserInputRequest):
+    """
+    Submit user input in response to an orchestrator prompt.
+    
+    Use this when:
+      - App is in AWAITING_INPUT state
+      - Command orchestrator has asked a clarifying question
+      - User wants to type their response instead of speaking
+    
+    The response will be processed with full conversation context,
+    and may result in:
+      - Another prompt (if more clarification needed)
+      - Command execution (if sufficient info gathered)
+    """
+    if not server:
+        raise HTTPException(status_code=503, detail="Server not initialized")
+    
+    result = await server.submit_user_input(request.input, request.metadata)
+    
+    if result.get("needs_more_input"):
+        return {
+            "success": True,
+            "needs_more_input": True,
+            "user_prompt": result["user_prompt"],
+            "message": "Orchestrator needs more information"
+        }
+    else:
+        return {
+            "success": True,
+            "needs_more_input": False,
+            "message": "Command executed successfully",
+            "result": result.get("result")
+        }
 
 @app.post("/reset")
 async def reset():

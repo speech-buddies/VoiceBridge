@@ -1,7 +1,7 @@
 """
 State Manager for VoiceBridge Application
 
-Manages application state and coordinates between VAD, transcription, 
+Manages application state and coordinates between audio capture, stt, 
 and browser control modules.
 """
 
@@ -10,9 +10,10 @@ from typing import Optional, Callable, Any
 from dataclasses import dataclass
 from datetime import datetime
 import threading
-from utils import logger
+import logging
 
-logger = logger.get_logger("StateManager")
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
 class AppState(Enum):
@@ -21,9 +22,9 @@ class AppState(Enum):
     LISTENING = "listening"
     RECORDING = "recording"
     PROCESSING = "processing"
+    AWAITING_INPUT = "awaiting_input"  # Command orchestrator needs clarification
     EXECUTING = "executing"
     ERROR = "error"
-    # TODO: match states with command orchestrator
 
 
 @dataclass
@@ -40,7 +41,7 @@ class StateData:
 
 class StateManager:
     """
-    Centralized state management for the application.
+    Centralized state management for the voice-controlled browser application.
     
     Handles state transitions and provides callbacks for state changes.
     """
@@ -125,17 +126,19 @@ class StateManager:
         - IDLE -> LISTENING
         - LISTENING -> RECORDING or ERROR
         - RECORDING -> PROCESSING or ERROR
-        - PROCESSING -> EXECUTING or ERROR
+        - PROCESSING -> EXECUTING or AWAITING_INPUT or ERROR
+        - AWAITING_INPUT -> LISTENING or EXECUTING or ERROR
         - EXECUTING -> IDLE or ERROR
-        - ERROR -> IDLE
+        - ERROR -> IDLE or LISTENING
         """
         valid_transitions = {
             AppState.IDLE: [AppState.LISTENING],
             AppState.LISTENING: [AppState.RECORDING, AppState.ERROR],
             AppState.RECORDING: [AppState.PROCESSING, AppState.ERROR],
-            AppState.PROCESSING: [AppState.EXECUTING, AppState.ERROR],
-            AppState.EXECUTING: [AppState.IDLE, AppState.ERROR],
-            AppState.ERROR: [AppState.IDLE]
+            AppState.PROCESSING: [AppState.EXECUTING, AppState.AWAITING_INPUT, AppState.ERROR],
+            AppState.AWAITING_INPUT: [AppState.LISTENING, AppState.EXECUTING, AppState.ERROR],
+            AppState.EXECUTING: [AppState.IDLE, AppState.LISTENING, AppState.ERROR],
+            AppState.ERROR: [AppState.IDLE, AppState.LISTENING]
         }
         
         return to_state in valid_transitions.get(from_state, [])
