@@ -8,8 +8,7 @@ import UiClient from './utils/UiClient';
 import AuditLogger from './utils/auditLogger';
 import AccessibilityLayer from './utils/accessibilityLayer';
 
-// Set this to your backend endpoint, e.g. http://localhost:8000/audio
-const AUDIO_BACKEND_URL = 'http://localhost:8000/audio';
+const AUDIO_BACKEND_BASE = 'http://localhost:8000';
 
 function App() {
   const [isListening, setIsListening] = useState(true);
@@ -68,53 +67,9 @@ function App() {
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  const handleAudioData = async (blob) => {
-    // Send each 10s chunk to the backend server.
+  const handleAudioData = async () => {
     setStatus('listening');
-
-    if (!AUDIO_BACKEND_URL) return;
-
-    try {
-      const formData = new FormData();
-      const mimeType = blob.type || 'audio/webm';
-      const timestamp = Date.now();
-
-      formData.append('audio', blob, `chunk-${timestamp}.webm`);
-      formData.append('mimeType', mimeType);
-      formData.append('timestamp', String(timestamp));
-
-      const response = await fetch(AUDIO_BACKEND_URL, {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        throw new Error(`Server returned ${response.status}`);
-      }
-    } catch (e) {
-      console.error('Error sending audio chunk to backend:', e);
-      
-      // Use ErrorFeedback to show error (only if not already shown)
-      if (errorFeedbackRef.current) {
-        const errorCode = e.message.includes('Failed to fetch') || e.message.includes('NetworkError')
-          ? 'NETWORK_ERROR'
-          : 'BACKEND_ERROR';
-        
-        const errorDetail = e.message || 'Failed to send audio to server.';
-        const feedbackId = errorFeedbackRef.current.showError(errorCode, errorDetail);
-        
-        // Only stop listening if this is a new error (not duplicate)
-        if (feedbackId) {
-          setStatus('idle');
-          setIsListening(false);
-        }
-      } else {
-        // Fallback to old error handling
-        setError('Failed to send audio to server.');
-        setStatus('idle');
-        setIsListening(false);
-      }
-    }
+    // Backend captures and saves directly to backend/Recordings; no blob to send
   };
 
   const handleError = (errorMessage) => {
@@ -224,6 +179,7 @@ function App() {
                 onAudioData={handleAudioData}
                 onError={handleError}
                 isLightMode={isLightMode}
+                backendBase={AUDIO_BACKEND_BASE}
               />
             </div>
           </div>
