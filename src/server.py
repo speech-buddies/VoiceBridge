@@ -119,7 +119,7 @@ class VoiceBridgeServer:
         self.connection_manager = ConnectionManager()
         self.is_voice_mode_active = False
         
-        # TODO: Initialize your modules
+        # TODO: Initialize our modules
         # self.audio_capture = AudioCapture()
         # self.speech_to_text = SpeechToText()
         # self.command_orchestrator = CommandOrchestrator()
@@ -212,7 +212,7 @@ class VoiceBridgeServer:
         Parse transcript and execute browser command.
         Can return a prompt if LLM needs clarification.
         
-        TODO: Implement with your command orchestrator and browser controller
+        TODO: Implement with our command orchestrator and browser controller
         Example:
             result = await self.command_orchestrator.parse(
                 transcript, 
@@ -240,7 +240,7 @@ class VoiceBridgeServer:
         """
         logger.info(f"Parsing and executing: {transcript}")
         
-        # Your command parsing and execution here
+        # Our command parsing and execution here
         # This is a placeholder showing the two possible outcomes
         
         # Example 1: Command is clear, execute it
@@ -265,7 +265,7 @@ class VoiceBridgeServer:
     
     def on_voice_detected(self):
         """
-        Called by your audio capture module when VAD detects voice.
+        Called by Our audio capture module when VAD detects voice.
         Transitions from LISTENING → RECORDING
         """
         logger.info("Voice detected by VAD")
@@ -275,7 +275,7 @@ class VoiceBridgeServer:
     
     async def on_silence_detected(self, audio_data: bytes):
         """
-        Called by your audio capture module when VAD detects silence.
+        Called by our audio capture module when VAD detects silence.
         Transitions from RECORDING → PROCESSING and processes the audio.
         
         Args:
