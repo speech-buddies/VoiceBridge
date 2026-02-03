@@ -1,4 +1,4 @@
-# Project Name Source Code
+# VoiceBridge Source Code
 
 The folders and files for this project are as follows:
 
@@ -84,3 +84,88 @@ then install:
 To allow modules to access and import each other, we need to run 
 
 ` pip install -e .` 
+
+# VoiceBridge Application Flow
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                         USER ACTIONS                            │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              │ Starts application
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    POST /voice/start                            │
+│                    (Frontend → Backend)                         │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    STATE: IDLE → LISTENING                      │
+│                                                                 │
+│  • Audio Capture Module starts                                  │
+│  • VAD (Voice Activity Detection) begins monitoring             │
+│  • Waiting for voice input...                                   │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              │ VAD detects voice
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                   STATE: LISTENING → RECORDING                  │
+│                                                                 │
+│  • Audio Capture Module starts recording                        │
+│  • Capturing audio while voice is detected                      │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              │ VAD detects silence
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                   STATE: RECORDING → PROCESSING                 │
+│                                                                 │
+│  • Speech-to-Text Engine receives audio                         │
+│  • Transcribing audio to text...                                │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              │ Transcript ready
+                              ▼
+                              │ Command Orchestrator
+                    ┌─────────┴─────────┐
+                    │                   │
+            Command Clear?      Command Ambiguous?
+                    │                   │
+                    ▼                   ▼
+┌──────────────────────────┐  ┌──────────────────────────────┐
+│  STATE: PROCESSING →     │  │  STATE: PROCESSING →         │
+│         EXECUTING        │  │         AWAITING_INPUT       │
+│                          │  │                              │
+│  • Command Orchestrator  │  │  • Orchestrator asks:        │
+│    parses transcript     │  │    "Which Google product?"   │
+│  • Browser Controller    │  │  • Frontend shows prompt     │
+│    executes command      │  │  • Auto returns to LISTENING │
+└──────────────────────────┘  └──────────────────────────────┘
+            │                             │
+            │                             │ User responds
+            │                             ▼
+            │                   ┌───────────────────────┐
+            │                   │ LISTENING → RECORDING │
+            │                   │ RECORDING → PROCESSING│
+            │                   └───────────────────────┘
+            │                             │
+            │                    ┌────────┴──────────┐
+            │                    │                   │
+            │              Still need info?    Got enough info?
+            │                    │                   │
+            │                    ▼                   ▼
+            │          [Loop to AWAITING_INPUT]  [Go to EXECUTING]
+            │                                        │
+            └────────────────────────────────────────┘
+                              │ Browser Controller finishes
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                   STATE: EXECUTING → LISTENING                  │
+│                                                                 │
+│  • Back to listening for next command                           │
+│  • Conversation context cleared                                 │
+│  • Loop continues until user clicks "Stop"                      │
+└─────────────────────────────────────────────────────────────────┘
+```

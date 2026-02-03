@@ -26,6 +26,7 @@ from pydantic import BaseModel
 from state_manager import StateManager, AppState
 
 # TODO: Import our actual modules here
+from app.speech_to_text_engine import SpeechToTextEngine
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -121,7 +122,8 @@ class VoiceBridgeServer:
         
         # TODO: Initialize our modules
         # self.audio_capture = AudioCapture()
-        # self.speech_to_text = SpeechToText()
+        self.speech_to_text = SpeechToTextEngine()
+
         # self.command_orchestrator = CommandOrchestrator()
         # self.browser_controller = BrowserController()
         
@@ -201,11 +203,11 @@ class VoiceBridgeServer:
             return await self.speech_to_text.transcribe(audio_data)
         """
         logger.info(f"Transcribing {len(audio_data)} bytes of audio...")
-        
-        # our transcription code here
-        # Placeholder for testing
-        await asyncio.sleep(0.5)
-        return "example transcript"
+        # TODO: update stt engine to take in bytes instead of audio stream 
+        transcription = self.speech_to_text.processAudio(audio_data)
+        logger.info(f"Received transcription: {transcription}")
+
+        return transcription
     
     async def parse_and_execute_command(self, transcript: str, user_context: Optional[List[dict]] = None) -> dict:
         """
@@ -517,6 +519,7 @@ class VoiceBridgeServer:
             logger.error(f"Error executing manual command: {e}")
             self.state_manager.handle_error(str(e))
             raise HTTPException(status_code=500, detail=str(e))
+    
     def get_status(self) -> dict:
         """Get current server status"""
         status = self.state_manager.get_state_info()
