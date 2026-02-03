@@ -264,13 +264,13 @@ if __name__ == "__main__":
     def on_audio_captured(audio_array: np.ndarray, metadata: Dict[str, Any]):
         # Now using standard print for the user interface, 
         # but the module internals use the logger.
-        print(f"\n🎤 Audio captured! {metadata['duration_s']:.2f}s")
+        print(f"\n Audio captured! {metadata['duration_s']:.2f}s")
     
     config = AudioConfig(sample_rate=16000, vad_aggressiveness=3)
     capture = RealtimeAudioCapture(config=config, on_audio_ready=on_audio_captured)
     
     try:
-        print("\n🎙️ Starting audio capture (Check app.log for debug details)...")
+        print("\n Starting audio capture (Check app.log for debug details)...")
         capture.start()
         while True:
             time.sleep(1)
