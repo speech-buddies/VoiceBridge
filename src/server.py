@@ -2,8 +2,6 @@
 FastAPI Server Entry Point
 
 Simple REST API for frontend to interact with voice browser control system.
-Your modules (VAD, transcription, browser control) are called from within
-the endpoint handlers as needed.
 """
 
 import asyncio
@@ -59,7 +57,7 @@ class ConnectionManager:
 
 
 # ============================================================================
-# Voice Browser Server
+# VoiceBridge Server
 # ============================================================================
 
 class VoiceBridgeServer:
@@ -211,8 +209,8 @@ async def lifespan(app: FastAPI):
 
 # Create FastAPI app
 app = FastAPI(
-    title="Voice Browser Control API",
-    description="REST API for voice-controlled browser automation",
+    title="VoiceBridge API",
+    description="REST API for VoiceBridge backend",
     version="1.0.0",
     lifespan=lifespan
 )
@@ -235,13 +233,13 @@ app.add_middleware(
 async def root():
     """Root endpoint"""
     return {
-        "message": "Voice Browser Control API",
+        "message": "VoiceBridge API",
         "status": "running",
         "version": "1.0.0"
     }
 
 
-@app.get("/status", response_model=StatusResponse)
+@app.get("/status")
 async def get_status():
     """Get current application status"""
     if not server:
@@ -251,7 +249,7 @@ async def get_status():
 
 
 @app.post("/listen/start")
-async def start_listening(request: StartListeningRequest = StartListeningRequest()):
+async def start_listening(request):
     """Start listening for voice commands"""
     if not server:
         raise HTTPException(status_code=503, detail="Server not initialized")
@@ -262,8 +260,6 @@ async def start_listening(request: StartListeningRequest = StartListeningRequest
         raise HTTPException(status_code=400, detail=result["error"])
     
     return {"status": "success", "message": "Started listening", "state": result["state"]}
-
-
 
 
 @app.post("/reset")
