@@ -1,5 +1,5 @@
 """
-State Manager for Voice-Controlled Browser Application
+State Manager for VoiceBridge Application
 
 Manages application state and coordinates between VAD, transcription, 
 and browser control modules.
@@ -10,10 +10,9 @@ from typing import Optional, Callable, Any
 from dataclasses import dataclass
 from datetime import datetime
 import threading
-import logging
+from utils import logger
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+logger = logger.get_logger("StateManager")
 
 
 class AppState(Enum):
@@ -41,7 +40,7 @@ class StateData:
 
 class StateManager:
     """
-    Centralized state management for the voice-controlled browser application.
+    Centralized state management for the application.
     
     Handles state transitions and provides callbacks for state changes.
     """
