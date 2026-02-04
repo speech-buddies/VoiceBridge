@@ -8,8 +8,7 @@ import UiClient from './utils/UiClient';
 import AuditLogger from './utils/auditLogger';
 import AccessibilityLayer from './utils/accessibilityLayer';
 
-// Set this to your backend endpoint, e.g. http://localhost:8000/audio
-const AUDIO_BACKEND_URL = 'http://localhost:8000/audio';
+const AUDIO_BACKEND_BASE = 'http://localhost:8000';
 
 function App() {
   const [isListening, setIsListening] = useState(true);
@@ -43,6 +42,47 @@ function App() {
     };
   }, []);
 
+  // Tell backend to start/stop audio capture (server records and saves to Recordings/)
+  useEffect(() => {
+    const base = AUDIO_BACKEND_BASE;
+    if (isListening) {
+      fetch(`${base}/audio/capture/start`, { method: 'POST' })
+        .then((r) => r.json())
+        .then((data) => {
+          if (!data.ok) console.warn('Backend capture start:', data.message);
+        })
+        .catch((err) => console.warn('Failed to start backend capture:', err));
+    } else {
+      fetch(`${base}/audio/capture/stop`, { method: 'POST' }).catch(() => {});
+    }
+    return () => {
+      fetch(`${base}/audio/capture/stop`, { method: 'POST' }).catch(() => {});
+    };
+  }, [isListening]);
+
+  // Poll backend capture status to show Recording when user is speaking
+  useEffect(() => {
+    if (!isListening) return;
+    const base = AUDIO_BACKEND_BASE;
+    const interval = setInterval(() => {
+      fetch(`${base}/audio/capture/status`)
+        .then((r) => r.json())
+        .then((data) => {
+          if (data.capturing && data.state) {
+            if (data.state === 'speech_detected' || data.state === 'recording') {
+              setStatus('recording');
+            } else if (data.state === 'processing') {
+              setStatus('processing');
+            } else {
+              setStatus('listening');
+            }
+          }
+        })
+        .catch(() => {});
+    }, 400);
+    return () => clearInterval(interval);
+  }, [isListening]);
+
   // Keyboard: light mode toggle (Alt+L) and collapse (Escape)
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -68,53 +108,8 @@ function App() {
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  const handleAudioData = async (blob) => {
-    // Send each 10s chunk to the backend server.
-    setStatus('listening');
-
-    if (!AUDIO_BACKEND_URL) return;
-
-    try {
-      const formData = new FormData();
-      const mimeType = blob.type || 'audio/webm';
-      const timestamp = Date.now();
-
-      formData.append('audio', blob, `chunk-${timestamp}.webm`);
-      formData.append('mimeType', mimeType);
-      formData.append('timestamp', String(timestamp));
-
-      const response = await fetch(AUDIO_BACKEND_URL, {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        throw new Error(`Server returned ${response.status}`);
-      }
-    } catch (e) {
-      console.error('Error sending audio chunk to backend:', e);
-      
-      // Use ErrorFeedback to show error (only if not already shown)
-      if (errorFeedbackRef.current) {
-        const errorCode = e.message.includes('Failed to fetch') || e.message.includes('NetworkError')
-          ? 'NETWORK_ERROR'
-          : 'BACKEND_ERROR';
-        
-        const errorDetail = e.message || 'Failed to send audio to server.';
-        const feedbackId = errorFeedbackRef.current.showError(errorCode, errorDetail);
-        
-        // Only stop listening if this is a new error (not duplicate)
-        if (feedbackId) {
-          setStatus('idle');
-          setIsListening(false);
-        }
-      } else {
-        // Fallback to old error handling
-        setError('Failed to send audio to server.');
-        setStatus('idle');
-        setIsListening(false);
-      }
-    }
+  const handleAudioData = async () => {
+    // Server (src/server.py) captures and saves to Recordings/; status kept by polling /audio/capture/status
   };
 
   const handleError = (errorMessage) => {
@@ -190,7 +185,7 @@ function App() {
           <div className="header-content">
             <div>
               <h1>VoiceBridge</h1>
-              <p className="subtitle">Continuous audio capture</p>
+              <p className="subtitle">An accessibility interface</p>
             </div>
             <div className="header-controls">
               <button
@@ -221,9 +216,11 @@ function App() {
               <StatusIndicator status={status} error={error} isLightMode={isLightMode} />
               <SpeechInput
                 isListening={isListening}
+                status={status}
                 onAudioData={handleAudioData}
                 onError={handleError}
                 isLightMode={isLightMode}
+                backendBase={AUDIO_BACKEND_BASE}
               />
             </div>
           </div>

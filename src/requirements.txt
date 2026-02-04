@@ -1,7 +1,9 @@
 # Server
-uvicorn>=0.40.0
+uvicorn[standard]>=0.40.0
 fastapi>=0.128.0
 pydantic>=2.12.5
+python-multipart
+setuptools
 
 # Audio processing
 sounddevice>=0.4.6
@@ -15,3 +17,7 @@ webrtcvad>=2.0.10
 torch>=2.10.0
 transformers>=5.0.0
 peft>=0.18.1
+
+# Browser automation
+browser-use>=0.11.0
+python-dotenv>=1.0.0

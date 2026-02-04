@@ -20,6 +20,15 @@
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
 }
 
+.backend-capture-hint {
+  font-size: 0.85rem;
+  opacity: 0.7;
+  margin: -0.5rem 0 0.5rem;
+}
+
+.speech-input.dark-mode .backend-capture-hint { color: #a0a0a0; }
+.speech-input.light-mode .backend-capture-hint { color: #666666; }
+
 .speech-input h2 {
   margin-bottom: 1rem;
   font-size: 1.3rem;

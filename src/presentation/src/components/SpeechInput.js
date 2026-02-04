@@ -3,6 +3,7 @@ import './SpeechInput.css';
 
 const SpeechInput = ({
   isListening,
+  status,
   onAudioData,
   onError,
   isLightMode,
@@ -173,7 +174,7 @@ const SpeechInput = ({
         </button>
         <p className="status-text">
           {isListening
-            ? 'Listening... Speak your command'
+            ? (status === 'recording' ? 'Recording...' : 'Listening... Speak your command')
             : 'Click to start speaking'}
         </p>
       </div>

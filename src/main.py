@@ -1,7 +1,7 @@
 import asyncio
 import sys
 from fastapi import FastAPI, Body, HTTPException
-from control.browser_use_runner import run_command
+from src.control.browser_orchestrator import run_command
 from control.session_manager import get_browser, start_session, stop_session
 
 app = FastAPI()

@@ -10,7 +10,8 @@
     "tabs"
   ],
   "host_permissions": [
-    "<all_urls>"
+    "<all_urls>",
+    "http://localhost:8000/*"
   ],
   "background": {
     "service_worker": "background.js"
