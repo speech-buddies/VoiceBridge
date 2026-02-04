@@ -118,9 +118,12 @@ class CommandOrchestrator:
     
     def _get_default_system_prompt(self) -> str:
         """Default system prompt if no file provided."""
-        return """You are a command clarification assistant for a browser automation system.
+        return """
+You are a command clarification assistant for a browser automation system.
 
-Your job is to determine if the user's intent is clear enough to pass to an LLM-powered browser controller.
+Your job is to determine if the user's intent is clear enough to pass to an LLM-powered browser controller, and to rephrase it as a clear, actionable browser command.
+
+Users may speak in a casual, conversational, or fuzzy way, and may include filler words (like 'now', 'please', 'can you', 'hey', etc.) or extra words that are not part of the core intent. Your job is to extract the intended action and rephrase it as a clear browser command, ignoring filler words and focusing on the user's true intent.
 
 The browser controller can handle natural language commands like:
 - "Navigate to Gmail"
@@ -185,9 +188,22 @@ User: "Play the video 'Campus Tour Walk-Through of McMaster Engineering' on YouT
     "clarified_command": "Play the video 'Campus Tour Walk-Through of McMaster Engineering' on YouTube and keep it playing until the user asks to stop or exit."
 }
 
+User: "Now open YouTube."
+{
+    "needs_clarification": false,
+    "clarified_command": "Navigate to YouTube"
+}
+
+User: "Please search for insulin on Wikipedia."
+{
+    "needs_clarification": false,
+    "clarified_command": "Search for insulin on Wikipedia"
+}
+
 Note: When executing a command to play a video, ensure the video remains playing and do not interrupt playback unless the user requests it.
 
-Be concise and helpful. Only ask for clarification when truly necessary. The browser controller is intelligent and can handle natural language well."""
+Be concise and helpful. Only ask for clarification when truly necessary. The browser controller is intelligent and can handle natural language well.
+"""
     
     async def process(
         self,
@@ -345,6 +361,35 @@ Be concise and helpful. Only ask for clarification when truly necessary. The bro
         self.conversation_history = []
         self.current_goal = None
 
+    @staticmethod
+    def apply_guardrails(command: str) -> (bool, str):
+        """
+        Returns (allowed, message). Blocks only if the command is instructing a malicious action, not if it's informational (e.g., 'is this a scam?').
+        """
+        if not command:
+            return True, None
+        command_lower = command.lower().strip()
+        # Allow informational queries (questions, research, etc.)
+        if command_lower.endswith('?') or command_lower.startswith('is ') or command_lower.startswith('what is') or command_lower.startswith('how to'):
+            return True, None
+        # Block only if the command is an imperative (action) and contains a blocked keyword
+        blocked_keywords = [
+            "hack", "exploit", "phishing", "scam", "malware", "virus", "steal password", "illegal"
+        ]
+        # Simple heuristic: block if command starts with a verb and contains a blocked keyword
+        action_verbs = [
+            "hack", "steal", "exploit", "infect", "phish", "scam", "spread", "install", "run", "execute", "send", "delete", "bypass"
+        ]
+        for keyword in blocked_keywords:
+            if keyword in command_lower:
+                # If it's a question or research, allow (already checked above)
+                # If it's an action (starts with verb or 'please'), block
+                for verb in action_verbs:
+                    if command_lower.startswith(verb) or command_lower.startswith(f"please {verb}"):
+                        return False, "Sorry, this command cannot be executed because it violates safety policy."
+                # Otherwise, allow (e.g., 'learn about malware', 'is this a scam?')
+        return True, None
+
 
 # ============================================================================
 # Convenience Functions
@@ -371,3 +416,5 @@ def create_orchestrator(
         model_id=model_id,
         prompt_path=prompt_path
     )
+
+

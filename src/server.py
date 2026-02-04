@@ -316,13 +316,22 @@ class VoiceBridgeServer:
                     "context": response.metadata or {}
                 }
             
-            # Step 3: Execute the clarified natural language command
+            # Step 3: Get the clarified natural language command
             clarified_command = response.clarified_command
+            # Guardrails check before logging or execution
+            allowed, guardrails_msg = self.command_orchestrator.apply_guardrails(clarified_command)
+            if not allowed:
+                self.state_manager.transition_to(AppState.AWAITING_INPUT, transcript=clarified_command)
+                return {
+                    "needs_input": True,
+                    "user_prompt": guardrails_msg or "This command is not allowed. Please try something else.",
+                    "context": {
+                        "last_command": clarified_command
+                    }
+                }
             logger.info(f"Orchestrator clarified command: '{clarified_command}'")
-            
             # Execute via browser controller (which handles natural language)
             execution_result = await self._execute_browser_command(clarified_command)
-            
             return {
                 "needs_input": False,
                 "success": True,
