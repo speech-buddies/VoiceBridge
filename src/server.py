@@ -3,9 +3,9 @@ FastAPI Server Entry Point
 
 Minimal API for frontend to access VoiceBridge backend.
 The backend handles the entire flow automatically:
-  1. VAD detects voice → starts recording
-  2. VAD detects silence → processes audio
-  3. Transcribes → parses command → executes in browser
+  1. VAD detects voice -> starts recording
+  2. VAD detects silence -> processes audio
+  3. Transcribes -> parses command -> executes in browser
   4. Returns to idle, waiting for next voice input
 
 Frontend just needs to:
@@ -15,7 +15,8 @@ Frontend just needs to:
 """
 
 import asyncio
-import logging
+from utils import logger 
+
 import sys
 import threading
 import time
@@ -31,8 +32,11 @@ from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel
 
 from state_manager import StateManager, AppState
-from src.control.browser_orchestrator import run_command
-from src.control.session_manager import get_browser, start_session, stop_session
+from control.browser_orchestrator import run_command
+from control.session_manager import get_browser, start_session, stop_session
+
+# TODO: Import our actual modules here
+from app.speech_to_text_engine import SpeechToTextEngine
 
 # Windows compatibility for browser asyncio event loop
 if sys.platform.startswith("win"):
@@ -46,8 +50,8 @@ def _get_audio_capture():
     except ImportError as e:
         return None, None, str(e)
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+
+logger = logger.get_logger("VoiceBridgeServer")
 
 # Folder where audio recordings are saved (standalone capture + legacy upload)
 SAVE_DIR = Path(__file__).resolve().parent / "Recordings"
@@ -58,31 +62,6 @@ _capture_lock = threading.Lock()
 _event_loop = None
 
 
-def _on_audio_ready(audio_float32: np.ndarray, metadata: dict):
-    """
-    Callback when RealtimeAudioCapture has finished a recording.
-    If voice mode is active: feed audio into pipeline via on_silence_detected.
-    Otherwise (standalone capture): save to Recordings/.
-    """
-    global server, _event_loop
-    if server and server.is_voice_mode_active and _event_loop:
-        # Feed into VoiceBridge pipeline
-        audio_int16 = (audio_float32 * 32767).astype(np.int16)
-        audio_bytes = audio_int16.tobytes()
-        asyncio.run_coroutine_threadsafe(
-            server.on_silence_detected(audio_bytes), _event_loop
-        )
-    else:
-        # Standalone: save to file
-        timestamp = int(time.time() * 1000)
-        filename = SAVE_DIR / f"chunk-{timestamp}.wav"
-        sample_rate = metadata.get("sample_rate", 16000)
-        audio_int16 = (audio_float32 * 32767).astype(np.int16)
-        with wave.open(str(filename), "wb") as wf:
-            wf.setnchannels(1)
-            wf.setsampwidth(2)
-            wf.setframerate(sample_rate)
-            wf.writeframes(audio_int16.tobytes())
 
 
 # ============================================================================
@@ -105,7 +84,6 @@ class ManualCommandRequest(BaseModel):
     """Manual command input (for testing/debugging)"""
     command: str
     metadata: Optional[dict] = None
-
 
 class UserInputRequest(BaseModel):
     """User input in response to orchestrator prompt"""
@@ -154,6 +132,34 @@ class ConnectionManager:
         for conn in disconnected:
             self.disconnect(conn)
 
+# ========================================================================
+# Callbacks from Audio Capture Module
+# ========================================================================
+def _on_audio_ready(audio_float32: np.ndarray, metadata: dict):
+    """
+    Callback when RealtimeAudioCapture has finished a recording.
+    If voice mode is active: feed audio into pipeline via on_silence_detected.
+    Otherwise (standalone capture): save to Recordings/.
+    """
+    global server, _event_loop
+    if server and server.is_voice_mode_active and _event_loop:
+        # Feed into VoiceBridge pipeline
+        audio_int16 = (audio_float32 * 32767).astype(np.int16)
+        audio_bytes = audio_int16.tobytes()
+        asyncio.run_coroutine_threadsafe(
+            server.on_silence_detected(audio_bytes), _event_loop
+        )
+    else:
+        # Standalone: save to file
+        timestamp = int(time.time() * 1000)
+        filename = SAVE_DIR / f"chunk-{timestamp}.wav"
+        sample_rate = metadata.get("sample_rate", 16000)
+        audio_int16 = (audio_float32 * 32767).astype(np.int16)
+        with wave.open(str(filename), "wb") as wf:
+            wf.setnchannels(1)
+            wf.setsampwidth(2)
+            wf.setframerate(sample_rate)
+            wf.writeframes(audio_int16.tobytes())
 
 # ============================================================================
 # VoiceBridge Server
@@ -164,8 +170,8 @@ class VoiceBridgeServer:
     Main server that runs the voice automation pipeline.
     
     Flow:
-      IDLE → (VAD detects voice) → RECORDING → (VAD detects silence) → 
-      PROCESSING → EXECUTING → IDLE
+      IDLE -> (VAD detects voice) -> RECORDING -> (VAD detects silence) -> 
+      PROCESSING -> EXECUTING -> IDLE
     """
     
     def __init__(self):
@@ -177,7 +183,8 @@ class VoiceBridgeServer:
         
         # TODO: Initialize our modules
         # self.audio_capture = AudioCapture()
-        # self.speech_to_text = SpeechToText()
+        self.speech_to_text = SpeechToTextEngine()
+
         # self.command_orchestrator = CommandOrchestrator()
         # self.browser_controller = BrowserController()
         
@@ -206,7 +213,7 @@ class VoiceBridgeServer:
             'user_prompt': self._current_user_prompt
         }
         
-        logger.info(f"State: {old_state.value} → {state_data.state.value}")
+        logger.info(f"State: {old_state.value} -> {state_data.state.value}")
         if self._current_user_prompt:
             logger.info(f"User prompt: {self._current_user_prompt}")
         
@@ -250,6 +257,8 @@ class VoiceBridgeServer:
                     logger.info(f"Browser session stopped: {msg}")
                     self._browser_session_started = False
                 return
+            
+    
     
     
     # ========================================================================
@@ -268,6 +277,10 @@ class VoiceBridgeServer:
                 f"Audio capture unavailable: {import_err}. "
                 "Run: pip install -r requirements.txt (sounddevice, webrtcvad)"
             )
+        
+        # Transition to recording
+        self.state_manager.transition_to(AppState.RECORDING)
+
         with _capture_lock:
             if _capture_instance is not None:
                 logger.info("Audio capture already running")
@@ -303,11 +316,11 @@ class VoiceBridgeServer:
             return await self.speech_to_text.transcribe(audio_data)
         """
         logger.info(f"Transcribing {len(audio_data)} bytes of audio...")
-        
-        # our transcription code here
-        # Placeholder for testing
-        await asyncio.sleep(0.5)
-        return "example transcript"
+
+        transcription = await self.speech_to_text.transcribe(audio_data)
+        logger.info(f"Received transcription: {transcription}")
+
+        return transcription
     
     async def parse_and_execute_command(self, transcript: str, user_context: Optional[List[dict]] = None) -> dict:
         """
@@ -395,24 +408,12 @@ class VoiceBridgeServer:
         #     "context": {"ambiguous_command": transcript}
         # }
     
-    # ========================================================================
-    # Callbacks from Audio Capture Module
-    # ========================================================================
-    
-    def on_voice_detected(self):
-        """
-        Called by Our audio capture module when VAD detects voice.
-        Transitions from LISTENING → RECORDING
-        """
-        logger.info("Voice detected by VAD")
-        
-        if self.state_manager.current_state == AppState.LISTENING:
-            self.state_manager.transition_to(AppState.RECORDING)
-    
+
+   
     async def on_silence_detected(self, audio_data: bytes):
         """
         Called by our audio capture module when VAD detects silence.
-        Transitions from RECORDING → PROCESSING and processes the audio.
+        Transitions from RECORDING -> PROCESSING and processes the audio.
         
         Args:
             audio_data: The recorded audio bytes
@@ -584,7 +585,7 @@ class VoiceBridgeServer:
     async def start_voice_mode(self) -> dict:
         """
         Start voice mode - app will continuously listen for voice commands.
-        Flow: IDLE → LISTENING → (automatic from here based on VAD)
+        Flow: IDLE -> LISTENING -> (automatic from here based on VAD)
         """
         current_state = self.state_manager.current_state
         
@@ -653,6 +654,7 @@ class VoiceBridgeServer:
             logger.error(f"Error executing manual command: {e}")
             self.state_manager.handle_error(str(e))
             raise HTTPException(status_code=500, detail=str(e))
+    
     def get_status(self) -> dict:
         """Get current server status"""
         status = self.state_manager.get_state_info()
@@ -814,8 +816,6 @@ async def root():
         "status": "running",
         "version": "1.0.0",
         "endpoints": {
-            # "start": "POST /voice/start",
-            # "stop": "POST /voice/stop",
             "status": "GET /status",
             "manual": "POST /command/manual",
             "websocket": "WS /ws",
@@ -838,53 +838,6 @@ async def get_status():
         raise HTTPException(status_code=503, detail="Server not initialized")
     
     return server.get_status()
-
-
-# @app.post("/voice/start")
-# async def start_voice_mode():
-#     """
-#     Start voice mode.
-    
-#     The app will:
-#       1. Start listening with VAD
-#       2. Detect when you speak (auto transition to recording)
-#       3. Detect when you stop (auto process, execute, return to listening)
-#       4. Repeat until you call /voice/stop
-    
-#     This is the main endpoint our frontend needs to start the app.
-#     """
-#     if not server:
-#         raise HTTPException(status_code=503, detail="Server not initialized")
-    
-#     result = await server.start_voice_mode()
-    
-#     if not result["success"]:
-#         raise HTTPException(status_code=400, detail=result["error"])
-    
-#     return {
-#         "success": True,
-#         "message": "Voice mode started - listening for commands",
-#         "state": result["state"]
-#     }
-
-
-# @app.post("/voice/stop")
-# async def stop_voice_mode():
-#     """
-#     Stop voice mode and return to idle.
-    
-#     This stops the VAD and audio capture.
-#     """
-#     if not server:
-#         raise HTTPException(status_code=503, detail="Server not initialized")
-    
-#     result = await server.stop_voice_mode()
-    
-#     return {
-#         "success": True,
-#         "message": "Voice mode stopped",
-#         "state": result["state"]
-#     }
 
 
 @app.post("/command/manual", response_model=CommandResponse)
@@ -910,8 +863,6 @@ async def execute_manual_command(request: ManualCommandRequest):
         command=request.command,
         result=result.get("result")
     )
-
-
 
 
 @app.post("/input/submit")
@@ -975,70 +926,125 @@ async def reset():
 @app.post("/audio/capture/start")
 async def start_audio_capture_endpoint():
     """
-    Start voice mode.
+    Start voice mode with audio capture.
     
-    The app will:
-      1. Start listening with VAD
-      2. Detect when you speak (auto transition to recording)
-      3. Detect when you stop (auto process, execute, return to listening)
-      4. Repeat until you call /voice/stop
+    This endpoint:
+    1. Calls server.start_voice_mode() which:
+       - Sets is_voice_mode_active = True
+       - Transitions to LISTENING state
+       - Starts audio capture with VAD
+    2. Audio capture runs until /audio/capture/stop is called
     
-    This is the main endpoint our frontend needs to start the app.
+    Frontend should call this when user clicks "Start"
     """
-    global _capture_instance
-    RealtimeAudioCapture, AudioConfig, import_err = _get_audio_capture()
-    if import_err:
-        err = str(import_err)
-        if "pkg_resources" in err:
-            hint = "Run: pip install setuptools"
-        elif "webrtcvad" in err:
-            hint = "Run: pip install webrtcvad"
-        elif "sounddevice" in err:
-            hint = "Run: pip install sounddevice"
+    if not server:
+        raise HTTPException(status_code=503, detail="Server not initialized")
+    
+    # Check if we can start voice mode
+    current_state = server.state_manager.current_state
+    if current_state != AppState.IDLE:
+        return {
+            "ok": False, 
+            "message": f"Cannot start from state: {current_state.value}. Call /reset first."
+        }
+    
+    try:
+        # Use the server's start_voice_mode method
+        # This handles everything: state transition + audio capture
+        result = await server.start_voice_mode()
+        
+        if result["success"]:
+            return {
+                "ok": True,
+                "message": "Voice mode started - listening for commands",
+                "state": result["state"]
+            }
         else:
-            hint = "Run: pip install -r requirements.txt"
-        return {"ok": False, "message": f"Audio capture unavailable: {import_err}. {hint}"}
-    with _capture_lock:
-        if _capture_instance is not None:
-            return {"ok": True, "message": "Already capturing"}
-        try:
-            config = AudioConfig(sample_rate=16000, vad_aggressiveness=3)
-            _capture_instance = RealtimeAudioCapture(
-                config=config, on_audio_ready=_on_audio_ready
-            )
-            _capture_instance.start()
-            return {"ok": True, "message": "Audio capture started"}
-        except Exception as e:
-            return {"ok": False, "message": str(e)}
+            return {
+                "ok": False,
+                "message": result.get("error", "Failed to start voice mode")
+            }
+            
+    except Exception as e:
+        logger.error(f"Error starting voice mode: {e}")
+        return {
+            "ok": False,
+            "message": f"Error: {str(e)}"
+        }
 
 
 @app.post("/audio/capture/stop")
 async def stop_audio_capture_endpoint():
-    """Stop backend-driven audio capture."""
-    global _capture_instance
-    with _capture_lock:
-        if _capture_instance is None:
-            return {"ok": True, "message": "Not capturing"}
-        try:
-            _capture_instance.stop()
-            _capture_instance = None
-            return {"ok": True, "message": "Audio capture stopped"}
-        except Exception as e:
-            _capture_instance = None
-            return {"ok": False, "message": str(e)}
+    """
+    Stop voice mode and audio capture.
+    
+    This endpoint:
+    1. Calls server.stop_voice_mode() which:
+       - Sets is_voice_mode_active = False
+       - Stops audio capture
+       - Transitions to IDLE state
+    
+    Frontend should call this when user clicks "Stop"
+    """
+    if not server:
+        raise HTTPException(status_code=503, detail="Server not initialized")
+    
+    try:
+        # Use the server's stop_voice_mode method
+        # This handles everything: state transition + stopping audio capture
+        result = await server.stop_voice_mode()
+        
+        return {
+            "ok": True,
+            "message": "Voice mode stopped",
+            "state": result["state"]
+        }
+        
+    except Exception as e:
+        logger.error(f"Error stopping voice mode: {e}")
+        return {
+            "ok": False,
+            "message": f"Error: {str(e)}"
+        }
 
 
 @app.get("/audio/capture/status")
 async def audio_capture_status():
-    """Get status of backend audio capture."""
+    """
+    Get status of audio capture and voice mode.
+    
+    Returns both low-level capture status and high-level voice mode status.
+    """
+    if not server:
+        raise HTTPException(status_code=503, detail="Server not initialized")
+    
+    global _capture_instance
+    
+    # Get low-level capture status
     with _capture_lock:
         if _capture_instance is None:
-            return {"capturing": False, "state": "idle"}
-        return {
-            "capturing": True,
-            "state": _capture_instance.state,
-            "stats": _capture_instance.get_stats(),
-        }
+            capture_info = {
+                "capturing": False,
+                "state": "idle"
+            }
+        else:
+            capture_info = {
+                "capturing": True,
+                "state": _capture_instance.state,
+                "stats": _capture_instance.get_stats(),
+            }
+    
+    # Get high-level server status
+    server_status = server.get_status()
+    
+    return {
+        "voice_mode_active": server.is_voice_mode_active,
+        "app_state": server.state_manager.current_state.value,
+        "capture": capture_info,
+        "last_transcript": server_status.get("last_transcript"),
+        "last_command": server_status.get("last_command"),
+        "current_prompt": server_status.get("user_prompt")
+    }
 
 
 @app.post("/audio")
@@ -1069,6 +1075,8 @@ async def health_check():
     }
 
 
+
+
 # ============================================================================
 # WebSocket Endpoint for Real-time Updates
 # ============================================================================
@@ -1079,7 +1087,7 @@ async def websocket_endpoint(websocket: WebSocket):
     WebSocket endpoint for real-time state updates.
     
     our frontend should connect to this to receive live updates about:
-      - State changes (idle → listening → recording → processing → executing → listening)
+      - State changes (idle -> listening -> recording -> processing -> executing -> listening)
       - Transcripts as they're generated
       - Errors
     
@@ -1127,3 +1135,4 @@ if __name__ == "__main__":
         reload=True,
         log_level="info"
     )
+

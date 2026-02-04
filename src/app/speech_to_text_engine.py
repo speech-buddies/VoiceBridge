@@ -1,17 +1,13 @@
-# src/app/speech_to_text_engine.py
-
 from __future__ import annotations
 from typing import List, Optional, Protocol
 
-from src.models.audio_data import AudioStream, Transcript, AsrConfig
-from src.app.whisper_tuned_model import WhisperLoraAsrModel
-from src.utils.exceptions import InitializationError, ProcessingError, ModelValidationError
+from models.audio_data import AudioStream, Transcript, AsrConfig
+from app.whisper_tuned_model import WhisperLoraAsrModel
 
+from utils.exceptions import InitializationError, ProcessingError, ModelValidationError
+from utils import logger
 
-# Optional protocols for external dependencies
-class VadInterface(Protocol):
-    def detect_speech(self, audio: AudioStream) -> bool: ...
-
+logger = logger.get_logger("SpeechToTextEngine")
 
 class NoiseFilterInterface(Protocol):
     def filter(self, audio: AudioStream) -> AudioStream: ...
@@ -29,17 +25,15 @@ class SpeechToTextEngine:
 
     def __init__(
         self,
-        config: AsrConfig,
-        model_checkpoint: str,
+        config: AsrConfig = None,
+        model_checkpoint: str = "./models/adapters/whisper_lora_epoch1.pt",
         device: str = "cpu",
-        vad: Optional[VadInterface] = None,
         noise_filter: Optional[NoiseFilterInterface] = None,
         personalization_store: Optional[PersonalizationStore] = None,
     ) -> None:
         self.config = config
         self.audio_buffer: List[AudioStream] = []
 
-        self._vad = vad
         self._noise_filter = noise_filter
         self._personalization_store = personalization_store
 
@@ -73,6 +67,81 @@ class SpeechToTextEngine:
             except Exception:
                 pass  # Whisper model is effectively stateless
 
+    def _bytes_to_audio_stream(self, audio_data: bytes):
+        """
+        Convert raw audio bytes to AudioStream object.
+        
+        Args:
+            audio_data: Raw PCM audio bytes (16-bit mono at 16kHz)
+            
+        Returns:
+            AudioStream object ready for model processing
+        """
+        import numpy as np
+        from models.audio_data import AudioStream
+        
+        # Convert bytes to numpy array of int16
+        audio_int16 = np.frombuffer(audio_data, dtype=np.int16)
+        # Convert to float32 normalized to [-1, 1]
+        audio_float32 = audio_int16.astype(np.float32) / 32768.0
+        # Create AudioStream object
+        audio_stream = AudioStream(
+            samples=audio_float32,
+            sample_rate=self.EXPECTED_SAMPLE_RATE,
+        )
+        
+        return audio_stream
+
+    async def transcribe(self, audio_data: bytes) -> str:
+        """
+        Transcribe audio bytes to text.This is the main method called by the server.
+        
+        Args:
+            audio_data: Raw audio bytes from VAD (PCM 16kHz mono, 16-bit)
+            
+        Returns:
+            Transcript text string
+            
+        Raises:
+            ValueError: If audio format is invalid
+            RuntimeError: If transcription fails
+        """
+        
+        try:
+            # Convert bytes to AudioStream format expected by model
+            audio_stream = self._bytes_to_audio_stream(audio_data)
+
+            # Validate audio format
+            if not self.validateAudioFormat(audio_stream):
+                raise ProcessingError("Invalid audio format")
+            
+            self.validateModelReady()
+            
+            if self._noise_filter:
+                try:
+                    processed_audio = self._noise_filter.filter(audio_stream)
+                except Exception as exc:
+                    raise ProcessingError(f"Noise filtering failed: {exc}") from exc
+            # Extract features using Whisper model
+            features = self.model.extract_features(audio_stream)
+            
+            # Decode features to get transcript
+            transcript_obj = self.model.decode(features)
+            
+            # Extract text from transcript object
+            if hasattr(transcript_obj, 'text'):
+                transcript_text = transcript_obj.text
+            else:
+                # Fallback if transcript_obj is already a string
+                transcript_text = str(transcript_obj)
+            
+            return self._apply_personalization(transcript_text)
+            
+        except Exception as exc:
+            logger.error(f"Transcription failed: {exc}", exc_info=True)
+            raise RuntimeError(f"Failed to transcribe audio: {exc}") from exc
+
+
     def processAudio(self, audio: AudioStream) -> Transcript:
         """Convert audio to transcript, applying preprocessing and personalization."""
         if not self.validateAudioFormat(audio):
@@ -81,29 +150,7 @@ class SpeechToTextEngine:
         self.audio_buffer.append(audio)
 
         processed_audio = audio
-        if self._noise_filter:
-            try:
-                processed_audio = self._noise_filter.filter(audio)
-            except Exception as exc:
-                raise ProcessingError(f"Noise filtering failed: {exc}") from exc
-
-        if self._vad:
-            try:
-                has_speech = self._vad.detect_speech(processed_audio)
-            except Exception as exc:
-                raise ProcessingError(f"VAD failed: {exc}") from exc
-            if not has_speech:
-                return Transcript(text="", metadata={"reason": "no_speech"})
-
-        self.validateModelReady()
-
-        try:
-            features = self.model.extract_features(processed_audio)  # type: ignore[union-attr]
-            transcript = self.model.decode(features)                 # type: ignore[union-attr]
-        except Exception as exc:
-            raise ProcessingError(f"Failed to process audio: {exc}") from exc
-
-        return self._apply_personalization(transcript)
+        
 
     def _apply_personalization(self, transcript: Transcript) -> Transcript:
         """Optionally adjust transcript metadata using user profile."""
