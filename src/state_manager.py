@@ -19,12 +19,13 @@ logger = logging.getLogger(__name__)
 class AppState(Enum):
     """Application states"""
     IDLE = "idle" 
-    LISTENING = "listening" # After startup, awaiting voice detection
+    LISTENING = "listening" # After startup, awaiting voice detection and starting browser session
     RECORDING = "recording" # After voice detection, awaiting silence
     PROCESSING = "processing" # After silence, awaiting command orchestrator response
     AWAITING_INPUT = "awaiting_input"  # Command orchestrator needs clarification
-    EXECUTING = "executing" # executing browser controller
-    ERROR = "error" # error in browser controller 
+    EXECUTING = "executing" # executing browser orchestrator
+    ERROR = "error" # error in browser orchestrator
+    STOP = "stop" # application stopping and closing browser session
 
 
 @dataclass

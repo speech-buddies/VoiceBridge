@@ -4,6 +4,8 @@ import './StatusIndicator.css';
 const StatusIndicator = ({ status, error, isLightMode }) => {
   const getStatusInfo = () => {
     switch (status) {
+      case 'recording':
+        return { text: 'Recording...', color: '#ffffff', icon: '⏺️' };
       case 'listening':
         return { text: 'Listening...', color: '#ffffff', icon: '🎤' };
       case 'processing':

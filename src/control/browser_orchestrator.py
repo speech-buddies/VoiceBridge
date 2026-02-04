@@ -26,26 +26,3 @@ async def run_command(command: str, browser: Browser):
 
     history = await agent.run()
     return history
-
-
-
-# async def example():
-#     browser = Browser(
-#         # use_cloud=True,  # Uncomment to use a stealth browser on Browser Use Cloud
-#         keep_alive=True,  # Keep the browser session alive for multiple tasks
-#     )
-
-#     llm = ChatBrowserUse()
-
-#     agent = Agent(
-#         task="Go to amazon and buy a book for me.",
-#         llm=llm,
-#         browser=browser,
-#     )
-
-#     history = await agent.run()
-#     return history
-
-# if __name__ == "__main__":
-#     print("Key loaded?", bool(os.getenv("BROWSER_USE_API_KEY")))
-#     history = asyncio.run(example())

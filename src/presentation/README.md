@@ -4,7 +4,8 @@ Browser extension UI for VoiceBridge - an accessibility interface for speech-to-
 
 ## Overview
 
-This is a React-based browser extension that provides a user interface for continuous audio capture and speech recognition. 
+This is a React-based browser extension that provides a user interface for continuous audio capture and speech recognition.
+
 ## Features
 
 - **Speech Input**: Continuous audio capture and streaming to backend
@@ -31,11 +32,13 @@ presentation/
 ## Setup
 
 1. Install dependencies:
+
 ```bash
 npm install
 ```
 
 2. Build the extension:
+
 ```bash
 npm run build:extension
 ```
