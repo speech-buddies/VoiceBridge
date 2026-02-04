@@ -73,8 +73,12 @@ class WhisperLoraAsrModel:
         return inputs.input_features.to(self.device)
 
     def decode(self, features) -> Transcript:
+        forced_decoder_ids = self.processor.get_decoder_prompt_ids(language="en", task="transcribe")
         with torch.no_grad():
-            predicted_ids = self.model.generate(input_features=features)
+            predicted_ids = self.model.generate(
+                input_features=features,
+                forced_decoder_ids=forced_decoder_ids
+            )
 
         text = self.processor.batch_decode(
             predicted_ids,
