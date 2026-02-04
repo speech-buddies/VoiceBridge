@@ -380,6 +380,7 @@ __pycache__/
 *.so
 .Python
 backend/Recordings/
+src/recordings/
 
 # Node / UI build (ui/ has its own .gitignore for build/ and extension/)
 node_modules/
