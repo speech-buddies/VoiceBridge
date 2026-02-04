@@ -10,3 +10,8 @@ scipy>=1.10.0
 
 # Voice Activity Detection
 webrtcvad>=2.0.10
+
+# Speech to Text Engine
+torch>=2.10.0
+transformers>=5.0.0
+peft>=0.18.1

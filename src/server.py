@@ -15,7 +15,8 @@ Frontend just needs to:
 """
 
 import asyncio
-import logging
+from utils import logger 
+
 from typing import Optional, List
 from contextlib import asynccontextmanager
 
@@ -28,8 +29,8 @@ from state_manager import StateManager, AppState
 # TODO: Import our actual modules here
 from app.speech_to_text_engine import SpeechToTextEngine
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+
+logger = logger.get_logger("VoiceBridgeServer")
 
 
 # ============================================================================
@@ -203,8 +204,8 @@ class VoiceBridgeServer:
             return await self.speech_to_text.transcribe(audio_data)
         """
         logger.info(f"Transcribing {len(audio_data)} bytes of audio...")
-        # TODO: update stt engine to take in bytes instead of audio stream 
-        transcription = self.speech_to_text.processAudio(audio_data)
+
+        transcription = self.speech_to_text.transcribe(audio_data)
         logger.info(f"Received transcription: {transcription}")
 
         return transcription
@@ -844,6 +845,8 @@ async def health_check():
     }
 
 
+
+
 # ============================================================================
 # WebSocket Endpoint for Real-time Updates
 # ============================================================================
@@ -902,3 +905,4 @@ if __name__ == "__main__":
         reload=True,
         log_level="info"
     )
+

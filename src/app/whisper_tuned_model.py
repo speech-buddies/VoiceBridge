@@ -3,7 +3,7 @@ from transformers import WhisperProcessor, WhisperForConditionalGeneration
 from peft import LoraConfig, get_peft_model
 from typing import Optional
 
-from src.models.audio_data import AudioStream, Transcript
+from models.audio_data import AudioStream, Transcript
 
 
 class WhisperLoraAsrModel:
