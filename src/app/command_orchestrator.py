@@ -127,6 +127,7 @@ The browser controller can handle natural language commands like:
 - "Click the login button"
 - "Search for cats on Google"
 - "Fill out the contact form with my name and email"
+- "Play a video on YouTube and keep it playing until the user asks to stop or exit"
 
 You should ask for clarification when:
 1. The command is ambiguous (e.g., "Go to Google" - which Google service?)
@@ -177,6 +178,14 @@ User: "Send an email"
     "needs_clarification": true,
     "question": "Who would you like to send an email to, and what should it say?"
 }
+
+User: "Play the video 'Campus Tour Walk-Through of McMaster Engineering' on YouTube"
+{
+    "needs_clarification": false,
+    "clarified_command": "Play the video 'Campus Tour Walk-Through of McMaster Engineering' on YouTube and keep it playing until the user asks to stop or exit."
+}
+
+Note: When executing a command to play a video, ensure the video remains playing and do not interrupt playback unless the user requests it.
 
 Be concise and helpful. Only ask for clarification when truly necessary. The browser controller is intelligent and can handle natural language well."""
     
