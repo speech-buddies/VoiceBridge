@@ -1,17 +1,17 @@
 """
-FastAPI Server Entry Point
+FastAPI Server Entry Point - Improved Version
 
-Minimal API for frontend to access VoiceBridge backend.
-The backend handles the entire flow automatically:
-  1. VAD detects voice -> starts recording
-  2. VAD detects silence -> processes audio
-  3. Transcribes -> parses command -> executes in browser
-  4. Returns to idle, waiting for next voice input
+This version uses a simplified CommandOrchestrator that focuses solely on
+command clarification, not command generation. The orchestrator determines
+if the user's intent is clear and asks clarifying questions when needed.
 
-Frontend just needs to:
-  - Start/stop the voice listening mode
-  - Display current state via WebSocket updates
-  - Handle manual commands (optional)
+The actual browser automation is handled by an LLM-powered browser controller
+that can understand natural language commands directly.
+
+Key improvements:
+1. Cleaner parse_and_execute_command function
+2. Better state management for conversation flow
+3. Clear separation: Orchestrator for clarification, Browser controller for execution
 """
 
 import asyncio
@@ -35,14 +35,14 @@ from state_manager import StateManager, AppState
 from control.browser_orchestrator import run_command
 from control.session_manager import get_browser, start_session, stop_session
 
-# TODO: Import our actual modules here
+from app.command_orchestrator import CommandOrchestrator, OrchestratorError
 from app.speech_to_text_engine import SpeechToTextEngine
 
-# Windows compatibility for browser asyncio event loop
+# Windows compatibility
 if sys.platform.startswith("win"):
     asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 
-# Lazy import: audio_capture needs sounddevice + webrtcvad
+# Audio capture lazy import
 def _get_audio_capture():
     try:
         from input.audio_capture import RealtimeAudioCapture, AudioConfig
@@ -53,7 +53,7 @@ def _get_audio_capture():
 
 logger = logger.get_logger("VoiceBridgeServer")
 
-# Folder where audio recordings are saved (standalone capture + legacy upload)
+# Recording directory
 SAVE_DIR = Path(__file__).resolve().parent / "Recordings"
 SAVE_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -62,10 +62,8 @@ _capture_lock = threading.Lock()
 _event_loop = None
 
 
-
-
 # ============================================================================
-# Pydantic Models for API
+# Pydantic Models
 # ============================================================================
 
 class StatusResponse(BaseModel):
@@ -77,18 +75,20 @@ class StatusResponse(BaseModel):
     error: Optional[str]
     transcript: Optional[str] = None
     last_command: Optional[str] = None
-    user_prompt: Optional[str] = None 
+    user_prompt: Optional[str] = None
 
 
 class ManualCommandRequest(BaseModel):
-    """Manual command input (for testing/debugging)"""
+    """Manual command input"""
     command: str
     metadata: Optional[dict] = None
+
 
 class UserInputRequest(BaseModel):
     """User input in response to orchestrator prompt"""
     input: str
     metadata: Optional[dict] = None
+
 
 class CommandResponse(BaseModel):
     """Response from command execution"""
@@ -125,25 +125,25 @@ class ConnectionManager:
             try:
                 await connection.send_json(message)
             except Exception as e:
-                logger.error(f"Error broadcasting to client: {e}")
+                logger.error(f"Error broadcasting: {e}")
                 disconnected.append(connection)
         
-        # Clean up disconnected clients
         for conn in disconnected:
             self.disconnect(conn)
 
-# ========================================================================
-# Callbacks from Audio Capture Module
-# ========================================================================
+
+# ============================================================================
+# Audio Capture Callback
+# ============================================================================
+
 def _on_audio_ready(audio_float32: np.ndarray, metadata: dict):
     """
-    Callback when RealtimeAudioCapture has finished a recording.
-    If voice mode is active: feed audio into pipeline via on_silence_detected.
-    Otherwise (standalone capture): save to Recordings/.
+    Callback when audio capture detects silence.
+    Routes to voice pipeline or saves to file.
     """
     global server, _event_loop
     if server and server.is_voice_mode_active and _event_loop:
-        # Feed into VoiceBridge pipeline
+        # Feed into voice pipeline
         audio_int16 = (audio_float32 * 32767).astype(np.int16)
         audio_bytes = audio_int16.tobytes()
         asyncio.run_coroutine_threadsafe(
@@ -161,47 +161,54 @@ def _on_audio_ready(audio_float32: np.ndarray, metadata: dict):
             wf.setframerate(sample_rate)
             wf.writeframes(audio_int16.tobytes())
 
+
 # ============================================================================
-# VoiceBridge Server
+# VoiceBridge Server - Improved
 # ============================================================================
 
 class VoiceBridgeServer:
     """
-    Main server that runs the voice automation pipeline.
+    Main server for voice automation pipeline.
     
-    Flow:
-      IDLE -> (VAD detects voice) -> RECORDING -> (VAD detects silence) -> 
-      PROCESSING -> EXECUTING -> IDLE
+    Key improvements:
+    1. Clean integration with CommandOrchestrator
+    2. Clear conversation flow management
+    3. Better error handling
     """
     
     def __init__(self):
         self.state_manager = StateManager()
         self.connection_manager = ConnectionManager()
         self.is_voice_mode_active = False
-        self._browser_session_started = False # Tracks if browser session is active
-        self._session_lock = asyncio.Lock() # To prevent multiple sessions from starting/stopping at same time
+        self._browser_session_started = False
+        self._session_lock = asyncio.Lock()
         
-        # TODO: Initialize our modules
-        # self.audio_capture = AudioCapture()
+        # Initialize modules
         self.speech_to_text = SpeechToTextEngine()
-
-        # self.command_orchestrator = CommandOrchestrator()
-        # self.browser_controller = BrowserController()
         
-        # Register callback to broadcast state changes to WebSocket clients
+        # Initialize command orchestrator
+        try:
+            self.command_orchestrator = CommandOrchestrator()
+            logger.info("CommandOrchestrator initialized")
+        except OrchestratorError as e:
+            logger.error(f"Failed to initialize CommandOrchestrator: {e}")
+            self.command_orchestrator = None
+        
+        # Register state change callbacks
         self.state_manager.register_callback(None, self._broadcast_state_change)
-        self.state_manager.register_callback(None, self._on_state_change) # also sync browser session with state changes
+        self.state_manager.register_callback(None, self._on_state_change)
         
-        # Store last transcript and command for status endpoint
+        # Tracking variables
         self._last_transcript: Optional[str] = None
         self._last_command: Optional[str] = None
         
         # Conversation context for multi-turn interactions
+        # Format: [{"role": "user|assistant", "content": "...", "timestamp": "..."}]
         self._conversation_context: List[dict] = []
         self._current_user_prompt: Optional[str] = None
     
     def _broadcast_state_change(self, state_data, old_state):
-        """Broadcast state changes to all WebSocket clients"""
+        """Broadcast state changes to WebSocket clients"""
         message = {
             'type': 'state_change',
             'old_state': old_state.value,
@@ -218,229 +225,218 @@ class VoiceBridgeServer:
             logger.info(f"User prompt: {self._current_user_prompt}")
         
         asyncio.create_task(self.connection_manager.broadcast(message))
-
+    
     def _on_state_change(self, state_data, old_state):
-        """
-        Called by StateManager on every transition.
-        We fan out to:
-          1) broadcast to websocket clients
-          2) manage browser session automatically based on AppState
-        """
-        # broadcast 
-        self._broadcast_state_change(state_data, old_state)
-
-        # session control based on state
+        """Handle state changes"""
         asyncio.create_task(self._sync_browser_session_with_state(state_data.state))
-
-    # ========================================================================
-    # Session Synchronization Logic
-    # ========================================================================
+    
     async def _sync_browser_session_with_state(self, new_state: AppState):
         """
-        Auto start/stop browser session based on AppState.
-        LISTENING => ensure browser session is started
-        STOP      => ensure browser session is stopped
+        Auto start/stop browser session based on state.
+        LISTENING -> ensure browser session started
+        IDLE -> ensure browser session stopped
         """
         async with self._session_lock:
-            # START when we begin listening
             if new_state == AppState.LISTENING:
                 if not self._browser_session_started:
                     msg = await start_session()
                     logger.info(f"Browser session started: {msg}")
                     self._browser_session_started = True
-                return
-
-            # STOP when we go idle (or after reset / stop voice mode)
-            if new_state == AppState.IDLE:
+            
+            elif new_state == AppState.IDLE:
                 if self._browser_session_started:
                     msg = await stop_session()
                     logger.info(f"Browser session stopped: {msg}")
                     self._browser_session_started = False
-                return
-            
-    
-    
     
     # ========================================================================
-    # Module Integration - Implement these with our actual modules
+    # Core Processing Methods - IMPROVED
     # ========================================================================
     
-    async def start_audio_capture(self):
-        """
-        Start audio capture with VAD using RealtimeAudioCapture.
-        When silence is detected, _on_audio_ready feeds audio into on_silence_detected.
-        """
-        global _capture_instance
-        RealtimeAudioCapture, AudioConfig, import_err = _get_audio_capture()
-        if import_err:
-            raise RuntimeError(
-                f"Audio capture unavailable: {import_err}. "
-                "Run: pip install -r requirements.txt (sounddevice, webrtcvad)"
-            )
-        
-        # Transition to recording
-        self.state_manager.transition_to(AppState.RECORDING)
-
-        with _capture_lock:
-            if _capture_instance is not None:
-                logger.info("Audio capture already running")
-                return
-            config = AudioConfig(sample_rate=16000, vad_aggressiveness=3)
-            _capture_instance = RealtimeAudioCapture(
-                config=config, on_audio_ready=_on_audio_ready
-            )
-            _capture_instance.start()
-        logger.info("Audio capture started with VAD")
-    
-    async def stop_audio_capture(self):
-        """Stop audio capture."""
-        global _capture_instance
-        with _capture_lock:
-            if _capture_instance is None:
-                logger.info("Audio capture not running")
-                return
-            try:
-                _capture_instance.stop()
-            except Exception as e:
-                logger.error(f"Error stopping audio capture: {e}")
-            finally:
-                _capture_instance = None
-        logger.info("Audio capture stopped")
-    
-    async def transcribe_audio(self, audio_data: bytes) -> str:
-        """
-        Transcribe audio using our speech-to-text engine.
-        
-        TODO: Implement with our speech-to-text module
-        Example:
-            return await self.speech_to_text.transcribe(audio_data)
-        """
-        logger.info(f"Transcribing {len(audio_data)} bytes of audio...")
-
-        transcription = await self.speech_to_text.transcribe(audio_data)
-        logger.info(f"Received transcription: {transcription}")
-
-        return transcription
-    
-    async def parse_and_execute_command(self, transcript: str, user_context: Optional[List[dict]] = None) -> dict:
+    async def parse_and_execute_command(
+        self,
+        transcript: str,
+        conversation_context: Optional[List[dict]] = None
+    ) -> dict:
         """
         Parse transcript and execute browser command.
-        Can return a prompt if LLM needs clarification.
         
-        TODO: Implement with our command orchestrator and browser controller
-        Example:
-            result = await self.command_orchestrator.parse(
-                transcript, 
-                context=self._conversation_context
+        This method uses the CommandOrchestrator to determine if the user's intent
+        is clear. If clear, it passes the clarified natural language command to the
+        LLM-powered browser controller. If unclear, it asks for clarification.
+        
+        Flow:
+        1. Call orchestrator to check if command is clear
+        2. If orchestrator needs clarification -> return user_prompt
+        3. If orchestrator returns clarified command -> pass to browser controller
+        
+        Args:
+            transcript: User's transcript
+            conversation_context: Conversation history
+            
+        Returns:
+            dict with either:
+            - {"needs_input": True, "user_prompt": "...", "context": {...}}
+            - {"needs_input": False, "success": True, "command": "...", "details": "..."}
+        """
+        logger.info(f"parse_and_execute_command: '{transcript}'")
+        
+        if not transcript.strip():
+            raise HTTPException(status_code=400, detail="Empty transcript")
+        
+        # Check if orchestrator is available
+        if not self.command_orchestrator:
+            logger.warning("CommandOrchestrator not available, using fallback")
+            return await self._fallback_execution(transcript)
+        
+        try:
+            # Step 1: Check if command is clear
+            # Convert our conversation context to orchestrator format
+            orchestrator_context = []
+            if conversation_context:
+                for msg in conversation_context:
+                    orchestrator_context.append({
+                        "role": msg["role"],
+                        "content": msg["content"]
+                    })
+            
+            # Call orchestrator
+            response = await self.command_orchestrator.process(
+                user_input=transcript,
+                conversation_context=orchestrator_context
             )
             
-            # If orchestrator needs clarification
-            if result.get('needs_clarification'):
+            # Step 2: Handle clarification
+            if response.needs_clarification:
+                # Orchestrator needs more info from user
+                logger.info(f"Orchestrator needs clarification: {response.user_prompt}")
                 return {
                     "needs_input": True,
-                    "user_prompt": result['user_prompt'],
-                    "context": result.get('context')
+                    "user_prompt": response.user_prompt,
+                    "context": response.metadata or {}
                 }
             
-            # Otherwise execute command
-            command = result['command']
-            execution_result = await self.browser_controller.execute(command)
+            # Step 3: Execute the clarified natural language command
+            clarified_command = response.clarified_command
+            logger.info(f"Orchestrator clarified command: '{clarified_command}'")
+            
+            # Execute via browser controller (which handles natural language)
+            execution_result = await self._execute_browser_command(clarified_command)
             
             return {
                 "needs_input": False,
                 "success": True,
-                "action": command['action'],
+                "command": clarified_command,
                 "details": execution_result
             }
+            
+        except OrchestratorError as e:
+            logger.error(f"Orchestrator error: {e}")
+            self.state_manager.transition_to(AppState.ERROR, error=str(e))
+            raise HTTPException(status_code=500, detail=f"Orchestrator error: {e}")
+        
+        except Exception as e:
+            logger.error(f"Error in parse_and_execute_command: {e}")
+            self.state_manager.transition_to(AppState.ERROR, error=str(e))
+            raise HTTPException(status_code=500, detail=f"Command execution error: {e}")
+    
+    async def _execute_browser_command(self, clarified_command: str) -> dict:
         """
-        logger.info(f"Parsing and executing: {transcript}")
-
-        # BROWSER EXECUTION PLACEHOLDER START
-        transcript = transcript.strip()
-        if not transcript:
-            raise HTTPException(status_code=400, detail="transcript cannot be empty")
-        browser = get_browser() # retrieving active browser session
+        Execute a natural language command via the browser controller.
+        
+        The browser controller is LLM-powered and can handle natural language directly.
+        
+        Args:
+            clarified_command: Clarified natural language command (e.g., "Navigate to Gmail")
+            
+        Returns:
+            Execution result
+        """
+        # Get active browser session
+        browser = get_browser()
         if browser is None:
-            self.state_manager.transition_to(AppState.ERROR, error="No active browser session")
             raise HTTPException(
                 status_code=409,
-                detail="No active browser session (expected LISTENING state to start it)."
+                detail="No active browser session"
             )
         
-        # Transition to executing command
-        self.state_manager.transition_to(AppState.EXECUTING, transcript=transcript)
-        history = await run_command(transcript, browser) # transcript is the text command being sent to the browser by command orchestrator
-
+        # Transition to executing state
+        self.state_manager.transition_to(AppState.EXECUTING, transcript=clarified_command)
+        
         try:
-            history = await run_command(
-                transcript, browser)  # transcript is the text command being sent to the browser by command orchestrator
-
+            # Use the LLM-powered browser orchestrator to execute natural language command
+            history = await run_command(clarified_command, browser)
+            
+            return {
+                "success": True,
+                "history": str(history),
+                "command": clarified_command
+            }
+            
+        except Exception as e:
+            logger.error(f"Browser execution error: {e}")
+            raise
+    
+    async def _fallback_execution(self, transcript: str) -> dict:
+        """
+        Fallback execution when orchestrator is not available.
+        Uses the browser orchestrator directly.
+        """
+        browser = get_browser()
+        if browser is None:
+            raise HTTPException(status_code=409, detail="No active browser session")
+        
+        self.state_manager.transition_to(AppState.EXECUTING, transcript=transcript)
+        
+        try:
+            history = await run_command(transcript, browser)
             return {
                 "needs_input": False,
                 "success": True,
                 "action": "browser_orchestrator",
-                "details": str(history),
+                "details": str(history)
             }
-
         except Exception as e:
-            # ERROR if orchestrator fails
-            self.state_manager.transition_to(AppState.ERROR, error=str(e), transcript=transcript)
-            raise HTTPException(status_code=500, detail=f"Browser orchestrator error: {e}")
-        
-        # BROWSER EXECUTION PLACEHOLDER END
-        
-        # Our command parsing and execution here
-        # This is a placeholder showing the two possible outcomes
-        
-        # Example 1: Command is clear, execute it
-        await asyncio.sleep(0.3)
-        return {
-            "needs_input": False,
-            "success": True,
-            "action": "navigate",
-            "details": f"Executed command from: {transcript}"
-        }
-        
-        # Example 2: Need clarification (uncomment to test)
-        # return {
-        #     "needs_input": True,
-        #     "prompt": "Which Google product did you want? Google.com, Gmail, or Google Drive?",
-        #     "context": {"ambiguous_command": transcript}
-        # }
+            raise HTTPException(status_code=500, detail=f"Browser error: {e}")
     
-
-   
+    # ========================================================================
+    # Audio Processing Pipeline
+    # ========================================================================
+    
+    async def transcribe_audio(self, audio_data: bytes) -> str:
+        """Transcribe audio to text."""
+        logger.info(f"Transcribing {len(audio_data)} bytes...")
+        transcription = await self.speech_to_text.transcribe(audio_data)
+        logger.info(f"Transcription: {transcription}")
+        return transcription
+    
     async def on_silence_detected(self, audio_data: bytes):
         """
-        Called by our audio capture module when VAD detects silence.
-        Transitions from RECORDING -> PROCESSING and processes the audio.
-        
-        Args:
-            audio_data: The recorded audio bytes
+        Called when VAD detects silence.
+        Routes to appropriate handler based on current state.
         """
-        logger.info(f"Silence detected by VAD, processing {len(audio_data)} bytes")
+        logger.info(f"Silence detected, processing {len(audio_data)} bytes")
         
         current_state = self.state_manager.current_state
         
-        # Handle different states
-        if current_state == AppState.RECORDING:
-            # Normal flow: user spoke a new command
-            await self._process_new_command(audio_data)
-            
-        elif current_state == AppState.AWAITING_INPUT:
+        # if current_state == AppState.RECORDING:
+        
+        if current_state == AppState.AWAITING_INPUT:
             # User is responding to a prompt
             await self._process_user_response(audio_data)
-            
+        
         else:
-            logger.warning(f"Received audio but in unexpected state: {current_state.value}")
+            # User spoke a new command
+            await self._process_new_command(audio_data)
+            # logger.warning(f"Received audio in unexpected state: {current_state.value}")
     
     async def _process_new_command(self, audio_data: bytes):
-        """Process a new voice command from the user"""
+        """Process a new voice command from the user."""
         # Transition to processing
         self.state_manager.transition_to(AppState.PROCESSING, audio_data=audio_data)
         
         try:
-            # Transcribe the audio
+            # Transcribe
             transcript = await self.transcribe_audio(audio_data)
             self._last_transcript = transcript
             
@@ -451,55 +447,58 @@ class VoiceBridgeServer:
                 "timestamp": self.state_manager.state_data.timestamp.isoformat()
             })
             
-            # Parse and potentially execute the command
-            result = await self.parse_and_execute_command(transcript, self._conversation_context)
+            # Parse and execute
+            result = await self.parse_and_execute_command(
+                transcript,
+                self._conversation_context
+            )
             
-            # Check if orchestrator needs clarification
+            # Handle result
             if result.get("needs_input"):
-                # Transition to awaiting input
+                # Need clarification
                 self._current_user_prompt = result["user_prompt"]
                 self.state_manager.transition_to(
                     AppState.AWAITING_INPUT,
                     transcript=transcript,
-                    metadata={"user_prompt": result["user_prompt"], "context": result.get("context")}
+                    metadata={
+                        "user_prompt": result["user_prompt"],
+                        "context": result.get("context", {})
+                    }
                 )
                 
-                # Add user_prompt to conversation context
+                # Add prompt to conversation
                 self._conversation_context.append({
                     "role": "assistant",
                     "content": result["user_prompt"],
                     "timestamp": self.state_manager.state_data.timestamp.isoformat()
                 })
                 
-                # Automatically start listening for user's response
+                # Auto-start listening for response
                 if self.is_voice_mode_active:
-                    await asyncio.sleep(0.1)  # Small delay
-                    self.state_manager.transition_to(AppState.LISTENING)
-                
+                    await asyncio.sleep(0.1)
+                    # self.state_manager.transition_to(AppState.LISTENING)
+            
             else:
                 # Command executed successfully
                 self._last_command = transcript
                 self._current_user_prompt = None
                 
-                # Clear conversation context after successful execution
+                # Clear conversation context
                 self._conversation_context = []
                 
-                # Transition to executing
-                self.state_manager.transition_to(AppState.EXECUTING, transcript=transcript)
-                
-                # Back to listening (if voice mode still active) or idle
-                await asyncio.sleep(0.1)  # Small delay to let execution finish
+                # Back to listening
+                await asyncio.sleep(0.1)
                 if self.is_voice_mode_active:
                     self.state_manager.transition_to(AppState.LISTENING)
                 else:
                     self.state_manager.transition_to(AppState.IDLE)
-                    
+        
         except Exception as e:
-            logger.error(f"Error in voice processing pipeline: {e}")
+            logger.error(f"Error processing command: {e}")
             self.state_manager.handle_error(str(e))
             self._current_user_prompt = None
             
-            # Return to listening or idle after error
+            # Return to listening/idle
             await asyncio.sleep(2)
             if self.is_voice_mode_active:
                 self.state_manager.transition_to(AppState.LISTENING)
@@ -507,141 +506,168 @@ class VoiceBridgeServer:
                 self.state_manager.transition_to(AppState.IDLE)
     
     async def _process_user_response(self, audio_data: bytes):
-        """Process user's response to a clarification user prompt"""
+        """Process user's response to a clarification prompt."""
         # Transition to processing
         self.state_manager.transition_to(AppState.PROCESSING, audio_data=audio_data)
         
         try:
-            # Transcribe the response
+            # Transcribe response
             response = await self.transcribe_audio(audio_data)
             self._last_transcript = response
             
-            # Add response to conversation context
+            # Add to conversation context
             self._conversation_context.append({
                 "role": "user",
                 "content": response,
                 "timestamp": self.state_manager.state_data.timestamp.isoformat()
             })
             
-            # Parse and execute with full context
-            result = await self.parse_and_execute_command(response, self._conversation_context)
+            # Parse and execute with context
+            result = await self.parse_and_execute_command(
+                response,
+                self._conversation_context
+            )
             
-            # Check if still needs more clarification
+            # Handle result
             if result.get("needs_input"):
                 # Still need more info
                 self._current_user_prompt = result["user_prompt"]
                 self.state_manager.transition_to(
                     AppState.AWAITING_INPUT,
                     transcript=response,
-                    metadata={"user_prompt": result["user_prompt"], "context": result.get("context")}
+                    metadata={
+                        "user_prompt": result["user_prompt"],
+                        "context": result.get("context", {})
+                    }
                 )
                 
-                # Add new user prompt to conversation context
+                # Add new prompt to conversation
                 self._conversation_context.append({
                     "role": "assistant",
                     "content": result["user_prompt"],
                     "timestamp": self.state_manager.state_data.timestamp.isoformat()
                 })
                 
-                # Automatically start listening for next response
+                # Auto-start listening
                 if self.is_voice_mode_active:
                     await asyncio.sleep(0.1)
                     self.state_manager.transition_to(AppState.LISTENING)
-                    
+            
             else:
-                # Got all the info needed, execute command
+                # Got enough info, command executed
                 self._last_command = response
                 self._current_user_prompt = None
                 
-                # Clear conversation context after successful execution
+                # Clear conversation context
                 self._conversation_context = []
                 
-                # Transition to executing
-                self.state_manager.transition_to(AppState.EXECUTING, transcript=response)
-                
-                # Back to listening or idle
+                # Back to listening/idle
                 await asyncio.sleep(0.1)
                 if self.is_voice_mode_active:
                     self.state_manager.transition_to(AppState.LISTENING)
                 else:
                     self.state_manager.transition_to(AppState.IDLE)
-                    
+        
         except Exception as e:
-            logger.error(f"Error processing user response: {e}")
+            logger.error(f"Error processing response: {e}")
             self.state_manager.handle_error(str(e))
             self._current_user_prompt = None
             self._conversation_context = []
             
-            # Return to listening or idle after error
+            # Return to listening/idle
             await asyncio.sleep(2)
             if self.is_voice_mode_active:
                 self.state_manager.transition_to(AppState.LISTENING)
             else:
                 self.state_manager.transition_to(AppState.IDLE)
+    
+    # ========================================================================
+    # Audio Capture Management
+    # ========================================================================
+    
+    async def start_audio_capture(self):
+        """Start audio capture with VAD."""
+        global _capture_instance
+        RealtimeAudioCapture, AudioConfig, import_err = _get_audio_capture()
+        if import_err:
+            raise RuntimeError(f"Audio capture unavailable: {import_err}")
+        
+        self.state_manager.transition_to(AppState.RECORDING)
+        
+        with _capture_lock:
+            if _capture_instance is not None:
+                logger.info("Audio capture already running")
+                return
+            
+            config = AudioConfig(sample_rate=16000, vad_aggressiveness=3)
+            _capture_instance = RealtimeAudioCapture(
+                config=config,
+                on_audio_ready=_on_audio_ready
+            )
+            _capture_instance.start()
+        
+        logger.info("Audio capture started")
+    
+    async def stop_audio_capture(self):
+        """Stop audio capture."""
+        global _capture_instance
+        with _capture_lock:
+            if _capture_instance is None:
+                return
+            try:
+                _capture_instance.stop()
+            except Exception as e:
+                logger.error(f"Error stopping audio capture: {e}")
+            finally:
+                _capture_instance = None
+        
+        logger.info("Audio capture stopped")
+    
     # ========================================================================
     # Public API Methods
     # ========================================================================
     
     async def start_voice_mode(self) -> dict:
-        """
-        Start voice mode - app will continuously listen for voice commands.
-        Flow: IDLE -> LISTENING -> (automatic from here based on VAD)
-        """
+        """Start voice mode."""
         current_state = self.state_manager.current_state
         
         if current_state != AppState.IDLE:
             return {
                 "success": False,
-                "error": f"Cannot start voice mode from state: {current_state.value}"
+                "error": f"Cannot start from state: {current_state.value}"
             }
         
         self.is_voice_mode_active = True
-        
-        # Transition to listening
         self.state_manager.transition_to(AppState.LISTENING)
-        
-        # Start audio capture (which includes VAD)
         await self.start_audio_capture()
         
         return {"success": True, "state": "listening"}
     
     async def stop_voice_mode(self) -> dict:
-        """
-        Stop voice mode - return to idle and stop listening.
-        """
+        """Stop voice mode."""
         self.is_voice_mode_active = False
-        
-        # Stop audio capture
         await self.stop_audio_capture()
-        
-        # Return to idle
         self.state_manager.transition_to(AppState.IDLE)
         
         return {"success": True, "state": "idle"}
     
     async def execute_manual_command(self, command: str, metadata: Optional[dict] = None) -> dict:
-        """
-        Execute a manual text command (for testing/debugging).
-        Bypasses voice input but uses the same command orchestrator.
-        """
+        """Execute a manual text command."""
         current_state = self.state_manager.current_state
         
         if current_state != AppState.IDLE:
             raise HTTPException(
                 status_code=400,
-                detail=f"Cannot execute manual command in state: {current_state.value}. Stop voice mode first."
+                detail=f"Cannot execute in state: {current_state.value}"
             )
         
-        # Transition to executing
-        self.state_manager.transition_to(AppState.EXECUTING, transcript=command, metadata=metadata)
+        self.state_manager.transition_to(AppState.EXECUTING, transcript=command)
         
         try:
-            # Parse and execute the command
             result = await self.parse_and_execute_command(command)
             self._last_transcript = command
             self._last_command = command
             
-            # Return to idle
             self.state_manager.transition_to(AppState.IDLE)
             
             return {
@@ -649,50 +675,26 @@ class VoiceBridgeServer:
                 "command": command,
                 "result": result
             }
-            
+        
         except Exception as e:
             logger.error(f"Error executing manual command: {e}")
             self.state_manager.handle_error(str(e))
-            raise HTTPException(status_code=500, detail=str(e))
-    
-    def get_status(self) -> dict:
-        """Get current server status"""
-        status = self.state_manager.get_state_info()
-        status['voice_mode_active'] = self.is_voice_mode_active
-        status['last_transcript'] = self._last_transcript
-        status['last_command'] = self._last_command
-        status['user_prompt'] = self._current_user_prompt
-        status['has_conversation_context'] = len(self._conversation_context) > 0
-        return status
-    
-    def reset(self) -> dict:
-        """Reset to idle state"""
-        self.is_voice_mode_active = False
-        self._current_user_prompt = None
-        self._conversation_context = []
-        self.state_manager.reset()
-        return {"success": True, "state": "idle"}
+            raise
     
     async def submit_user_input(self, user_input: str, metadata: Optional[dict] = None) -> dict:
-        """
-        Submit user input in response to a prompt (for manual text input).
-        Only works when in AWAITING_INPUT state.
-        
-        This is useful if user wants to type their response instead of speaking.
-        """
+        """Submit manual text input in response to a prompt."""
         current_state = self.state_manager.current_state
         
         if current_state != AppState.AWAITING_INPUT:
             raise HTTPException(
                 status_code=400,
-                detail=f"Not awaiting input. Current state: {current_state.value}"
+                detail=f"Not awaiting input. State: {current_state.value}"
             )
         
-        # Transition to processing
-        self.state_manager.transition_to(AppState.PROCESSING, transcript=user_input, metadata=metadata)
+        self.state_manager.transition_to(AppState.PROCESSING, transcript=user_input)
         
         try:
-            # Add input to conversation context
+            # Add to conversation
             self._conversation_context.append({
                 "role": "user",
                 "content": user_input,
@@ -700,20 +702,17 @@ class VoiceBridgeServer:
                 "source": "text_input"
             })
             
-            # Parse and execute with full context
-            result = await self.parse_and_execute_command(user_input, self._conversation_context)
+            # Process
+            result = await self.parse_and_execute_command(
+                user_input,
+                self._conversation_context
+            )
             
-            # Check if still needs more clarification
+            # Handle result
             if result.get("needs_input"):
-                # Still need more info
                 self._current_user_prompt = result["user_prompt"]
-                self.state_manager.transition_to(
-                    AppState.AWAITING_INPUT,
-                    transcript=user_input,
-                    metadata={"user_prompt": result["user_prompt"], "context": result.get("context")}
-                )
+                self.state_manager.transition_to(AppState.AWAITING_INPUT)
                 
-                # Add new prompt to conversation context
                 self._conversation_context.append({
                     "role": "assistant",
                     "content": result["user_prompt"],
@@ -725,374 +724,200 @@ class VoiceBridgeServer:
                     "needs_more_input": True,
                     "user_prompt": result["user_prompt"]
                 }
-                
+            
             else:
-                # Got all the info needed, execute command
-                self._last_command = user_input
                 self._current_user_prompt = None
-                
-                # Clear conversation context after successful execution
                 self._conversation_context = []
-                
-                # Transition to executing
-                self.state_manager.transition_to(AppState.EXECUTING, transcript=user_input)
-                
-                # Back to listening or idle
-                await asyncio.sleep(0.1)
-                if self.is_voice_mode_active:
-                    self.state_manager.transition_to(AppState.LISTENING)
-                else:
-                    self.state_manager.transition_to(AppState.IDLE)
+                self.state_manager.transition_to(AppState.IDLE)
                 
                 return {
                     "success": True,
                     "needs_more_input": False,
                     "result": result
                 }
-                
+        
         except Exception as e:
             logger.error(f"Error processing user input: {e}")
             self.state_manager.handle_error(str(e))
-            self._current_user_prompt = None
-            self._conversation_context = []
-            raise HTTPException(status_code=500, detail=str(e))
-
-
+            raise
+    
+    def get_status(self) -> dict:
+        """Get current server status."""
+        status = self.state_manager.get_state_info()
+        status['voice_mode_active'] = self.is_voice_mode_active
+        status['last_transcript'] = self._last_transcript
+        status['last_command'] = self._last_command
+        status['user_prompt'] = self._current_user_prompt
+        status['has_conversation_context'] = len(self._conversation_context) > 0
+        return status
+    
+    def reset(self) -> dict:
+        """Reset to idle state."""
+        self.is_voice_mode_active = False
+        self._current_user_prompt = None
+        self._conversation_context = []
+        if self.command_orchestrator:
+            self.command_orchestrator.reset()
+        self.state_manager.reset()
+        return {"success": True, "state": "idle"}
 
 
 # ============================================================================
-# FastAPI Application
+# FastAPI Application Setup
 # ============================================================================
-
-# Global server instance
-server: Optional[VoiceBridgeServer] = None
-
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Lifespan context manager for startup/shutdown"""
+    """Manage app lifecycle."""
     global server, _event_loop
     
     # Startup
-    _event_loop = asyncio.get_running_loop()
-    logger.info("Starting VoiceBridge Server...")
+    _event_loop = asyncio.get_event_loop()
     server = VoiceBridgeServer()
+    logger.info("VoiceBridge Server initialized")
     
     yield
     
     # Shutdown
-    logger.info("Shutting down VoiceBridge Server...")
     if server:
-        await server.stop_audio_capture()
+        await server.stop_voice_mode()
+    logger.info("VoiceBridge Server shutdown")
 
 
-# Create FastAPI app
 app = FastAPI(
     title="VoiceBridge API",
-    description="API for VoiceBridge",
-    version="1.0.0",
+    description="Voice-controlled browser automation",
+    version="2.0.0",
     lifespan=lifespan
 )
 
-# Add CORS middleware
+# CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Configure appropriately for production
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+server: Optional[VoiceBridgeServer] = None
+
 
 # ============================================================================
-# REST API Endpoints
+# API Endpoints
 # ============================================================================
 
 @app.get("/")
 async def root():
     """Root endpoint"""
     return {
-        "message": "VoiceBridge API",
-        "status": "running",
-        "version": "1.0.0",
-        "endpoints": {
-            "status": "GET /status",
-            "manual": "POST /command/manual",
-            "websocket": "WS /ws",
-            "audio_capture_start": "POST /audio/capture/start",
-            "audio_capture_stop": "POST /audio/capture/stop",
-            "audio_capture_status": "GET /audio/capture/status",
-            "audio_upload": "POST /audio",
-        }
+        "name": "VoiceBridge API",
+        "version": "2.0.0",
+        "status": "online"
     }
 
 
-@app.get("/status", response_model=StatusResponse)
+@app.get("/status")
 async def get_status():
-    """
-    Get current application status.
-    
-    Returns current state, whether voice mode is active, and last transcript/command.
-    """
+    """Get current status"""
     if not server:
         raise HTTPException(status_code=503, detail="Server not initialized")
     
-    return server.get_status()
+    status_data = server.get_status()
+    return StatusResponse(**status_data)
 
 
-@app.post("/command/manual", response_model=CommandResponse)
+@app.post("/voice/start")
+async def start_voice_mode_endpoint():
+    """Start voice mode"""
+    if not server:
+        raise HTTPException(status_code=503, detail="Server not initialized")
+    
+    result = await server.start_voice_mode()
+    
+    if result["success"]:
+        return {"ok": True, "message": "Voice mode started", "state": result["state"]}
+    else:
+        return {"ok": False, "message": result.get("error", "Failed to start")}
+
+
+@app.post("/voice/stop")
+async def stop_voice_mode_endpoint():
+    """Stop voice mode"""
+    if not server:
+        raise HTTPException(status_code=503, detail="Server not initialized")
+    
+    result = await server.stop_voice_mode()
+    return {"ok": True, "message": "Voice mode stopped", "state": result["state"]}
+
+
+@app.post("/command/execute")
 async def execute_manual_command(request: ManualCommandRequest):
-    """
-    Execute a manual text command (for testing/debugging).
-    
-    Useful for:
-      - Testing commands without speaking
-      - Debugging the command orchestrator
-      - Manual control from text input
-    
-    Note: Voice mode must be stopped (app in IDLE state) to use this.
-    """
+    """Execute a manual text command"""
     if not server:
         raise HTTPException(status_code=503, detail="Server not initialized")
     
-    result = await server.execute_manual_command(request.command, request.metadata)
-    
-    return CommandResponse(
-        success=True,
-        message="Manual command executed",
-        command=request.command,
-        result=result.get("result")
-    )
+    try:
+        result = await server.execute_manual_command(
+            request.command,
+            request.metadata
+        )
+        return CommandResponse(
+            success=True,
+            message="Command executed",
+            command=result["command"],
+            result=result.get("result")
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.post("/input/submit")
 async def submit_user_input(request: UserInputRequest):
-    """
-    Submit user input in response to an orchestrator prompt.
-    
-    Use this when:
-      - App is in AWAITING_INPUT state
-      - Command orchestrator has asked a clarifying question
-      - User wants to type their response instead of speaking
-    
-    The response will be processed with full conversation context,
-    and may result in:
-      - Another prompt (if more clarification needed)
-      - Command execution (if sufficient info gathered)
-    """
+    """Submit user input in response to a prompt"""
     if not server:
         raise HTTPException(status_code=503, detail="Server not initialized")
     
-    result = await server.submit_user_input(request.input, request.metadata)
-    
-    if result.get("needs_more_input"):
-        return {
-            "success": True,
-            "needs_more_input": True,
-            "user_prompt": result["user_prompt"],
-            "message": "Orchestrator needs more information"
-        }
-    else:
-        return {
-            "success": True,
-            "needs_more_input": False,
-            "message": "Command executed successfully",
-            "result": result.get("result")
-        }
+    try:
+        result = await server.submit_user_input(
+            request.input,
+            request.metadata
+        )
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 @app.post("/reset")
-async def reset():
-    """
-    Emergency reset - return to idle state.
-    
-    Use this if the app gets stuck in a state.
-    """
+async def reset_server():
+    """Reset server to idle state"""
     if not server:
         raise HTTPException(status_code=503, detail="Server not initialized")
     
     result = server.reset()
-    
-    return {
-        "success": True,
-        "message": "Server reset to idle state",
-        "state": result["state"]
-    }
-
-
-# ============================================================================
-# Standalone Audio Capture (from backend/server.py)
-# ============================================================================
-
-@app.post("/audio/capture/start")
-async def start_audio_capture_endpoint():
-    """
-    Start voice mode with audio capture.
-    
-    This endpoint:
-    1. Calls server.start_voice_mode() which:
-       - Sets is_voice_mode_active = True
-       - Transitions to LISTENING state
-       - Starts audio capture with VAD
-    2. Audio capture runs until /audio/capture/stop is called
-    
-    Frontend should call this when user clicks "Start"
-    """
-    if not server:
-        raise HTTPException(status_code=503, detail="Server not initialized")
-    
-    # Check if we can start voice mode
-    current_state = server.state_manager.current_state
-    if current_state != AppState.IDLE:
-        return {
-            "ok": False, 
-            "message": f"Cannot start from state: {current_state.value}. Call /reset first."
-        }
-    
-    try:
-        # Use the server's start_voice_mode method
-        # This handles everything: state transition + audio capture
-        result = await server.start_voice_mode()
-        
-        if result["success"]:
-            return {
-                "ok": True,
-                "message": "Voice mode started - listening for commands",
-                "state": result["state"]
-            }
-        else:
-            return {
-                "ok": False,
-                "message": result.get("error", "Failed to start voice mode")
-            }
-            
-    except Exception as e:
-        logger.error(f"Error starting voice mode: {e}")
-        return {
-            "ok": False,
-            "message": f"Error: {str(e)}"
-        }
-
-
-@app.post("/audio/capture/stop")
-async def stop_audio_capture_endpoint():
-    """
-    Stop voice mode and audio capture.
-    
-    This endpoint:
-    1. Calls server.stop_voice_mode() which:
-       - Sets is_voice_mode_active = False
-       - Stops audio capture
-       - Transitions to IDLE state
-    
-    Frontend should call this when user clicks "Stop"
-    """
-    if not server:
-        raise HTTPException(status_code=503, detail="Server not initialized")
-    
-    try:
-        # Use the server's stop_voice_mode method
-        # This handles everything: state transition + stopping audio capture
-        result = await server.stop_voice_mode()
-        
-        return {
-            "ok": True,
-            "message": "Voice mode stopped",
-            "state": result["state"]
-        }
-        
-    except Exception as e:
-        logger.error(f"Error stopping voice mode: {e}")
-        return {
-            "ok": False,
-            "message": f"Error: {str(e)}"
-        }
-
-
-@app.get("/audio/capture/status")
-async def audio_capture_status():
-    """
-    Get status of audio capture and voice mode.
-    
-    Returns both low-level capture status and high-level voice mode status.
-    """
-    if not server:
-        raise HTTPException(status_code=503, detail="Server not initialized")
-    
-    global _capture_instance
-    
-    # Get low-level capture status
-    with _capture_lock:
-        if _capture_instance is None:
-            capture_info = {
-                "capturing": False,
-                "state": "idle"
-            }
-        else:
-            capture_info = {
-                "capturing": True,
-                "state": _capture_instance.state,
-                "stats": _capture_instance.get_stats(),
-            }
-    
-    # Get high-level server status
-    server_status = server.get_status()
-    
-    return {
-        "voice_mode_active": server.is_voice_mode_active,
-        "app_state": server.state_manager.current_state.value,
-        "capture": capture_info,
-        "last_transcript": server_status.get("last_transcript"),
-        "last_command": server_status.get("last_command"),
-        "current_prompt": server_status.get("user_prompt")
-    }
-
-
-@app.post("/audio")
-async def receive_audio(
-    audio: UploadFile = File(...),
-    mimeType: str = Form("audio/webm"),
-    timestamp: str = Form(...),
-):
-    """Legacy: receives audio blob from browser (when not using backend capture)."""
-    suffix = Path(audio.filename).suffix or ".webm"
-    filename = SAVE_DIR / f"chunk-{timestamp}{suffix}"
-    with filename.open("wb") as f:
-        f.write(await audio.read())
-    return PlainTextResponse("ok")
+    return {"success": True, "message": "Server reset", "state": result["state"]}
 
 
 @app.get("/health")
 async def health_check():
-    """Health check endpoint"""
+    """Health check"""
     if not server:
         return {"status": "unhealthy", "reason": "Server not initialized"}
     
     return {
         "status": "healthy",
         "state": server.state_manager.current_state.value,
-        "voice_mode_active": server.is_voice_mode_active,
-        "timestamp": server.state_manager.state_data.timestamp.isoformat()
+        "voice_mode_active": server.is_voice_mode_active
     }
 
 
-
-
-# ============================================================================
-# WebSocket Endpoint for Real-time Updates
-# ============================================================================
-
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
-    """
-    WebSocket endpoint for real-time state updates.
-    
-    our frontend should connect to this to receive live updates about:
-      - State changes (idle -> listening -> recording -> processing -> executing -> listening)
-      - Transcripts as they're generated
-      - Errors
-    
-    This is how our frontend knows what to display to the user.
-    """
+    """WebSocket for real-time updates"""
     if not server:
         await websocket.close(code=1011, reason="Server not initialized")
         return
@@ -1110,8 +935,6 @@ async def websocket_endpoint(websocket: WebSocket):
         
         # Keep connection alive
         while True:
-            # Receive ping/pong to keep connection alive
-            # All state updates are broadcast automatically via state_manager callbacks
             await websocket.receive_text()
     
     except WebSocketDisconnect:
@@ -1135,4 +958,3 @@ if __name__ == "__main__":
         reload=True,
         log_level="info"
     )
-
