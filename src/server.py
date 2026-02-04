@@ -16,6 +16,7 @@ Frontend just needs to:
 
 import asyncio
 import logging
+import sys
 from typing import Optional, List
 from contextlib import asynccontextmanager
 
@@ -24,6 +25,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from state_manager import StateManager, AppState
+from src.control.browser_orchestrator import run_command
+from src.control.session_manager import get_browser, start_session, stop_session
+
+# Windows compatibility for browser asyncio event loop
+if sys.platform.startswith("win"):
+    asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 
 # TODO: Import our actual modules here
 
@@ -118,6 +125,8 @@ class VoiceBridgeServer:
         self.state_manager = StateManager()
         self.connection_manager = ConnectionManager()
         self.is_voice_mode_active = False
+        self._browser_session_started = False # Tracks if browser session is active
+        self._session_lock = asyncio.Lock() # To prevent multiple sessions from starting/stopping at same time
         
         # TODO: Initialize our modules
         # self.audio_capture = AudioCapture()
@@ -127,6 +136,7 @@ class VoiceBridgeServer:
         
         # Register callback to broadcast state changes to WebSocket clients
         self.state_manager.register_callback(None, self._broadcast_state_change)
+        self.state_manager.register_callback(None, self._on_state_change) # also sync browser session with state changes
         
         # Store last transcript and command for status endpoint
         self._last_transcript: Optional[str] = None
@@ -154,6 +164,45 @@ class VoiceBridgeServer:
             logger.info(f"User prompt: {self._current_user_prompt}")
         
         asyncio.create_task(self.connection_manager.broadcast(message))
+
+    def _on_state_change(self, state_data, old_state):
+        """
+        Called by StateManager on every transition.
+        We fan out to:
+          1) broadcast to websocket clients
+          2) manage browser session automatically based on AppState
+        """
+        # broadcast 
+        self._broadcast_state_change(state_data, old_state)
+
+        # session control based on state
+        asyncio.create_task(self._sync_browser_session_with_state(state_data.state))
+
+    # ========================================================================
+    # Session Synchronization Logic
+    # ========================================================================
+    async def _sync_browser_session_with_state(self, new_state: AppState):
+        """
+        Auto start/stop browser session based on AppState.
+        LISTENING => ensure browser session is started
+        STOP      => ensure browser session is stopped
+        """
+        async with self._session_lock:
+            # START when we begin listening
+            if new_state == AppState.LISTENING:
+                if not self._browser_session_started:
+                    msg = await start_session()
+                    logger.info(f"Browser session started: {msg}")
+                    self._browser_session_started = True
+                return
+
+            # STOP when we go idle (or after reset / stop voice mode)
+            if new_state == AppState.IDLE:
+                if self._browser_session_started:
+                    msg = await stop_session()
+                    logger.info(f"Browser session stopped: {msg}")
+                    self._browser_session_started = False
+                return
     
     
     # ========================================================================
@@ -239,6 +288,24 @@ class VoiceBridgeServer:
             }
         """
         logger.info(f"Parsing and executing: {transcript}")
+
+        # BROWSER EXECUTION PLACEHOLDER START
+        transcript = transcript.strip()
+        if not transcript:
+            raise HTTPException(status_code=400, detail="transcript cannot be empty")
+        browser = get_browser() # retrieving active browser session
+        if browser is None:
+            raise HTTPException(status_code=409, detail="No active browser session (expected LISTENING state to start it).")
+
+        history = await run_command(transcript, browser) # transcript is the text command being sent to the browser by command orchestrator
+
+        return {
+            "needs_input": False,
+            "success": True,
+            "action": "browser_orchestrator",
+            "details": str(history)
+        }
+        # BROWSER EXECUTION PLACEHOLDER END
         
         # Our command parsing and execution here
         # This is a placeholder showing the two possible outcomes
