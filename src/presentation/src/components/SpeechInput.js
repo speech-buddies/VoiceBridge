@@ -1,86 +1,142 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import './SpeechInput.css';
-import { backendFetch } from '../utils/backendApi';
 
 const SpeechInput = ({
   isListening,
+  status,
   onAudioData,
   onError,
   isLightMode,
-  backendBase = 'http://localhost:8000',
 }) => {
   const [audioLevel, setAudioLevel] = useState(0);
-  const [captureState, setCaptureState] = useState('idle');
-  const statusPollRef = useRef(null);
+  const mediaStreamRef = useRef(null);
+  const animationFrameRef = useRef(null);
+  const mediaRecorderRef = useRef(null);
+  const chunkTimerRef = useRef(null);
 
-  const startBackendCapture = useCallback(async () => {
-    try {
-      const res = await backendFetch(`${backendBase}/audio/capture/start`, { method: 'POST' });
-      const data = await res.json();
-      if (!data.ok) {
-        throw new Error(data.message || 'Failed to start audio capture');
-      }
-    } catch (err) {
-      console.error('Error starting backend audio capture:', err);
-      onError(err.message || 'Unable to start audio capture. Is the backend running?');
+  const startRecorder = useCallback(() => {
+    if (!mediaStreamRef.current) return;
+
+    if (!window.MediaRecorder) {
+      onError('MediaRecorder is not supported in this browser.');
+      return;
     }
-  }, [backendBase, onError]);
 
-  const stopBackendCapture = useCallback(async () => {
-    try {
-      await backendFetch(`${backendBase}/audio/capture/stop`, { method: 'POST' });
-    } catch (err) {
-      console.error('Error stopping backend audio capture:', err);
-    }
-  }, [backendBase]);
+    const stream = mediaStreamRef.current;
+    const mediaRecorder = new MediaRecorder(stream);
 
-  const pollStatus = useCallback(() => {
-    const poll = async () => {
-      try {
-        const res = await backendFetch(`${backendBase}/audio/capture/status`);
-        const data = await res.json();
-        setCaptureState(data.state || (data.capturing ? 'listening' : 'idle'));
-        if (data.state === 'recording' || data.state === 'speech_detected') {
-          setAudioLevel(60);
-        } else if (data.capturing) {
-          setAudioLevel(20);
-        } else {
-          setAudioLevel(0);
-        }
-      } catch {
-        setCaptureState('idle');
-        setAudioLevel(0);
+    mediaRecorder.ondataavailable = (event) => {
+      if (event.data && event.data.size > 0) {
+        onAudioData(event.data);
       }
     };
-    poll();
-    statusPollRef.current = setInterval(poll, 500);
-  }, [backendBase]);
+
+    mediaRecorder.onerror = (event) => {
+      console.error('MediaRecorder error:', event);
+      onError('Error while recording audio.');
+    };
+
+    mediaRecorder.onstop = () => {
+      if (chunkTimerRef.current) {
+        clearTimeout(chunkTimerRef.current);
+        chunkTimerRef.current = null;
+      }
+      // Start a new recorder for the next chunk if still listening
+      if (isListening && mediaStreamRef.current) {
+        startRecorder();
+      }
+    };
+
+    mediaRecorderRef.current = mediaRecorder;
+    mediaRecorder.start();
+
+    // Stop this recorder after ~10s to finalize a standalone, playable file
+    chunkTimerRef.current = setTimeout(() => {
+      if (mediaRecorder.state === 'recording') {
+        mediaRecorder.stop();
+      }
+    }, 10000);
+  }, [isListening, onAudioData, onError]);
+
+  const startMicrophone = useCallback(async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaStreamRef.current = stream;
+
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      const analyser = audioContext.createAnalyser();
+      const microphone = audioContext.createMediaStreamSource(stream);
+      microphone.connect(analyser);
+
+      analyser.fftSize = 256;
+      const dataArray = new Uint8Array(analyser.frequencyBinCount);
+
+      const updateAudioLevel = () => {
+        analyser.getByteFrequencyData(dataArray);
+        const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
+        setAudioLevel(average);
+        animationFrameRef.current = requestAnimationFrame(updateAudioLevel);
+      };
+
+      updateAudioLevel();
+
+      startRecorder();
+    } catch (error) {
+      console.error('Error accessing microphone:', error);
+      onError('Unable to access microphone. Please check permissions.');
+    }
+  }, [onError, startRecorder]);
+
+  const stopMicrophone = useCallback(() => {
+    if (mediaStreamRef.current) {
+      mediaStreamRef.current.getTracks().forEach(track => track.stop());
+      mediaStreamRef.current = null;
+    }
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
+    if (chunkTimerRef.current) {
+      clearTimeout(chunkTimerRef.current);
+      chunkTimerRef.current = null;
+    }
+    setAudioLevel(0);
+  }, []);
+
+  const stopRecognition = useCallback(() => {
+    if (chunkTimerRef.current) {
+      clearTimeout(chunkTimerRef.current);
+      chunkTimerRef.current = null;
+    }
+    if (mediaRecorderRef.current) {
+      try {
+        if (mediaRecorderRef.current.state === 'recording') {
+          mediaRecorderRef.current.stop();
+        }
+      } catch (e) {
+        // Ignore if already stopped
+      }
+      mediaRecorderRef.current = null;
+    }
+  }, []);
 
   useEffect(() => {
     if (isListening) {
-      startBackendCapture();
-      pollStatus();
+      startMicrophone();
     } else {
-      stopBackendCapture();
-      if (statusPollRef.current) {
-        clearInterval(statusPollRef.current);
-        statusPollRef.current = null;
-      }
-      setCaptureState('idle');
-      setAudioLevel(0);
+      stopMicrophone();
+      stopRecognition();
     }
 
     return () => {
-      if (statusPollRef.current) {
-        clearInterval(statusPollRef.current);
-      }
+      stopMicrophone();
+      stopRecognition();
     };
-  }, [isListening, startBackendCapture, stopBackendCapture, pollStatus]);
+  }, [isListening, startMicrophone, stopMicrophone, stopRecognition]);
 
   return (
     <div className={`speech-input ${isLightMode ? 'light-mode' : 'dark-mode'}`}>
       <h2>Speech Input</h2>
-      <p className="backend-capture-hint">Using backend audio capture (saves to backend/Recordings)</p>
       <div className="microphone-container">
         <button
           className={`microphone-button ${isListening ? 'listening' : ''}`}
@@ -110,15 +166,16 @@ const SpeechInput = ({
             />
           </svg>
           {isListening && (
-            <div className="audio-wave" style={{ '--audio-level': audioLevel }} />
+            <div
+              className="audio-wave"
+              style={{ '--audio-level': audioLevel }}
+            />
           )}
         </button>
         <p className="status-text">
-          {!isListening
-            ? 'Click to start (recordings save to backend/Recordings)'
-            : captureState === 'recording' || captureState === 'speech_detected'
-            ? 'Recording...'
-            : 'Listening... Speak your command'}
+          {isListening
+            ? (status === 'recording' ? 'Recording...' : 'Listening... Speak your command')
+            : 'Click to start speaking'}
         </p>
       </div>
     </div>
