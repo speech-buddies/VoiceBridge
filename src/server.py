@@ -419,16 +419,16 @@ class VoiceBridgeServer:
         
         current_state = self.state_manager.current_state
         
-        if current_state == AppState.RECORDING:
-            # User spoke a new command
-            await self._process_new_command(audio_data)
+        # if current_state == AppState.RECORDING:
         
-        elif current_state == AppState.AWAITING_INPUT:
+        if current_state == AppState.AWAITING_INPUT:
             # User is responding to a prompt
             await self._process_user_response(audio_data)
         
         else:
-            logger.warning(f"Received audio in unexpected state: {current_state.value}")
+            # User spoke a new command
+            await self._process_new_command(audio_data)
+            # logger.warning(f"Received audio in unexpected state: {current_state.value}")
     
     async def _process_new_command(self, audio_data: bytes):
         """Process a new voice command from the user."""
@@ -476,7 +476,7 @@ class VoiceBridgeServer:
                 # Auto-start listening for response
                 if self.is_voice_mode_active:
                     await asyncio.sleep(0.1)
-                    self.state_manager.transition_to(AppState.LISTENING)
+                    # self.state_manager.transition_to(AppState.LISTENING)
             
             else:
                 # Command executed successfully
