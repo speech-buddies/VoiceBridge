@@ -295,16 +295,32 @@ class VoiceBridgeServer:
             raise HTTPException(status_code=400, detail="transcript cannot be empty")
         browser = get_browser() # retrieving active browser session
         if browser is None:
-            raise HTTPException(status_code=409, detail="No active browser session (expected LISTENING state to start it).")
-
+            self.state_manager.transition_to(AppState.ERROR, error="No active browser session")
+            raise HTTPException(
+                status_code=409,
+                detail="No active browser session (expected LISTENING state to start it)."
+            )
+        
+        # Transition to executing command
+        self.state_manager.transition_to(AppState.EXECUTING, transcript=transcript)
         history = await run_command(transcript, browser) # transcript is the text command being sent to the browser by command orchestrator
 
-        return {
-            "needs_input": False,
-            "success": True,
-            "action": "browser_orchestrator",
-            "details": str(history)
-        }
+        try:
+            history = await run_command(
+                transcript, browser)  # transcript is the text command being sent to the browser by command orchestrator
+
+            return {
+                "needs_input": False,
+                "success": True,
+                "action": "browser_orchestrator",
+                "details": str(history),
+            }
+
+        except Exception as e:
+            # ERROR if orchestrator fails
+            self.state_manager.transition_to(AppState.ERROR, error=str(e), transcript=transcript)
+            raise HTTPException(status_code=500, detail=f"Browser orchestrator error: {e}")
+        
         # BROWSER EXECUTION PLACEHOLDER END
         
         # Our command parsing and execution here

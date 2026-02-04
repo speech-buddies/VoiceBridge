@@ -23,8 +23,8 @@ class AppState(Enum):
     RECORDING = "recording" # After voice detection, awaiting silence
     PROCESSING = "processing" # After silence, awaiting command orchestrator response
     AWAITING_INPUT = "awaiting_input"  # Command orchestrator needs clarification
-    EXECUTING = "executing" # executing browser controller
-    ERROR = "error" # error in browser controller
+    EXECUTING = "executing" # executing browser orchestrator
+    ERROR = "error" # error in browser orchestrator
     STOP = "stop" # application stopping and closing browser session
 
 
