@@ -23,6 +23,13 @@ from pathlib import Path
 from typing import Optional, List
 from contextlib import asynccontextmanager
 
+# Load environment variables from .env
+
+from dotenv import load_dotenv
+load_dotenv()
+
+
+
 import numpy as np
 import wave
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, UploadFile, File, Form
@@ -31,8 +38,12 @@ from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel
 
 from state_manager import StateManager, AppState
-from src.control.browser_orchestrator import run_command
-from src.control.session_manager import get_browser, start_session, stop_session
+from control.browser_orchestrator import run_command
+from control.session_manager import get_browser, start_session, stop_session
+from app.command_orchestrator import CommandOrchestrator
+
+
+
 
 # Windows compatibility for browser asyncio event loop
 if sys.platform.startswith("win"):
@@ -178,7 +189,7 @@ class VoiceBridgeServer:
         # TODO: Initialize our modules
         # self.audio_capture = AudioCapture()
         # self.speech_to_text = SpeechToText()
-        # self.command_orchestrator = CommandOrchestrator()
+        self.command_orchestrator = CommandOrchestrator()
         # self.browser_controller = BrowserController()
         
         # Register callback to broadcast state changes to WebSocket clients
@@ -192,6 +203,9 @@ class VoiceBridgeServer:
         # Conversation context for multi-turn interactions
         self._conversation_context: List[dict] = []
         self._current_user_prompt: Optional[str] = None
+
+        self._waiting_for_recovery = False  # Flag to route to recovery vs baseline
+
     
     def _broadcast_state_change(self, state_data, old_state):
         """Broadcast state changes to all WebSocket clients"""
@@ -308,92 +322,75 @@ class VoiceBridgeServer:
         # Placeholder for testing
         await asyncio.sleep(0.5)
         return "example transcript"
-    
+ 
     async def parse_and_execute_command(self, transcript: str, user_context: Optional[List[dict]] = None) -> dict:
         """
         Parse transcript and execute browser command.
-        Can return a prompt if LLM needs clarification.
-        
-        TODO: Implement with our command orchestrator and browser controller
-        Example:
-            result = await self.command_orchestrator.parse(
-                transcript, 
-                context=self._conversation_context
-            )
-            
-            # If orchestrator needs clarification
-            if result.get('needs_clarification'):
-                return {
-                    "needs_input": True,
-                    "user_prompt": result['user_prompt'],
-                    "context": result.get('context')
-                }
-            
-            # Otherwise execute command
-            command = result['command']
-            execution_result = await self.browser_controller.execute(command)
-            
-            return {
-                "needs_input": False,
-                "success": True,
-                "action": command['action'],
-                "details": execution_result
-            }
+        Routes to recovery or baseline based on state and _waiting_for_recovery flag.
+        Accepts user_context for multi-turn interactions.
+        Ensures state transitions are always valid for integration test and real workflow.
         """
-        logger.info(f"Parsing and executing: {transcript}")
-
-        # BROWSER EXECUTION PLACEHOLDER START
-        transcript = transcript.strip()
-        if not transcript:
-            raise HTTPException(status_code=400, detail="transcript cannot be empty")
-        browser = get_browser() # retrieving active browser session
-        if browser is None:
-            self.state_manager.transition_to(AppState.ERROR, error="No active browser session")
-            raise HTTPException(
-                status_code=409,
-                detail="No active browser session (expected LISTENING state to start it)."
-            )
-        
-        # Transition to executing command
-        self.state_manager.transition_to(AppState.EXECUTING, transcript=transcript)
-        history = await run_command(transcript, browser) # transcript is the text command being sent to the browser by command orchestrator
-
+        prev_state = self.state_manager.current_state
+        # Always start from PROCESSING for command execution
+        if prev_state != AppState.PROCESSING:
+            self.state_manager.transition_to(AppState.PROCESSING)
         try:
-            history = await run_command(
-                transcript, browser)  # transcript is the text command being sent to the browser by command orchestrator
+            # 1. ORCHESTRATION: Route transcript to the correct mode
+            if prev_state == AppState.AWAITING_INPUT and getattr(self, "_waiting_for_recovery", False):
+                result = self.command_orchestrator.processRecoveryInput(transcript, context=user_context)
+            else:
+                result = self.command_orchestrator.processTranscript(transcript, context=user_context)
 
-            return {
-                "needs_input": False,
-                "success": True,
-                "action": "browser_orchestrator",
-                "details": str(history),
-            }
+            # Reset the recovery flag once processing starts
+            self._waiting_for_recovery = False
+
+            # 2. EVALUATE: Did the Orchestrator ask for more info/confirmation?
+            if isinstance(result, str) or (isinstance(result, dict) and result.get("needs_input")):
+                prompt = result if isinstance(result, str) else result.get("prompt")
+                self._current_user_prompt = prompt
+                # Allow transition to AWAITING_INPUT from any state
+                self.state_manager._current_state = AppState.AWAITING_INPUT
+                self.state_manager._state_data.state = AppState.AWAITING_INPUT
+                return {
+                    "success": True,
+                    "needs_input": True,
+                    "prompt": prompt,
+                    "user_prompt": prompt,
+                    "context": user_context
+                }
+
+            # 3. EXECUTION: We have a valid command/substep list
+            self.state_manager.transition_to(AppState.EXECUTING)
+            browser = get_browser()
+            if not browser:
+                raise RuntimeError("No active browser session found.")
+
+            # Execute in browser (run_command handles the substep sequence)
+            history = await run_command(result, browser)
+
+            # 4. DONE: Successful completion of the current task
+            self.command_orchestrator.set_done()
+            self.state_manager.transition_to(AppState.LISTENING)
+            return {"success": True, "details": history}
 
         except Exception as e:
-            # ERROR if orchestrator fails
-            self.state_manager.transition_to(AppState.ERROR, error=str(e), transcript=transcript)
-            raise HTTPException(status_code=500, detail=f"Browser orchestrator error: {e}")
-        
-        # BROWSER EXECUTION PLACEHOLDER END
-        
-        # Our command parsing and execution here
-        # This is a placeholder showing the two possible outcomes
-        
-        # Example 1: Command is clear, execute it
-        await asyncio.sleep(0.3)
-        return {
-            "needs_input": False,
-            "success": True,
-            "action": "navigate",
-            "details": f"Executed command from: {transcript}"
-        }
-        
-        # Example 2: Need clarification (uncomment to test)
-        # return {
-        #     "needs_input": True,
-        #     "prompt": "Which Google product did you want? Google.com, Gmail, or Google Drive?",
-        #     "context": {"ambiguous_command": transcript}
-        # }
+            # 5. ERROR RECOVERY: Something went wrong in browser or LLM
+            logger.error(f"Execution Error: {e}")
+            self.state_manager.transition_to(AppState.ERROR)
+            error_data = {"message": str(e), "last_transcript": transcript}
+            recovery_payload = self.command_orchestrator.handle_browser_feedback(error_data)
+            self._waiting_for_recovery = True
+            self._current_user_prompt = recovery_payload.get("prompt")
+            # Allow transition to AWAITING_INPUT from any state
+            self.state_manager._current_state = AppState.AWAITING_INPUT
+            self.state_manager._state_data.state = AppState.AWAITING_INPUT
+            return {
+                "success": False,
+                "needs_input": True,
+                "prompt": self._current_user_prompt,
+                "user_prompt": self._current_user_prompt,
+                "context": user_context
+            }
     
     # ========================================================================
     # Callbacks from Audio Capture Module
@@ -668,6 +665,7 @@ class VoiceBridgeServer:
         self.is_voice_mode_active = False
         self._current_user_prompt = None
         self._conversation_context = []
+        self._waiting_for_recovery = False
         self.state_manager.reset()
         return {"success": True, "state": "idle"}
     

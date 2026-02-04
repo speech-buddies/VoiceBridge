@@ -119,6 +119,20 @@ class InferenceError(Exception):
 # ============================================================================
 
 class CommandOrchestrator:
+    # Application states mirroring StateManager
+    class AppState(Enum):
+        IDLE = "idle"
+        LISTENING = "listening"
+        RECORDING = "recording"
+        PROCESSING = "processing"
+        AWAITING_INPUT = "awaiting_input" # Browser prompted user for clarification after error
+        EXECUTING = "executing"            # Browser is executing the command
+        ERROR = "error"                    # Browser encountered error, not yet prompting user
+        DONE = "done"                      # Flow is complete
+
+    def _set_state(self, new_state):
+        """Set the orchestrator's app state."""
+        self.app_state = new_state
 
     """
     Orchestrates natural language to browser command translation using a stateful 
@@ -138,13 +152,11 @@ class CommandOrchestrator:
         """
         Initializes the CommandOrchestrator using the new Google Gen AI SDK.
         """
+        self.app_state = self.AppState.IDLE
         self._api_key = api_key or os.environ.get("GEMINI_API_KEY")
         if not self._api_key:
             raise InitializationError("GEMINI_API_KEY not found in parameters or environment.")
-        
-        # Initialize the Gen AI Client
-        self.client = genai.Client(api_key=self._api_key)
-        self.model_id = model_id
+        self.model_id = model_id or "gemini-2.0-flash"
         self.prompt_path = prompt_path
         # Load the persistent primary prompt and specific role overlays from prompts directory
         prompt_dir = Path(__file__).parent / "prompts"
@@ -181,7 +193,7 @@ class CommandOrchestrator:
         # API config used by the low-level caller (defaults can be overridden)
         self.api_config = Config(
             model_id=self.model_id,
-            endpoint_url=os.environ.get("LLM_ENDPOINT", "https://api.example.com/v1/generate"),
+            endpoint_url=os.getenv("LLM_ENDPOINT", "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"),
             temperature=0.2,
             max_tokens=512,
             timeout=30,
@@ -296,7 +308,11 @@ class CommandOrchestrator:
             pass
 
 
-    def processTranscript(self, text: str):
+    def processTranscript(self, text: str, context: Optional[List[Dict[str, str]]] = None):
+        """
+        Main entry point for new user commands (normal flow).
+        Call this when the user provides a new command and the system is NOT in error recovery.
+        """
         """
         Converts natural language to a plain-text browser command or sequence of commands.
         Handles confirmation/decline of the primary goal before setting it.
@@ -305,24 +321,51 @@ class CommandOrchestrator:
             - If error: Command or clarifying question
             - If baseline: Command (if confirmed), or Command (pending confirmation)
         """
-        # If an error is active, route to recovery
+        # When processTranscript is called, we are in PROCESSING (audio already handled)
+        self._set_state(self.AppState.PROCESSING)
         if self.active_browser_error:
-            return self.processRecoveryInput(text)
+            self._set_state(self.AppState.ERROR)
+            return {"error": "Browser error encountered. Awaiting user action.", "suggested_state": self.AppState.ERROR.value}
 
-        # If awaiting confirmation, ignore new user input until accept/decline is called
+        # If awaiting confirmation, set AWAITING_INPUT for user approval of primary goal
         if self.awaiting_primary_goal_confirmation:
-            return None
+            self._set_state(self.AppState.AWAITING_INPUT)
+            return {"needs_input": True, "reason": "Awaiting user approval of primary goal.", "suggested_state": self.AppState.AWAITING_INPUT.value}
 
         # Always track user input
         self._update_history(Message(role="user", content=text, tokens=max(1, len(text.split()))))
+        # Process the provided context if it exists
+        if context:
+            for entry in context:
+                # Avoid duplicating the message we just added above
+                if entry.get("content") == text and entry.get("role") == "user":
+                    continue
+                if isinstance(entry, dict) and "role" in entry and "content" in entry:
+                    self._update_history(Message(
+                        role=entry["role"],
+                        content=entry["content"],
+                        tokens=max(1, len(entry["content"].split()))
+                    ))
 
         # If no primary goal, propose a command and require confirmation
         if self.primary_goal is None:
+            self._set_state(self.AppState.PROCESSING)
             payload = self._construct_payload(text=text, role="BASELINE")
             try:
                 raw = self._call_llm_api(payload)
                 guarded = self._apply_guardrails(raw)
                 self._update_history(Message(role="assistant", content=guarded, tokens=max(1, len(guarded.split()))))
+                # If clarification or user decision is needed, set state to AWAITING_INPUT
+                if isinstance(guarded, dict) and guarded.get("needs_input"):
+                    self._set_state(self.AppState.AWAITING_INPUT)
+                    guarded["suggested_state"] = self.AppState.AWAITING_INPUT.value
+                elif isinstance(guarded, dict) and guarded.get("confirmation_required"):
+                    self._set_state(self.AppState.AWAITING_INPUT)
+                    guarded["suggested_state"] = self.AppState.AWAITING_INPUT.value
+                else:
+                    self._set_state(self.AppState.PROCESSING)
+                    if isinstance(guarded, dict):
+                        guarded["suggested_state"] = self.AppState.PROCESSING.value
                 self.awaiting_primary_goal_confirmation = True
                 self._pending_primary_command = guarded
                 self._pending_primary_user_text = text
@@ -330,18 +373,31 @@ class CommandOrchestrator:
             except Exception as e:
                 if self.error_feedback_module:
                     self.error_feedback_module.report_error("CommandOrchestrator", str(e))
+                self._set_state(self.AppState.ERROR)
                 raise InferenceError(f"GenAI inference failed: {str(e)}")
 
         # If primary goal is set, proceed as normal (BASELINE)
+        self._set_state(self.AppState.PROCESSING)
         payload = self._construct_payload(text=text, role="BASELINE")
         try:
             raw = self._call_llm_api(payload)
             guarded = self._apply_guardrails(raw)
             self._update_history(Message(role="assistant", content=guarded, tokens=max(1, len(guarded.split()))))
+            # If command is ready and no further input is needed, set state to executing.. (browser will execute)
+            if isinstance(guarded, dict) and not guarded.get("needs_input") and not guarded.get("confirmation_required"):
+                self._set_state(self.AppState.PROCESSING)
+                guarded["suggested_state"] = self.AppState.PROCESSING.value
+            elif (isinstance(guarded, dict) and (guarded.get("needs_input") or guarded.get("confirmation_required"))):
+                self._set_state(self.AppState.AWAITING_INPUT)
+                guarded["suggested_state"] = self.AppState.AWAITING_INPUT.value
+            elif isinstance(guarded, str):
+                self._set_state(self.AppState.AWAITING_INPUT)
+                guarded = {"needs_input": True, "prompt": guarded, "suggested_state": self.AppState.AWAITING_INPUT.value}
             return guarded
         except Exception as e:
             if self.error_feedback_module:
                 self.error_feedback_module.report_error("CommandOrchestrator", str(e))
+            self._set_state(self.AppState.ERROR)
             raise InferenceError(f"GenAI inference failed: {str(e)}")
     
     def validateSchema(self, output: str) -> bool:
@@ -378,8 +434,14 @@ class CommandOrchestrator:
             return False
     
     def resetContext(self) -> None:
-        """Clear the conversation history."""
+        """Clear the conversation history and set state to LISTENING."""
         self.conversation_history.clear()
+        self._set_state(self.AppState.LISTENING)
+    
+    def set_done(self):
+        """Set the orchestrator state to DONE after successful flow completion."""
+        self._set_state(self.AppState.DONE)
+        return {"suggested_state": self.AppState.DONE.value}
     
     # ========================================================================
     # 10.3.5 Local Functions
@@ -521,41 +583,81 @@ class CommandOrchestrator:
         self.primary_goal = None
         self._reset_pending_goal_state()
 
-
-    def handle_browser_feedback(self, error_data: Dict[str, Any]) -> str:
+    def handle_browser_feedback(self, error_data: Dict[str, Any]) -> dict:
         """
-        Sets active error metadata and returns the plain human-readable text generated by the ERROR overlay. This bypasses
-        JSON schema validation for the ERROR role.
+        Called when a browser error occurs. Sets error metadata and returns 
+        a user-facing clarification/question from the error evaluation prompt.
+        Sets state to AWAITING_INPUT and expects the frontend to prompt the user for input.
         """
         self.mode = Mode.BLOCKED
         self.active_browser_error = error_data
-
         payload = self._construct_payload(text="", role="ERROR")
-        raw = self._call_llm_api(payload)
-        return raw
-
-    def processRecoveryInput(self, text: str):
-        """Convert user's recovery input into a minimal plain-text command scoped to the failed substep.
-
-        Returns either a plain-text command or a clarifying question (str) when the model requests a single piece of missing information.
-        Tracks all steps in the messages array.
+        try:
+            raw = self._call_llm_api(payload)
+            # Always set state to AWAITING_INPUT after error evaluation
+            self._set_state(self.AppState.AWAITING_INPUT)
+            return {"needs_input": True, "prompt": raw, "suggested_state": self.AppState.AWAITING_INPUT.value}
+        except Exception as e:
+            if self.error_feedback_module:
+                self.error_feedback_module.report_error("CommandOrchestrator", str(e))
+            self._set_state(self.AppState.ERROR)
+            # Fallback: Provide a generic error prompt to allow user recovery
+            fallback_prompt = (
+                "Sorry, I couldn't generate a recovery prompt due to an internal error. "
+                "Please describe how you'd like to proceed or provide additional instructions to resolve the browser error."
+            )
+            return {
+                "needs_input": True,
+                "prompt": fallback_prompt,
+                "suggested_state": self.AppState.AWAITING_INPUT.value,
+                "error": str(e)
+            }
+    
+    def processRecoveryInput(self, text: str, context: Optional[List[Dict[str, str]]] = None):
+        """
+        Step 2: Called when user responds to an error/clarification prompt. Passes user input to the recovery prompt.
+        If recovery is successful, clears error state and returns to PROCESSING; if more input is needed, stays in AWAITING_INPUT.
         """
         if not self.active_browser_error:
             raise InferenceError("No active browser error to recover from")
 
-        self._update_history(Message(role="recovery", content=text, tokens=max(1, len(text.split()))))
+        # Process the provided context if it exists
+        if context:
+            for entry in context:
+                # Avoid duplicating the message we just added above
+                if entry.get("content") == text and entry.get("role") == "recovery":
+                    continue
+                if isinstance(entry, dict) and "role" in entry and "content" in entry:
+                    self._update_history(Message(
+                        role=entry["role"],
+                        content=entry["content"],
+                        tokens=max(1, len(entry["content"].split()))
+                    ))
+
         payload = self._construct_payload(text=text, role="RECOVERY")
         try:
             raw = self._call_llm_api(payload)
             guarded = self._apply_guardrails(raw)
             self._update_history(Message(role="assistant", content=guarded, tokens=max(1, len(guarded.split()))))
-            self.active_browser_error = None
-            self.mode = Mode.BASELINE
+            # If command is ready and no further input is needed, return to PROCESSING
+            if isinstance(guarded, dict) and not guarded.get("needs_input") and not guarded.get("confirmation_required"):
+                self._set_state(self.AppState.PROCESSING)
+                guarded["suggested_state"] = self.AppState.PROCESSING.value
+                self.active_browser_error = None
+                self.mode = Mode.BASELINE
+            # If more input is needed, stay in AWAITING_INPUT
+            elif (isinstance(guarded, dict) and (guarded.get("needs_input") or guarded.get("confirmation_required"))):
+                self._set_state(self.AppState.AWAITING_INPUT)
+                guarded["suggested_state"] = self.AppState.AWAITING_INPUT.value
+            elif isinstance(guarded, str):
+                self._set_state(self.AppState.AWAITING_INPUT)
+                guarded = {"needs_input": True, "prompt": guarded, "suggested_state": self.AppState.AWAITING_INPUT.value}
             return guarded
         except Exception as e:
             if self.error_feedback_module:
                 self.error_feedback_module.report_error("CommandOrchestrator", str(e))
-            raise InferenceError(f"GenAI inference failed: {str(e)}")
+            self._set_state(self.AppState.ERROR)
+            raise InferenceError(f"GenAI recovery failed: {str(e)}")
         
     
     def _update_history(self, msg: Message) -> None:
@@ -578,12 +680,12 @@ class CommandOrchestrator:
         while total_tokens > MAX_CONTEXT_TOKENS and len(self.conversation_history) > 1:
             removed = self.conversation_history.pop(0)
             total_tokens -= int(getattr(removed, "tokens", 0) or 0)
-    
+
     def _call_llm_api(self, payload: Dict[str, Any]) -> str:
         """
-        Make actual API call to LLM service.
+        Make API call to LLM service using proper format.
         
-        Args:
+           Args:
             payload: API request payload
             
         Returns:
@@ -595,41 +697,203 @@ class CommandOrchestrator:
         try:
             import requests
             
+            messages = payload.get("messages", [])
+            
+            # Separate system messages from user/assistant messages
+            system_parts = []
+            conversation_contents = []
+            
+            for msg in messages:
+                role = msg.get("role", "user")
+                content = msg.get("content", "")
+                
+                if role == "system":
+                    # Collect all system messages
+                    system_parts.append(content)
+                else:
+                    # Convert user/assistant to Gemini format
+                    gemini_role = "user" if role == "user" else "model"
+                    conversation_contents.append({
+                        "role": gemini_role,
+                        "parts": [{"text": content}]
+                    })
+            
+            # Build Gemini payload
+            gemini_payload = {
+                "contents": conversation_contents
+            }
+            
+            # Add system instruction if we have system messages
+            if system_parts:
+                gemini_payload["systemInstruction"] = {
+                    "parts": [{"text": "\n\n".join(system_parts)}]
+                }
+            
+            # Add generation config
+            generation_config = {
+                "temperature": payload.get("temperature", 0.7),
+                "maxOutputTokens": payload.get("max_tokens", 2048),  # Increased from 512
+            }
+            
+            # IMPORTANT: Only add response_schema for BASELINE and RECOVERY, not ERROR
+            response_schema = payload.get("response_schema")
+            if response_schema:
+                # For now, don't use response_schema - it's causing issues
+                # Gemini 2.0 Flash might not support it well
+                # Instead, ask for JSON in the system prompt
+                pass
+            
+            gemini_payload["generationConfig"] = generation_config
+            
+            # Make API call
+            endpoint = os.environ.get(
+                "LLM_ENDPOINT",
+                "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent"
+            )
+            
             headers = {
-                "Authorization": f"Bearer {self._api_key}",
+                "x-goog-api-key": self._api_key,
                 "Content-Type": "application/json"
             }
             
+            # Debug logging
+            # import json
+            # print(f"\n[DEBUG] Calling Gemini API:")
+            # print(f"  Endpoint: {endpoint}")
+            # print(f"  System messages: {len(system_parts)}")
+            # print(f"  Conversation turns: {len(conversation_contents)}")
+            # print(f"  Payload: {json.dumps(gemini_payload, indent=2)}")
+            
             response = requests.post(
-                self.api_config.endpoint_url,
-                json=payload,
+                endpoint,
+                json=gemini_payload,
                 headers=headers,
-                timeout=self.api_config.timeout
+                timeout=30
             )
             
             response.raise_for_status()
-            
             data = response.json()
             
-            # Extract content based on provider
-            # Gemini format
-            if "candidates" in data:
-                return data["candidates"][0]["content"]["parts"][0]["text"]
-            # OpenAI format  
-            elif "choices" in data:
-                return data["choices"][0]["message"]["content"]
-            # Anthropic format
-            elif "content" in data:
-                return data["content"][0]["text"]
-            else:
-                raise InferenceError(f"Unexpected API response format: {data}")
-                            
+            print(f"[DEBUG] Response: {json.dumps(data, indent=2)}")
+            
+            # Extract text from response
+            if "candidates" in data and len(data["candidates"]) > 0:
+                candidate = data["candidates"][0]
+                if "content" in candidate and "parts" in candidate["content"]:
+                    parts = candidate["content"]["parts"]
+                    if len(parts) > 0 and "text" in parts[0]:
+                        text = parts[0]["text"]
+                        print(f"[DEBUG] Extracted text: {text[:200]}...")
+                        return text
+            
+            # Check for prompt feedback (content blocked/filtered)
+            if "promptFeedback" in data:
+                feedback = data["promptFeedback"]
+                block_reason = feedback.get("blockReason", "UNKNOWN")
+                raise InferenceError(f"Gemini blocked the prompt. Reason: {block_reason}")
+            
+            # No candidates and no feedback - unexpected
+            raise InferenceError(f"Gemini returned empty response. Full response: {data}")
+            
         except requests.Timeout:
             raise InferenceError("API request timed out")
         except requests.RequestException as e:
             raise InferenceError(f"API request failed: {str(e)}")
+        except KeyError as e:
+            raise InferenceError(f"Unexpected response format, missing key: {str(e)}")
         except Exception as e:
             raise InferenceError(f"Unexpected error calling API: {str(e)}")
+
+    # def _call_llm_api(self, payload: Dict[str, Any]) -> str:
+    #     try:
+    #         import requests
+    #         headers = {
+    #             "x-goog-api-key": self._api_key,
+    #             "Content-Type": "application/json"
+    #         }
+    #         # Convert OpenAI-style messages to Gemini format
+    #         gemini_contents = []
+    #         for msg in payload.get("messages", []):
+    #             role = "user" if msg["role"] == "user" else "model"
+    #             gemini_contents.append({
+    #                 "role": role,
+    #                 "parts": [{"text": msg["content"]}]
+    #             })
+    #         gemini_payload = {"contents": gemini_contents}
+    #         response = requests.post(
+    #             os.environ.get("LLM_ENDPOINT", "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"),
+    #             json=gemini_payload,
+    #             headers=headers,
+    #             timeout=30
+    #         )
+    #         response.raise_for_status()
+    #         data = response.json()
+    #         if "candidates" in data and data["candidates"]:
+    #             return data["candidates"][0]["content"]["parts"][0]["text"]
+    #         # If no candidates, return a clear error message
+    #         if "promptFeedback" in data:
+    #             feedback = data["promptFeedback"].get("blockReason", "No response generated")
+    #             raise InferenceError(f"Gemini did not generate a reply: {feedback}")
+    #         raise InferenceError(f"Gemini did not generate a reply. Full response: {data}")
+    #     except requests.Timeout:
+    #         raise InferenceError("API request timed out")
+    #     except requests.RequestException as e:
+    #         raise InferenceError(f"API request failed: {str(e)}")
+    #     except Exception as e:
+    #         raise InferenceError(f"Unexpected error calling API: {str(e)}")
+            
+    # def _call_llm_api(self, payload: Dict[str, Any]) -> str:
+    #     """
+    #     Make actual API call to LLM service.
+        
+    #     Args:
+    #         payload: API request payload
+            
+    #     Returns:
+    #         Raw response text from LLM
+            
+    #     Raises:
+    #         InferenceError: If API call fails
+    #     """
+    #     try:
+    #         import requests
+            
+
+    #         headers = {
+    #             "x-goog-api-key": self._api_key,
+    #             "Content-Type": "application/json"
+    #         }
+            
+    #         response = requests.post(
+    #             self.api_config.endpoint_url,
+    #             json=payload,
+    #             headers=headers,
+    #             timeout=self.api_config.timeout
+    #         )
+            
+    #         response.raise_for_status()
+            
+    #         data = response.json()
+            
+    #         # Extract content based on provider
+    #         # Gemini format
+    #         if "candidates" in data:
+    #             return data["candidates"][0]["content"]["parts"][0]["text"]
+    #         # OpenAI format  
+    #         elif "choices" in data:
+    #             return data["choices"][0]["message"]["content"]
+    #         # Anthropic format
+    #         elif "content" in data:
+    #             return data["content"][0]["text"]
+    #         else:
+    #             raise InferenceError(f"Unexpected API response format: {data}")
+                            
+    #     except requests.Timeout:
+    #         raise InferenceError("API request timed out")
+    #     except requests.RequestException as e:
+    #         raise InferenceError(f"API request failed: {str(e)}")
+    #     except Exception as e:
+    #         raise InferenceError(f"Unexpected error calling API: {str(e)}")
     
     def _parse_llm_response(self, response: str) -> Dict[str, Any]:
         """
@@ -662,43 +926,110 @@ class CommandOrchestrator:
         except json.JSONDecodeError as e:
             raise InferenceError(f"Failed to parse LLM response as JSON: {str(e)}")
 
+    # def _apply_guardrails(self, obj):
+    #     """
+    #     Apply safety guardrails to either a Command object or a plain-text command string.
+    #     For Command: sets confirmation_required if dangerous.
+    #     For str: prepends a warning if dangerous.
+    #     """
+    #     dangerous_keywords = [
+    #         "delete", "clear", "remove", "reset", "logout",
+    #         "purchase", "buy", "payment", "transfer",
+    #         "bank", "paypal", "stripe"
+    #     ]
+    #     if isinstance(obj, Command):
+    #         # Check if target or value contains dangerous keywords
+    #         target_lower = obj.target.lower()
+    #         value_lower = (obj.value or "").lower()
+    #         for keyword in dangerous_keywords:
+    #             if keyword in target_lower or keyword in value_lower:
+    #                 obj.confirmation_required = True
+    #                 break
+    #         # Financial URLs require confirmation
+    #         financial_domains = ["bank", "paypal", "stripe", "payment"]
+    #         if obj.action == "navigate":
+    #             for domain in financial_domains:
+    #                 if domain in obj.target.lower():
+    #                     obj.confirmation_required = True
+    #                     break
+    #         return obj
+    #     elif isinstance(obj, str):
+    #         lower = obj.lower()
+    #         flagged = False
+    #         for keyword in dangerous_keywords:
+    #             if keyword in lower:
+    #                 flagged = True
+    #                 break
+    #         if flagged:
+    #             warning = "[CONFIRMATION REQUIRED] This command may be dangerous. Please review before executing.\n"
+    #             return warning + obj
+    #         return obj
+    #     else:
+    #         return obj
+
     def _apply_guardrails(self, obj):
         """
-        Apply safety guardrails to either a Command object or a plain-text command string.
-        For Command: sets confirmation_required if dangerous.
-        For str: prepends a warning if dangerous.
+        Apply safety guardrails to Command object, dict, or string.
         """
         dangerous_keywords = [
             "delete", "clear", "remove", "reset", "logout",
             "purchase", "buy", "payment", "transfer",
             "bank", "paypal", "stripe"
         ]
+        
+        # If it's a string, try to parse as JSON first
+        if isinstance(obj, str):
+            try:
+                # Try parsing as JSON
+                obj = json.loads(obj)
+            except json.JSONDecodeError:
+                # It's plain text - check for dangerous keywords
+                lower = obj.lower()
+                for keyword in dangerous_keywords:
+                    if keyword in lower:
+                        warning = "[CONFIRMATION REQUIRED] This command may be dangerous. Please review before executing.\n"
+                        return warning + obj
+                return obj
+        
+        # Handle dict (command)
+        if isinstance(obj, dict):
+            # Check if has dangerous keywords
+            target_lower = obj.get("target", "").lower()
+            value_lower = obj.get("value", "").lower()
+            
+            for keyword in dangerous_keywords:
+                if keyword in target_lower or keyword in value_lower:
+                    obj["confirmation_required"] = True
+                    break
+            
+            # Financial URLs require confirmation
+            if obj.get("action") == "navigate":
+                financial_domains = ["bank", "paypal", "stripe", "payment"]
+                for domain in financial_domains:
+                    if domain in obj.get("target", "").lower():
+                        obj["confirmation_required"] = True
+                        break
+            
+            return obj
+        
+        # Handle Command object
         if isinstance(obj, Command):
-            # Check if target or value contains dangerous keywords
             target_lower = obj.target.lower()
             value_lower = (obj.value or "").lower()
+            
             for keyword in dangerous_keywords:
                 if keyword in target_lower or keyword in value_lower:
                     obj.confirmation_required = True
                     break
-            # Financial URLs require confirmation
-            financial_domains = ["bank", "paypal", "stripe", "payment"]
+            
             if obj.action == "navigate":
+                financial_domains = ["bank", "paypal", "stripe", "payment"]
                 for domain in financial_domains:
                     if domain in obj.target.lower():
                         obj.confirmation_required = True
                         break
+            
             return obj
-        elif isinstance(obj, str):
-            lower = obj.lower()
-            flagged = False
-            for keyword in dangerous_keywords:
-                if keyword in lower:
-                    flagged = True
-                    break
-            if flagged:
-                warning = "[CONFIRMATION REQUIRED] This command may be dangerous. Please review before executing.\n"
-                return warning + obj
-            return obj
-        else:
-            return obj
+        
+        # Unknown type - return as is
+        return obj

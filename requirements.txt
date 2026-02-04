@@ -4,3 +4,21 @@ torch
 transformers
 peft
 librosa
+# Server
+uvicorn[standard]>=0.40.0
+fastapi>=0.128.0
+pydantic>=2.12.5
+python-multipart
+setuptools
+
+# Audio processing
+sounddevice>=0.4.6
+numpy>=1.23.0
+scipy>=1.10.0
+
+# Voice Activity Detection
+webrtcvad>=2.0.10
+
+# Browser automation
+browser-use>=0.11.0
+python-dotenv>=1.0.0
