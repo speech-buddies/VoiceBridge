@@ -25,8 +25,8 @@ class SpeechToTextEngine:
 
     def __init__(
         self,
-        config: AsrConfig,
-        model_checkpoint: str,
+        config: AsrConfig = None,
+        model_checkpoint: str = "./models/adapters/whisper_lora_epoch1.pt",
         device: str = "cpu",
         noise_filter: Optional[NoiseFilterInterface] = None,
         personalization_store: Optional[PersonalizationStore] = None,
@@ -86,9 +86,8 @@ class SpeechToTextEngine:
         audio_float32 = audio_int16.astype(np.float32) / 32768.0
         # Create AudioStream object
         audio_stream = AudioStream(
-            data=audio_float32,
+            samples=audio_float32,
             sample_rate=self.EXPECTED_SAMPLE_RATE,
-            format=self.EXPECTED_FORMAT
         )
         
         return audio_stream
@@ -113,7 +112,7 @@ class SpeechToTextEngine:
             audio_stream = self._bytes_to_audio_stream(audio_data)
 
             # Validate audio format
-            if not self.validateAudioFormat(audio_data):
+            if not self.validateAudioFormat(audio_stream):
                 raise ProcessingError("Invalid audio format")
             
             self.validateModelReady()

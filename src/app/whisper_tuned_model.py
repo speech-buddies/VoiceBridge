@@ -79,6 +79,7 @@ class WhisperLoraAsrModel:
         text = self.processor.batch_decode(
             predicted_ids,
             skip_special_tokens=True,
+            language="en"
         )[0]
 
         return Transcript(
