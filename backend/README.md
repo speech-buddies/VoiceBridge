@@ -1,16 +1,24 @@
 ## VoiceBridge Backend
 
-This backend receives 10-second audio chunks from the VoiceBridge browser extension and saves them as `.webm` files in the local `Recordings` folder.
+This backend records audio using `src/input/audio_capture.py` (RealtimeAudioCapture with WebRTC VAD). The UI triggers start/stop via REST; the backend captures from the system microphone and saves WAV files to the local `Recordings` folder.
 
 ### Folder structure
 
-- `server.py`: FastAPI app that exposes a `POST /audio` endpoint.
-- `requirements.txt`: Python dependencies for the backend.
-- `Recordings/`: Folder where incoming audio chunks are stored (created automatically on first run).
+- `server.py` – FastAPI app with capture endpoints
+- `requirements.txt` – Python dependencies
+- `Recordings/` – Saved audio recordings (created automatically on first run)
+
+### Endpoints
+
+- `POST /audio/capture/start` – Start backend-driven audio capture (uses audio_capture.py)
+- `POST /audio/capture/stop` – Stop audio capture
+- `GET /audio/capture/status` – Get capture state (idle, listening, recording, etc.)
+- `POST /audio` – Legacy endpoint for browser-recorded WebM blobs
 
 ### Prerequisites
 
-- Python 3.9+ installed
+- Python 3.9+
+- Microphone access on the host machine
 
 ### Setup
 
@@ -33,6 +41,8 @@ This backend receives 10-second audio chunks from the VoiceBridge browser extens
    pip install -r requirements.txt
    ```
 
+   Includes: `numpy`, `sounddevice`, `webrtcvad`, `setuptools`.
+
 ### Running the server
 
 From the `backend` folder with the virtual environment activated:
@@ -41,25 +51,23 @@ From the `backend` folder with the virtual environment activated:
 uvicorn server:app --host 0.0.0.0 --port 8000
 ```
 
-You should see a message similar to:
+You should see:
 
 ```text
 Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
 ```
 
-### Testing the endpoint
+### How it works
 
-Open your browser and go to:
+1. The UI calls `POST /audio/capture/start` when the user enables listening
+2. The backend starts `RealtimeAudioCapture` and records from the system microphone
+3. Voice activity detection (VAD) detects speech; recordings end after ~1.5s of silence or 30s max
+4. Each utterance is saved as `chunk-{timestamp}.wav` (16 kHz mono) in `Recordings/`
+5. The UI calls `POST /audio/capture/stop` when the user disables listening
 
-   ```text
-   http://localhost:8000/docs
-   ```
+### Testing
 
-In the UI code (`ui/src/App.js`), the extension is configured to send each ~10 second audio chunk to:
+- **API docs:** http://localhost:8000/docs
+- **Capture status:** http://localhost:8000/audio/capture/status
 
-```js
-const AUDIO_BACKEND_URL = 'http://localhost:8000/audio';
-```
-
-With the server running and the extension active, new `.webm` audio files will appear continuously in `backend/Recordings` while you are speaking.
-
+With the server running and the extension active, new `.wav` files will appear in `backend/Recordings/` as you speak.

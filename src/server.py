@@ -17,11 +17,17 @@ Frontend just needs to:
 import asyncio
 import logging
 import sys
+import threading
+import time
+from pathlib import Path
 from typing import Optional, List
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
+import numpy as np
+import wave
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel
 
 from state_manager import StateManager, AppState
@@ -32,10 +38,51 @@ from src.control.session_manager import get_browser, start_session, stop_session
 if sys.platform.startswith("win"):
     asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 
-# TODO: Import our actual modules here
+# Lazy import: audio_capture needs sounddevice + webrtcvad
+def _get_audio_capture():
+    try:
+        from input.audio_capture import RealtimeAudioCapture, AudioConfig
+        return RealtimeAudioCapture, AudioConfig, None
+    except ImportError as e:
+        return None, None, str(e)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Folder where audio recordings are saved (standalone capture + legacy upload)
+SAVE_DIR = Path(__file__).resolve().parent / "Recordings"
+SAVE_DIR.mkdir(parents=True, exist_ok=True)
+
+_capture_instance = None
+_capture_lock = threading.Lock()
+_event_loop = None
+
+
+def _on_audio_ready(audio_float32: np.ndarray, metadata: dict):
+    """
+    Callback when RealtimeAudioCapture has finished a recording.
+    If voice mode is active: feed audio into pipeline via on_silence_detected.
+    Otherwise (standalone capture): save to Recordings/.
+    """
+    global server, _event_loop
+    if server and server.is_voice_mode_active and _event_loop:
+        # Feed into VoiceBridge pipeline
+        audio_int16 = (audio_float32 * 32767).astype(np.int16)
+        audio_bytes = audio_int16.tobytes()
+        asyncio.run_coroutine_threadsafe(
+            server.on_silence_detected(audio_bytes), _event_loop
+        )
+    else:
+        # Standalone: save to file
+        timestamp = int(time.time() * 1000)
+        filename = SAVE_DIR / f"chunk-{timestamp}.wav"
+        sample_rate = metadata.get("sample_rate", 16000)
+        audio_int16 = (audio_float32 * 32767).astype(np.int16)
+        with wave.open(str(filename), "wb") as wf:
+            wf.setnchannels(1)
+            wf.setsampwidth(2)
+            wf.setframerate(sample_rate)
+            wf.writeframes(audio_int16.tobytes())
 
 
 # ============================================================================
@@ -211,35 +258,41 @@ class VoiceBridgeServer:
     
     async def start_audio_capture(self):
         """
-        Start audio capture with VAD.
-        This should set up callbacks for when voice is detected and when silence is detected.
-        
-        TODO: Implement with our audio capture module
-        Example:
-            self.audio_capture.on_voice_detected = self.on_voice_detected
-            self.audio_capture.on_silence_detected = self.on_silence_detected
-            await self.audio_capture.start()
+        Start audio capture with VAD using RealtimeAudioCapture.
+        When silence is detected, _on_audio_ready feeds audio into on_silence_detected.
         """
-        logger.info("Starting audio capture with VAD...")
-        
-        # our audio capture initialization here
-        # The audio capture module should call:
-        # - self.on_voice_detected() when VAD detects voice
-        # - self.on_silence_detected(audio_data) when VAD detects silence
-        
-        pass
+        global _capture_instance
+        RealtimeAudioCapture, AudioConfig, import_err = _get_audio_capture()
+        if import_err:
+            raise RuntimeError(
+                f"Audio capture unavailable: {import_err}. "
+                "Run: pip install -r requirements.txt (sounddevice, webrtcvad)"
+            )
+        with _capture_lock:
+            if _capture_instance is not None:
+                logger.info("Audio capture already running")
+                return
+            config = AudioConfig(sample_rate=16000, vad_aggressiveness=3)
+            _capture_instance = RealtimeAudioCapture(
+                config=config, on_audio_ready=_on_audio_ready
+            )
+            _capture_instance.start()
+        logger.info("Audio capture started with VAD")
     
     async def stop_audio_capture(self):
-        """
-        Stop audio capture.
-        
-        TODO: Implement with our audio capture module
-        Example:
-            await self.audio_capture.stop()
-        """
-        logger.info("Stopping audio capture...")
-        # our audio capture cleanup here
-        pass
+        """Stop audio capture."""
+        global _capture_instance
+        with _capture_lock:
+            if _capture_instance is None:
+                logger.info("Audio capture not running")
+                return
+            try:
+                _capture_instance.stop()
+            except Exception as e:
+                logger.error(f"Error stopping audio capture: {e}")
+            finally:
+                _capture_instance = None
+        logger.info("Audio capture stopped")
     
     async def transcribe_audio(self, audio_data: bytes) -> str:
         """
@@ -716,9 +769,10 @@ server: Optional[VoiceBridgeServer] = None
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Lifespan context manager for startup/shutdown"""
-    global server
+    global server, _event_loop
     
     # Startup
+    _event_loop = asyncio.get_running_loop()
     logger.info("Starting VoiceBridge Server...")
     server = VoiceBridgeServer()
     
@@ -760,11 +814,15 @@ async def root():
         "status": "running",
         "version": "1.0.0",
         "endpoints": {
-            "start": "POST /voice/start",
-            "stop": "POST /voice/stop",
+            # "start": "POST /voice/start",
+            # "stop": "POST /voice/stop",
             "status": "GET /status",
             "manual": "POST /command/manual",
-            "websocket": "WS /ws"
+            "websocket": "WS /ws",
+            "audio_capture_start": "POST /audio/capture/start",
+            "audio_capture_stop": "POST /audio/capture/stop",
+            "audio_capture_status": "GET /audio/capture/status",
+            "audio_upload": "POST /audio",
         }
     }
 
@@ -782,51 +840,51 @@ async def get_status():
     return server.get_status()
 
 
-@app.post("/voice/start")
-async def start_voice_mode():
-    """
-    Start voice mode.
+# @app.post("/voice/start")
+# async def start_voice_mode():
+#     """
+#     Start voice mode.
     
-    The app will:
-      1. Start listening with VAD
-      2. Detect when you speak (auto transition to recording)
-      3. Detect when you stop (auto process, execute, return to listening)
-      4. Repeat until you call /voice/stop
+#     The app will:
+#       1. Start listening with VAD
+#       2. Detect when you speak (auto transition to recording)
+#       3. Detect when you stop (auto process, execute, return to listening)
+#       4. Repeat until you call /voice/stop
     
-    This is the main endpoint our frontend needs to start the app.
-    """
-    if not server:
-        raise HTTPException(status_code=503, detail="Server not initialized")
+#     This is the main endpoint our frontend needs to start the app.
+#     """
+#     if not server:
+#         raise HTTPException(status_code=503, detail="Server not initialized")
     
-    result = await server.start_voice_mode()
+#     result = await server.start_voice_mode()
     
-    if not result["success"]:
-        raise HTTPException(status_code=400, detail=result["error"])
+#     if not result["success"]:
+#         raise HTTPException(status_code=400, detail=result["error"])
     
-    return {
-        "success": True,
-        "message": "Voice mode started - listening for commands",
-        "state": result["state"]
-    }
+#     return {
+#         "success": True,
+#         "message": "Voice mode started - listening for commands",
+#         "state": result["state"]
+#     }
 
 
-@app.post("/voice/stop")
-async def stop_voice_mode():
-    """
-    Stop voice mode and return to idle.
+# @app.post("/voice/stop")
+# async def stop_voice_mode():
+#     """
+#     Stop voice mode and return to idle.
     
-    This stops the VAD and audio capture.
-    """
-    if not server:
-        raise HTTPException(status_code=503, detail="Server not initialized")
+#     This stops the VAD and audio capture.
+#     """
+#     if not server:
+#         raise HTTPException(status_code=503, detail="Server not initialized")
     
-    result = await server.stop_voice_mode()
+#     result = await server.stop_voice_mode()
     
-    return {
-        "success": True,
-        "message": "Voice mode stopped",
-        "state": result["state"]
-    }
+#     return {
+#         "success": True,
+#         "message": "Voice mode stopped",
+#         "state": result["state"]
+#     }
 
 
 @app.post("/command/manual", response_model=CommandResponse)
@@ -908,6 +966,93 @@ async def reset():
         "message": "Server reset to idle state",
         "state": result["state"]
     }
+
+
+# ============================================================================
+# Standalone Audio Capture (from backend/server.py)
+# ============================================================================
+
+@app.post("/audio/capture/start")
+async def start_audio_capture_endpoint():
+    """
+    Start voice mode.
+    
+    The app will:
+      1. Start listening with VAD
+      2. Detect when you speak (auto transition to recording)
+      3. Detect when you stop (auto process, execute, return to listening)
+      4. Repeat until you call /voice/stop
+    
+    This is the main endpoint our frontend needs to start the app.
+    """
+    global _capture_instance
+    RealtimeAudioCapture, AudioConfig, import_err = _get_audio_capture()
+    if import_err:
+        err = str(import_err)
+        if "pkg_resources" in err:
+            hint = "Run: pip install setuptools"
+        elif "webrtcvad" in err:
+            hint = "Run: pip install webrtcvad"
+        elif "sounddevice" in err:
+            hint = "Run: pip install sounddevice"
+        else:
+            hint = "Run: pip install -r requirements.txt"
+        return {"ok": False, "message": f"Audio capture unavailable: {import_err}. {hint}"}
+    with _capture_lock:
+        if _capture_instance is not None:
+            return {"ok": True, "message": "Already capturing"}
+        try:
+            config = AudioConfig(sample_rate=16000, vad_aggressiveness=3)
+            _capture_instance = RealtimeAudioCapture(
+                config=config, on_audio_ready=_on_audio_ready
+            )
+            _capture_instance.start()
+            return {"ok": True, "message": "Audio capture started"}
+        except Exception as e:
+            return {"ok": False, "message": str(e)}
+
+
+@app.post("/audio/capture/stop")
+async def stop_audio_capture_endpoint():
+    """Stop backend-driven audio capture."""
+    global _capture_instance
+    with _capture_lock:
+        if _capture_instance is None:
+            return {"ok": True, "message": "Not capturing"}
+        try:
+            _capture_instance.stop()
+            _capture_instance = None
+            return {"ok": True, "message": "Audio capture stopped"}
+        except Exception as e:
+            _capture_instance = None
+            return {"ok": False, "message": str(e)}
+
+
+@app.get("/audio/capture/status")
+async def audio_capture_status():
+    """Get status of backend audio capture."""
+    with _capture_lock:
+        if _capture_instance is None:
+            return {"capturing": False, "state": "idle"}
+        return {
+            "capturing": True,
+            "state": _capture_instance.state,
+            "stats": _capture_instance.get_stats(),
+        }
+
+
+@app.post("/audio")
+async def receive_audio(
+    audio: UploadFile = File(...),
+    mimeType: str = Form("audio/webm"),
+    timestamp: str = Form(...),
+):
+    """Legacy: receives audio blob from browser (when not using backend capture)."""
+    suffix = Path(audio.filename).suffix or ".webm"
+    filename = SAVE_DIR / f"chunk-{timestamp}{suffix}"
+    with filename.open("wb") as f:
+        f.write(await audio.read())
+    return PlainTextResponse("ok")
 
 
 @app.get("/health")
