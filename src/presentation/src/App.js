@@ -16,9 +16,8 @@ function App() {
   const [error, setError] = useState(null);
   const [isLightMode, setIsLightMode] = useState(false);
   const [feedbackItems, setFeedbackItems] = useState([]);
-  const [clarifiedCommand, setClarifiedCommand] = useState(null);
-  const [userPrompt, setUserPrompt] = useState(null); // System message
-  const [userTranscript, setUserTranscript] = useState(null); // User's spoken transcript
+    const [clarifiedCommand, setClarifiedCommand] = useState(null);
+    const [userPrompt, setUserPrompt] = useState(null); // System message
 
   // Initialize ErrorFeedback system
   const errorFeedbackRef = useRef(null);
@@ -89,7 +88,7 @@ function App() {
         .then((data) => {
           setClarifiedCommand(data.clarified_command ?? null);
           setUserPrompt(data.user_prompt ?? null);
-          setUserTranscript(data.user_transcript ?? null);  // Use backend's user_transcript
+          // setUserTranscript(data.transcript ?? null);
         })
         .catch(() => {});
     }, 400);
@@ -106,7 +105,7 @@ function App() {
         .then((data) => {
           setClarifiedCommand(data.clarified_command ?? null);
           setUserPrompt(data.user_prompt ?? null);
-          setUserTranscript(data.user_transcript ?? null);  // Use backend's user_transcript
+          // setUserTranscript(data.transcript ?? null);
         })
         .catch(() => {});
     }, 1000);
@@ -265,14 +264,11 @@ function App() {
                 </div>
               )}
               <section className="llm-response-panel" aria-label="Clarified Command">
-                <h2 className="llm-response-heading">User Instruction</h2>
+                  <h2 className="llm-response-heading">User Instruction</h2>
                 <div className="llm-response-content" style={{maxHeight: 'none', overflow: 'visible'}}>
                   <div className="transcript-text">
-                    {/* Display priority: clarifiedCommand > userTranscript > placeholder */}
-                    {clarifiedCommand && clarifiedCommand.trim() !== ''
-                      ? clarifiedCommand
-                      : userTranscript && userTranscript.trim() !== ''
-                        ? userTranscript
+                      {clarifiedCommand && clarifiedCommand.trim() !== ''
+                        ? clarifiedCommand
                         : userPrompt
                           ? '—'
                           : 'Say a command to proceed.'}
