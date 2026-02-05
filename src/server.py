@@ -74,6 +74,8 @@ class StatusResponse(BaseModel):
     has_transcript: bool
     error: Optional[str]
     transcript: Optional[str] = None
+    user_transcript: Optional[str] = None  # Latest user input
+    clarified_command: Optional[str] = None  # LLM-clarified version
     last_command: Optional[str] = None
     user_prompt: Optional[str] = None
 
@@ -201,6 +203,8 @@ class VoiceBridgeServer:
         # Tracking variables
         self._last_transcript: Optional[str] = None
         self._last_command: Optional[str] = None
+        self._user_transcript: Optional[str] = None  # Latest user input (command or response)
+        self._clarified_command: Optional[str] = None  # LLM-clarified version
         
         # Conversation context for multi-turn interactions
         # Format: [{"role": "user|assistant", "content": "...", "timestamp": "..."}]
@@ -318,6 +322,7 @@ class VoiceBridgeServer:
             
             # Step 3: Get the clarified natural language command
             clarified_command = response.clarified_command
+            self._clarified_command = clarified_command  # Store clarified version
             # Guardrails check before logging or execution
             allowed, guardrails_msg = self.command_orchestrator.apply_guardrails(clarified_command)
             if not allowed:
@@ -441,6 +446,9 @@ class VoiceBridgeServer:
     
     async def _process_new_command(self, audio_data: bytes):
         """Process a new voice command from the user."""
+        # Clear clarified command (new conversation starting)
+        # But keep user_transcript - it will be updated with new input
+        self._clarified_command = None
         # Transition to processing
         self.state_manager.transition_to(AppState.PROCESSING, audio_data=audio_data)
         
@@ -448,6 +456,7 @@ class VoiceBridgeServer:
             # Transcribe
             transcript = await self.transcribe_audio(audio_data)
             self._last_transcript = transcript
+            self._user_transcript = transcript  # Store latest user input
             
             # Add to conversation context
             self._conversation_context.append({
@@ -491,6 +500,8 @@ class VoiceBridgeServer:
                 # Command executed successfully
                 self._last_command = transcript
                 self._current_user_prompt = None
+                # Keep user_transcript and clarified_command for display
+                # They will be updated on next user input
                 
                 # Clear conversation context
                 self._conversation_context = []
@@ -523,6 +534,7 @@ class VoiceBridgeServer:
             # Transcribe response
             response = await self.transcribe_audio(audio_data)
             self._last_transcript = response
+            self._user_transcript = response  # Update to show latest user input
             
             # Add to conversation context
             self._conversation_context.append({
@@ -758,6 +770,8 @@ class VoiceBridgeServer:
         status['last_command'] = self._last_command
         status['user_prompt'] = self._current_user_prompt
         status['transcript'] = self._last_transcript or status.get('transcript')
+        status['user_transcript'] = self._user_transcript  # Latest user input
+        status['clarified_command'] = self._clarified_command  # LLM version
         status['has_conversation_context'] = len(self._conversation_context) > 0
         return status
     
@@ -766,6 +780,8 @@ class VoiceBridgeServer:
         self.is_voice_mode_active = False
         self._current_user_prompt = None
         self._conversation_context = []
+        self._user_transcript = None
+        self._clarified_command = None
         if self.command_orchestrator:
             self.command_orchestrator.reset()
         self.state_manager.reset()
