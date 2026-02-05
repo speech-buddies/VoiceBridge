@@ -16,7 +16,8 @@ function App() {
   const [error, setError] = useState(null);
   const [isLightMode, setIsLightMode] = useState(false);
   const [feedbackItems, setFeedbackItems] = useState([]);
-  const [userTranscript, setUserTranscript] = useState(null);
+    const [clarifiedCommand, setClarifiedCommand] = useState(null);
+    const [userPrompt, setUserPrompt] = useState(null); // System message
 
   // Initialize ErrorFeedback system
   const errorFeedbackRef = useRef(null);
@@ -43,25 +44,27 @@ function App() {
     };
   }, []);
 
-  // Tell backend to start/stop audio capture (server records and saves to Recordings/)
+      // Tell backend to start/stop audio capture (server records and saves to Recordings/)
   useEffect(() => {
     const base = AUDIO_BACKEND_BASE;
+
     if (isListening) {
       fetch(`${base}/audio/capture/start`, { method: 'POST' })
         .then((r) => r.json())
         .then((data) => {
-          if (!data.ok) console.warn('Backend capture start:', data.message);
+          if (!data.ok) {
+            console.warn('Backend capture start:', data.message);
+          }
         })
-        .catch((err) => console.warn('Failed to start backend capture:', err));
+        .catch((err) => {
+          console.warn('Failed to start backend capture:', err);
+        });
     } else {
       fetch(`${base}/audio/capture/stop`, { method: 'POST' }).catch(() => {});
     }
-    return () => {
-      fetch(`${base}/audio/capture/stop`, { method: 'POST' }).catch(() => {});
-    };
-  }, [isListening]);
+  });
 
-  // Poll backend capture status and user_prompt from /status
+  // Poll backend capture status and user_prompt/clarified_command from /status
   useEffect(() => {
     if (!isListening) return;
     const base = AUDIO_BACKEND_BASE;
@@ -83,21 +86,27 @@ function App() {
       fetch(`${base}/status`)
         .then((r) => r.json())
         .then((data) => {
-          setUserTranscript(data.transcript ?? null);
+          setClarifiedCommand(data.clarified_command ?? null);
+          setUserPrompt(data.user_prompt ?? null);
+          // setUserTranscript(data.transcript ?? null);
         })
         .catch(() => {});
     }, 400);
     return () => clearInterval(interval);
   }, [isListening]);
 
-  // Poll /status for user transcript when not in voice mode (e.g. after stop)
+  // Poll /status for clarified_command and user_prompt when not in voice mode (e.g. after stop)
   useEffect(() => {
     if (isListening) return;
     const base = AUDIO_BACKEND_BASE;
     const interval = setInterval(() => {
       fetch(`${base}/status`)
         .then((r) => r.json())
-        .then((data) => setUserTranscript(data.transcript ?? null))
+        .then((data) => {
+          setClarifiedCommand(data.clarified_command ?? null);
+          setUserPrompt(data.user_prompt ?? null);
+          // setUserTranscript(data.transcript ?? null);
+        })
         .catch(() => {});
     }, 1000);
     return () => clearInterval(interval);
@@ -244,10 +253,26 @@ function App() {
               />
             </div>
             <div className="right-panel">
-              <section className="llm-response-panel" aria-label="Transcript">
-                <h2 className="llm-response-heading">Transcript</h2>
-                <div className="llm-response-content">
-                  {userTranscript != null && userTranscript !== '' ? userTranscript : '—'}
+              {/* System message - always visible, never clipped */}
+              {userPrompt && (
+                <div className="system-message-alert" style={{marginBottom: 20, maxWidth: '100%'}}>
+                  <div className="system-message-icon">⚠️</div>
+                  <div className="system-message-content">
+                    <strong>System Message:</strong>
+                    <p>{userPrompt}</p>
+                  </div>
+                </div>
+              )}
+              <section className="llm-response-panel" aria-label="Clarified Command">
+                  <h2 className="llm-response-heading">User Instruction</h2>
+                <div className="llm-response-content" style={{maxHeight: 'none', overflow: 'visible'}}>
+                  <div className="transcript-text">
+                      {clarifiedCommand && clarifiedCommand.trim() !== ''
+                        ? clarifiedCommand
+                        : userPrompt
+                          ? '—'
+                          : 'Say a command to proceed.'}
+                  </div>
                 </div>
               </section>
             </div>
