@@ -200,8 +200,9 @@
 
 .main-container {
   display: flex;
-  flex-direction: column;
-  gap: 1rem;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 1.5rem;
   max-width: 1400px;
   width: 100%;
   align-items: stretch;
@@ -211,13 +212,68 @@
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  flex: 1;
+  min-width: 280px;
 }
 
 .right-panel {
   display: flex;
   flex-direction: column;
-  height: 100%;
-  min-height: 100%;
+  flex: 1;
+  min-width: 280px;
+  min-height: 200px;
+}
+
+.llm-response-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem;
+  border-radius: 12px;
+  border: 1px dashed;
+  flex: 1;
+}
+
+.dark-mode .llm-response-panel {
+  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.light-mode .llm-response-panel {
+  border-color: rgba(0, 0, 0, 0.15);
+  background: rgba(0, 0, 0, 0.02);
+}
+
+.llm-response-heading {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.dark-mode .llm-response-heading {
+  color: #a0a0a0;
+}
+
+.light-mode .llm-response-heading {
+  color: #666666;
+}
+
+.llm-response-placeholder {
+  flex: 1;
+  min-height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  font-size: 0.9rem;
+}
+
+.dark-mode .llm-response-placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.light-mode .llm-response-placeholder {
+  color: rgba(0, 0, 0, 0.4);
 }
 
 .App-footer {
@@ -241,7 +297,7 @@
 
 @media (max-width: 1024px) {
   .main-container {
-    grid-template-columns: 1fr;
+    flex-direction: column;
     gap: 1.5rem;
   }
 }

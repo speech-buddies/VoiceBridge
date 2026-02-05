@@ -223,6 +223,12 @@ function App() {
                 backendBase={AUDIO_BACKEND_BASE}
               />
             </div>
+            <div className="right-panel">
+              <section className="llm-response-panel" aria-label="LLM response">
+                <h2 className="llm-response-heading">Response</h2>
+                <div className="llm-response-placeholder" />
+              </section>
+            </div>
           </div>
         </main>
         
