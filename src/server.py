@@ -835,8 +835,33 @@ async def get_status():
     status_data = server.get_status()
     return StatusResponse(**status_data)
 
+@app.get("/audio/capture/status")
+async def audio_capture_status():
+    """Get status of backend audio capture."""
+    with _capture_lock:
+        if _capture_instance is None:
+            return {"capturing": False, "state": "idle"}
+        return {
+            "capturing": True,
+            "state": _capture_instance.state,
+            "stats": _capture_instance.get_stats(),
+        }
 
-@app.post("/voice/start")
+
+@app.post("/audio")
+async def receive_audio(
+    audio: UploadFile = File(...),
+    mimeType: str = Form("audio/webm"),
+    timestamp: str = Form(...),
+):
+    """Legacy: receives audio blob from browser (when not using backend capture)."""
+    suffix = Path(audio.filename).suffix or ".webm"
+    filename = SAVE_DIR / f"chunk-{timestamp}{suffix}"
+    with filename.open("wb") as f:
+        f.write(await audio.read())
+    return PlainTextResponse("ok")
+
+@app.post("/audio/capture/start")
 async def start_voice_mode_endpoint():
     """Start voice mode"""
     if not server:
@@ -850,7 +875,7 @@ async def start_voice_mode_endpoint():
         return {"ok": False, "message": result.get("error", "Failed to start")}
 
 
-@app.post("/voice/stop")
+@app.post("/audio/capture/stop")
 async def stop_voice_mode_endpoint():
     """Stop voice mode"""
     if not server:
