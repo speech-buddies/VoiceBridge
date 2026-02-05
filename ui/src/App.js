@@ -10,6 +10,7 @@ import AccessibilityLayer from './utils/accessibilityLayer';
 
 // Set this to your backend endpoint, e.g. http://localhost:8000/audio
 const AUDIO_BACKEND_URL = 'http://localhost:8000/audio';
+const API_BASE = 'http://localhost:8000';
 
 function App() {
   const [isListening, setIsListening] = useState(true);
@@ -17,6 +18,7 @@ function App() {
   const [error, setError] = useState(null);
   const [isLightMode, setIsLightMode] = useState(false);
   const [feedbackItems, setFeedbackItems] = useState([]);
+  const [userTranscript, setUserTranscript] = useState(null);
 
   // Initialize ErrorFeedback system
   const errorFeedbackRef = useRef(null);
@@ -41,6 +43,17 @@ function App() {
         errorFeedbackRef.current.clearAll();
       }
     };
+  }, []);
+
+  // Poll backend /status for user's transcript (what they said)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetch(`${API_BASE}/status`)
+        .then((r) => r.json())
+        .then((data) => setUserTranscript(data.transcript ?? null))
+        .catch(() => {});
+    }, 500);
+    return () => clearInterval(interval);
   }, []);
 
   // Keyboard: light mode toggle (Alt+L) and collapse (Escape)
@@ -227,9 +240,11 @@ function App() {
               />
             </div>
             <div className="right-panel">
-              <section className="llm-response-panel" aria-label="LLM response">
-                <h2 className="llm-response-heading">Response</h2>
-                <div className="llm-response-placeholder" />
+              <section className="llm-response-panel" aria-label="Transcript">
+                <h2 className="llm-response-heading">Transcript</h2>
+                <div className="llm-response-content">
+                  {userTranscript != null && userTranscript !== '' ? userTranscript : '—'}
+                </div>
               </section>
             </div>
           </div>
