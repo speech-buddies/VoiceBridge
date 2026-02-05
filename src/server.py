@@ -757,6 +757,7 @@ class VoiceBridgeServer:
         status['last_transcript'] = self._last_transcript
         status['last_command'] = self._last_command
         status['user_prompt'] = self._current_user_prompt
+        status['transcript'] = self._last_transcript or status.get('transcript')
         status['has_conversation_context'] = len(self._conversation_context) > 0
         return status
     

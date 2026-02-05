@@ -16,6 +16,7 @@ function App() {
   const [error, setError] = useState(null);
   const [isLightMode, setIsLightMode] = useState(false);
   const [feedbackItems, setFeedbackItems] = useState([]);
+  const [userTranscript, setUserTranscript] = useState(null);
 
   // Initialize ErrorFeedback system
   const errorFeedbackRef = useRef(null);
@@ -60,7 +61,7 @@ function App() {
     };
   }, [isListening]);
 
-  // Poll backend capture status to show Recording when user is speaking
+  // Poll backend capture status and user_prompt from /status
   useEffect(() => {
     if (!isListening) return;
     const base = AUDIO_BACKEND_BASE;
@@ -79,7 +80,26 @@ function App() {
           }
         })
         .catch(() => {});
+      fetch(`${base}/status`)
+        .then((r) => r.json())
+        .then((data) => {
+          setUserTranscript(data.transcript ?? null);
+        })
+        .catch(() => {});
     }, 400);
+    return () => clearInterval(interval);
+  }, [isListening]);
+
+  // Poll /status for user transcript when not in voice mode (e.g. after stop)
+  useEffect(() => {
+    if (isListening) return;
+    const base = AUDIO_BACKEND_BASE;
+    const interval = setInterval(() => {
+      fetch(`${base}/status`)
+        .then((r) => r.json())
+        .then((data) => setUserTranscript(data.transcript ?? null))
+        .catch(() => {});
+    }, 1000);
     return () => clearInterval(interval);
   }, [isListening]);
 
@@ -224,9 +244,11 @@ function App() {
               />
             </div>
             <div className="right-panel">
-              <section className="llm-response-panel" aria-label="LLM response">
-                <h2 className="llm-response-heading">Response</h2>
-                <div className="llm-response-placeholder" />
+              <section className="llm-response-panel" aria-label="Transcript">
+                <h2 className="llm-response-heading">Transcript</h2>
+                <div className="llm-response-content">
+                  {userTranscript != null && userTranscript !== '' ? userTranscript : '—'}
+                </div>
               </section>
             </div>
           </div>
