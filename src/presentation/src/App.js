@@ -16,7 +16,6 @@ function App() {
   const [error, setError] = useState(null);
   const [isLightMode, setIsLightMode] = useState(false);
   const [feedbackItems, setFeedbackItems] = useState([]);
-  const [clarifiedCommand, setClarifiedCommand] = useState(null);
   const [userPrompt, setUserPrompt] = useState(null); // System message
   const [userTranscript, setUserTranscript] = useState(null); // User's spoken transcript
 
@@ -65,7 +64,7 @@ function App() {
     }
   });
 
-  // Poll backend capture status and user_prompt/clarified_command from /status
+  // Poll backend capture status and user_prompt/user_transcript from /status
   useEffect(() => {
     if (!isListening) return;
     const base = AUDIO_BACKEND_BASE;
@@ -87,16 +86,15 @@ function App() {
       fetch(`${base}/status`)
         .then((r) => r.json())
         .then((data) => {
-          setClarifiedCommand(data.clarified_command ?? null);
           setUserPrompt(data.user_prompt ?? null);
-          setUserTranscript(data.user_transcript ?? null);  // Use backend's user_transcript
+          setUserTranscript(data.user_transcript ?? null);
         })
         .catch(() => {});
     }, 400);
     return () => clearInterval(interval);
   }, [isListening]);
 
-  // Poll /status for clarified_command and user_prompt when not in voice mode (e.g. after stop)
+  // Poll /status for user_prompt and user_transcript when not in voice mode (e.g. after stop)
   useEffect(() => {
     if (isListening) return;
     const base = AUDIO_BACKEND_BASE;
@@ -104,9 +102,8 @@ function App() {
       fetch(`${base}/status`)
         .then((r) => r.json())
         .then((data) => {
-          setClarifiedCommand(data.clarified_command ?? null);
           setUserPrompt(data.user_prompt ?? null);
-          setUserTranscript(data.user_transcript ?? null);  // Use backend's user_transcript
+          setUserTranscript(data.user_transcript ?? null);
         })
         .catch(() => {});
     }, 1000);
@@ -264,18 +261,15 @@ function App() {
                   </div>
                 </div>
               )}
-              <section className="llm-response-panel" aria-label="Clarified Command">
-                <h2 className="llm-response-heading">User Instruction</h2>
+              <section className="llm-response-panel" aria-label="User Transcript">
+                <h2 className="llm-response-heading">Executing</h2>
                 <div className="llm-response-content" style={{maxHeight: 'none', overflow: 'visible'}}>
                   <div className="transcript-text">
-                    {/* Display priority: clarifiedCommand > userTranscript > placeholder */}
-                    {clarifiedCommand && clarifiedCommand.trim() !== ''
-                      ? clarifiedCommand
-                      : userTranscript && userTranscript.trim() !== ''
-                        ? userTranscript
-                        : userPrompt
-                          ? '—'
-                          : 'Say a command to proceed.'}
+                    {userTranscript && userTranscript.trim() !== ''
+                      ? userTranscript
+                      : userPrompt
+                        ? '—'
+                        : 'Say a command to proceed.'}
                   </div>
                 </div>
               </section>
