@@ -87,6 +87,7 @@ To allow modules to access and import each other, we need to run
 
 # VoiceBridge Application Flow
 
+
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                         USER ACTIONS                            │
@@ -95,7 +96,7 @@ To allow modules to access and import each other, we need to run
                               │ Starts application
                               ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│                    POST /voice/start                            │
+│                    POST /audio/capture/start                           │
 │                    (Frontend → Backend)                         │
 └─────────────────────────────────────────────────────────────────┘
                               │
@@ -106,21 +107,14 @@ To allow modules to access and import each other, we need to run
 │  • Audio Capture Module starts                                  │
 │  • VAD (Voice Activity Detection) begins monitoring             │
 │  • Waiting for voice input...                                   │
+│  • Audio Capture Module starts recording                        │
+│  • Capturing audio while voice is detected                      │
 └─────────────────────────────────────────────────────────────────┘
                               │
                               │ VAD detects voice
                               ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│                   STATE: LISTENING → RECORDING                  │
-│                                                                 │
-│  • Audio Capture Module starts recording                        │
-│  • Capturing audio while voice is detected                      │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                              │ VAD detects silence
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                   STATE: RECORDING → PROCESSING                 │
+│                   STATE: LISTENING → PROCESSING                 │
 │                                                                 │
 │  • Speech-to-Text Engine receives audio                         │
 │  • Transcribing audio to text...                                │
@@ -131,12 +125,12 @@ To allow modules to access and import each other, we need to run
                               │ Command Orchestrator
                     ┌─────────┴─────────┐
                     │                   │
-            Command Clear?      Command Ambiguous?
+            Command Clear?      Command Ambiguous (needs_input)?
                     │                   │
                     ▼                   ▼
 ┌──────────────────────────┐  ┌──────────────────────────────┐
 │  STATE: PROCESSING →     │  │  STATE: PROCESSING →         │
-│         EXECUTING        │  │         AWAITING_INPUT       │
+│         EXECUTING        │  │         LISTENING            │
 │                          │  │                              │
 │  • Command Orchestrator  │  │  • Orchestrator asks:        │
 │    parses transcript     │  │    "Which Google product?"   │
@@ -147,8 +141,8 @@ To allow modules to access and import each other, we need to run
             │                             │ User responds
             │                             ▼
             │                   ┌───────────────────────┐
-            │                   │ LISTENING → RECORDING │
-            │                   │ RECORDING → PROCESSING│
+            │                   │ LISTENING → PROCESSING│
+            │                   
             │                   └───────────────────────┘
             │                             │
             │                    ┌────────┴──────────┐
@@ -156,7 +150,7 @@ To allow modules to access and import each other, we need to run
             │              Still need info?    Got enough info?
             │                    │                   │
             │                    ▼                   ▼
-            │          [Loop to AWAITING_INPUT]  [Go to EXECUTING]
+            │          [Loop to LISTENING]  [Go to EXECUTING]
             │                                        │
             └────────────────────────────────────────┘
                               │ Browser Controller finishes
