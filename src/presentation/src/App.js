@@ -16,6 +16,8 @@ function App() {
   const [error, setError] = useState(null);
   const [isLightMode, setIsLightMode] = useState(false);
   const [feedbackItems, setFeedbackItems] = useState([]);
+  const [userPrompt, setUserPrompt] = useState(null); // System message
+  const [userTranscript, setUserTranscript] = useState(null); // User's spoken transcript
 
   // Initialize ErrorFeedback system
   const errorFeedbackRef = useRef(null);
@@ -42,25 +44,27 @@ function App() {
     };
   }, []);
 
-  // Tell backend to start/stop audio capture (server records and saves to Recordings/)
+      // Tell backend to start/stop audio capture (server records and saves to Recordings/)
   useEffect(() => {
     const base = AUDIO_BACKEND_BASE;
+
     if (isListening) {
       fetch(`${base}/audio/capture/start`, { method: 'POST' })
         .then((r) => r.json())
         .then((data) => {
-          if (!data.ok) console.warn('Backend capture start:', data.message);
+          if (!data.ok) {
+            console.warn('Backend capture start:', data.message);
+          }
         })
-        .catch((err) => console.warn('Failed to start backend capture:', err));
+        .catch((err) => {
+          console.warn('Failed to start backend capture:', err);
+        });
     } else {
       fetch(`${base}/audio/capture/stop`, { method: 'POST' }).catch(() => {});
     }
-    return () => {
-      fetch(`${base}/audio/capture/stop`, { method: 'POST' }).catch(() => {});
-    };
-  }, [isListening]);
+  });
 
-  // Poll backend capture status to show Recording when user is speaking
+  // Poll backend capture status and user_prompt/user_transcript from /status
   useEffect(() => {
     if (!isListening) return;
     const base = AUDIO_BACKEND_BASE;
@@ -79,7 +83,30 @@ function App() {
           }
         })
         .catch(() => {});
+      fetch(`${base}/status`)
+        .then((r) => r.json())
+        .then((data) => {
+          setUserPrompt(data.user_prompt ?? null);
+          setUserTranscript(data.user_transcript ?? null);
+        })
+        .catch(() => {});
     }, 400);
+    return () => clearInterval(interval);
+  }, [isListening]);
+
+  // Poll /status for user_prompt and user_transcript when not in voice mode (e.g. after stop)
+  useEffect(() => {
+    if (isListening) return;
+    const base = AUDIO_BACKEND_BASE;
+    const interval = setInterval(() => {
+      fetch(`${base}/status`)
+        .then((r) => r.json())
+        .then((data) => {
+          setUserPrompt(data.user_prompt ?? null);
+          setUserTranscript(data.user_transcript ?? null);
+        })
+        .catch(() => {});
+    }, 1000);
     return () => clearInterval(interval);
   }, [isListening]);
 
@@ -222,6 +249,30 @@ function App() {
                 isLightMode={isLightMode}
                 backendBase={AUDIO_BACKEND_BASE}
               />
+            </div>
+            <div className="right-panel">
+              {/* System message - always visible, never clipped */}
+              {userPrompt && (
+                <div className="system-message-alert" style={{marginBottom: 20, maxWidth: '100%'}}>
+                  <div className="system-message-icon">⚠️</div>
+                  <div className="system-message-content">
+                    <strong>System Message:</strong>
+                    <p>{userPrompt}</p>
+                  </div>
+                </div>
+              )}
+              <section className="llm-response-panel" aria-label="User Transcript">
+                <h2 className="llm-response-heading">Executing</h2>
+                <div className="llm-response-content" style={{maxHeight: 'none', overflow: 'visible'}}>
+                  <div className="transcript-text">
+                    {userTranscript && userTranscript.trim() !== ''
+                      ? userTranscript
+                      : userPrompt
+                        ? '—'
+                        : 'Say a command to proceed.'}
+                  </div>
+                </div>
+              </section>
             </div>
           </div>
         </main>

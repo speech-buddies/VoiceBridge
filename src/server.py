@@ -74,6 +74,8 @@ class StatusResponse(BaseModel):
     has_transcript: bool
     error: Optional[str]
     transcript: Optional[str] = None
+    user_transcript: Optional[str] = None  # Latest user input
+    clarified_command: Optional[str] = None  # LLM-clarified version
     last_command: Optional[str] = None
     user_prompt: Optional[str] = None
 
@@ -201,6 +203,8 @@ class VoiceBridgeServer:
         # Tracking variables
         self._last_transcript: Optional[str] = None
         self._last_command: Optional[str] = None
+        self._user_transcript: Optional[str] = None  # Latest user input (command or response)
+        self._clarified_command: Optional[str] = None  # LLM-clarified version
         
         # Conversation context for multi-turn interactions
         # Format: [{"role": "user|assistant", "content": "...", "timestamp": "..."}]
@@ -310,18 +314,21 @@ class VoiceBridgeServer:
             if response.needs_clarification:
                 # Orchestrator needs more info from user
                 logger.info(f"Orchestrator needs clarification: {response.user_prompt}")
+                # # TODO: TRansition to lisitng? 
+                # self.state_manager.transition_to(AppState.LISTENING)
                 return {
                     "needs_input": True,
                     "user_prompt": response.user_prompt,
                     "context": response.metadata or {}
                 }
-            
             # Step 3: Get the clarified natural language command
             clarified_command = response.clarified_command
+            self._clarified_command = clarified_command  # Store clarified version
             # Guardrails check before logging or execution
             allowed, guardrails_msg = self.command_orchestrator.apply_guardrails(clarified_command)
             if not allowed:
-                self.state_manager.transition_to(AppState.AWAITING_INPUT, transcript=clarified_command)
+                # # TODO: TRansition to lisitng? 
+                # self.state_manager.transition_to(AppState.LISTENING, transcript=clarified_command)
                 return {
                     "needs_input": True,
                     "user_prompt": guardrails_msg or "This command is not allowed. Please try something else.",
@@ -331,6 +338,10 @@ class VoiceBridgeServer:
                 }
             logger.info(f"Orchestrator clarified command: '{clarified_command}'")
             # Execute via browser controller (which handles natural language)
+            # Transition to executing state
+            print("**SWITCHED TO EXECUTING")
+
+            self.state_manager.transition_to(AppState.EXECUTING, transcript=clarified_command)
             execution_result = await self._execute_browser_command(clarified_command)
             return {
                 "needs_input": False,
@@ -368,10 +379,7 @@ class VoiceBridgeServer:
                 status_code=409,
                 detail="No active browser session"
             )
-        
-        # Transition to executing state
-        self.state_manager.transition_to(AppState.EXECUTING, transcript=clarified_command)
-        
+
         try:
             # Use the LLM-powered browser orchestrator to execute natural language command
             history = await run_command(clarified_command, browser)
@@ -428,26 +436,26 @@ class VoiceBridgeServer:
         
         current_state = self.state_manager.current_state
         
-        # if current_state == AppState.RECORDING:
-        
-        if current_state == AppState.AWAITING_INPUT:
-            # User is responding to a prompt
-            await self._process_user_response(audio_data)
-        
+        if current_state != AppState.LISTENING:
+            logger.warning(f"Received audio in unexpected state: {current_state.value}")
+            return None
         else:
-            # User spoke a new command
             await self._process_new_command(audio_data)
-            # logger.warning(f"Received audio in unexpected state: {current_state.value}")
     
     async def _process_new_command(self, audio_data: bytes):
         """Process a new voice command from the user."""
+        # Clear clarified command (new conversation starting)
+        # But keep user_transcript - it will be updated with new input
+        self._clarified_command = None
+
         # Transition to processing
         self.state_manager.transition_to(AppState.PROCESSING, audio_data=audio_data)
-        
+        print("**SWITCHED TO PROCESSING")
         try:
             # Transcribe
             transcript = await self.transcribe_audio(audio_data)
             self._last_transcript = transcript
+            self._user_transcript = transcript  # Store latest user input
             
             # Add to conversation context
             self._conversation_context.append({
@@ -467,7 +475,7 @@ class VoiceBridgeServer:
                 # Need clarification
                 self._current_user_prompt = result["user_prompt"]
                 self.state_manager.transition_to(
-                    AppState.AWAITING_INPUT,
+                    AppState.LISTENING,
                     transcript=transcript,
                     metadata={
                         "user_prompt": result["user_prompt"],
@@ -485,12 +493,14 @@ class VoiceBridgeServer:
                 # Auto-start listening for response
                 if self.is_voice_mode_active:
                     await asyncio.sleep(0.1)
-                    # self.state_manager.transition_to(AppState.LISTENING)
+                    self.state_manager.transition_to(AppState.LISTENING)
             
             else:
                 # Command executed successfully
                 self._last_command = transcript
                 self._current_user_prompt = None
+                # Keep user_transcript and clarified_command for display
+                # They will be updated on next user input
                 
                 # Clear conversation context
                 self._conversation_context = []
@@ -523,6 +533,7 @@ class VoiceBridgeServer:
             # Transcribe response
             response = await self.transcribe_audio(audio_data)
             self._last_transcript = response
+            self._user_transcript = response  # Update to show latest user input
             
             # Add to conversation context
             self._conversation_context.append({
@@ -601,7 +612,8 @@ class VoiceBridgeServer:
         if import_err:
             raise RuntimeError(f"Audio capture unavailable: {import_err}")
         
-        self.state_manager.transition_to(AppState.RECORDING)
+        # TODO: get rid of recording
+        # self.state_manager.transition_to(AppState.RECORDING)
         
         with _capture_lock:
             if _capture_instance is not None:
@@ -757,6 +769,9 @@ class VoiceBridgeServer:
         status['last_transcript'] = self._last_transcript
         status['last_command'] = self._last_command
         status['user_prompt'] = self._current_user_prompt
+        status['transcript'] = self._last_transcript or status.get('transcript')
+        status['user_transcript'] = self._user_transcript  # Latest user input
+        status['clarified_command'] = self._clarified_command  # LLM version
         status['has_conversation_context'] = len(self._conversation_context) > 0
         return status
     
@@ -765,6 +780,8 @@ class VoiceBridgeServer:
         self.is_voice_mode_active = False
         self._current_user_prompt = None
         self._conversation_context = []
+        self._user_transcript = None
+        self._clarified_command = None
         if self.command_orchestrator:
             self.command_orchestrator.reset()
         self.state_manager.reset()
@@ -835,8 +852,33 @@ async def get_status():
     status_data = server.get_status()
     return StatusResponse(**status_data)
 
+@app.get("/audio/capture/status")
+async def audio_capture_status():
+    """Get status of backend audio capture."""
+    with _capture_lock:
+        if _capture_instance is None:
+            return {"capturing": False, "state": "idle"}
+        return {
+            "capturing": True,
+            "state": _capture_instance.state,
+            "stats": _capture_instance.get_stats(),
+        }
 
-@app.post("/voice/start")
+
+@app.post("/audio")
+async def receive_audio(
+    audio: UploadFile = File(...),
+    mimeType: str = Form("audio/webm"),
+    timestamp: str = Form(...),
+):
+    """Legacy: receives audio blob from browser (when not using backend capture)."""
+    suffix = Path(audio.filename).suffix or ".webm"
+    filename = SAVE_DIR / f"chunk-{timestamp}{suffix}"
+    with filename.open("wb") as f:
+        f.write(await audio.read())
+    return PlainTextResponse("ok")
+
+@app.post("/audio/capture/start")
 async def start_voice_mode_endpoint():
     """Start voice mode"""
     if not server:
@@ -850,7 +892,7 @@ async def start_voice_mode_endpoint():
         return {"ok": False, "message": result.get("error", "Failed to start")}
 
 
-@app.post("/voice/stop")
+@app.post("/audio/capture/stop")
 async def stop_voice_mode_endpoint():
     """Stop voice mode"""
     if not server:
