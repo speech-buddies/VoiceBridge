@@ -84,6 +84,7 @@ class StateManager:
         Returns:
             bool: True if transition was valid and successful
         """
+        print(f"Attempting to transition from {self._current_state},{new_state}")
         with self._lock:
             if not self._is_valid_transition(self._current_state, new_state):
                 logger.warning(
@@ -134,7 +135,7 @@ class StateManager:
         """
         valid_transitions = {
             AppState.IDLE: [AppState.LISTENING],
-            AppState.LISTENING: [AppState.RECORDING, AppState.ERROR],
+            AppState.LISTENING: [AppState.RECORDING, AppState.ERROR, AppState.PROCESSING],
             AppState.RECORDING: [AppState.PROCESSING, AppState.ERROR],
             AppState.PROCESSING: [AppState.EXECUTING, AppState.AWAITING_INPUT, AppState.ERROR],
             AppState.AWAITING_INPUT: [AppState.LISTENING, AppState.EXECUTING, AppState.ERROR],
