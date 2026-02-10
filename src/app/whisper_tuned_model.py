@@ -1,4 +1,5 @@
 import torch
+import os
 from transformers import WhisperProcessor, WhisperForConditionalGeneration
 from peft import LoraConfig, get_peft_model
 from typing import Optional
@@ -8,10 +9,11 @@ from models.audio_data import AudioStream, Transcript
 
 class WhisperLoraAsrModel:
     """
-    Whisper Small model with LoRA adapters loaded at runtime.
+    Whisper Small model with LoRA adapters loaded at runtime with local caching to avoid redownloading.
     """
 
     BASE_MODEL_NAME = "openai/whisper-small"
+    CACHE_DIR = "./models/hf_cache" 
 
     def __init__(
         self,
@@ -22,8 +24,11 @@ class WhisperLoraAsrModel:
     ):
         self.device = device
 
-        self.processor = WhisperProcessor.from_pretrained(self.BASE_MODEL_NAME)
-        base_model = WhisperForConditionalGeneration.from_pretrained(self.BASE_MODEL_NAME)
+        # Ensure cache directory exists
+        os.makedirs(self.CACHE_DIR, exist_ok=True)
+
+        self.processor = self._load_processor()
+        base_model = self._load_base_model()
 
         self.adapter_path = adapter_path
         state_dict = torch.load(self.adapter_path, map_location=self.device)
@@ -56,6 +61,49 @@ class WhisperLoraAsrModel:
 
         self.model.to(self.device)
         self.model.eval()
+
+    def _load_processor(self) -> WhisperProcessor:
+        """
+        Load WhisperProcessor from local cache if available,
+        otherwise download and cache it.
+        """
+        processor_cache_path = os.path.join(self.CACHE_DIR, "processor")
+        
+        # Check if processor exists locally
+        if os.path.exists(processor_cache_path) and os.listdir(processor_cache_path):
+            try:
+                processor = WhisperProcessor.from_pretrained(processor_cache_path)
+                return processor
+            except Exception as e:
+                print(f"Failed to load cached processor: {e}")
+        
+        processor = WhisperProcessor.from_pretrained(self.BASE_MODEL_NAME)
+        
+        # Save processor to cache
+        processor.save_pretrained(processor_cache_path)
+        
+        return processor
+
+    def _load_base_model(self) -> WhisperForConditionalGeneration:
+        """
+        Load base Whisper model from local cache if available,
+        otherwise download and cache it.
+        """
+        model_cache_path = os.path.join(self.CACHE_DIR, "base_model")
+        
+        # Check if model exists locally
+        if os.path.exists(model_cache_path) and os.listdir(model_cache_path):
+            try:
+                base_model = WhisperForConditionalGeneration.from_pretrained(model_cache_path)
+                return base_model
+            except Exception as e:
+                print(f"Failed to load cached model: {e}")
+        
+        base_model = WhisperForConditionalGeneration.from_pretrained(self.BASE_MODEL_NAME)
+        
+        base_model.save_pretrained(model_cache_path)
+        
+        return base_model
 
     def is_valid(self) -> bool:
         return self.model is not None

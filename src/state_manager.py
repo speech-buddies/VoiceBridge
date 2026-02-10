@@ -6,7 +6,7 @@ and browser control modules.
 """
 
 from enum import Enum
-from typing import Optional, Callable, Any
+from typing import Optional, Callable
 from dataclasses import dataclass
 from datetime import datetime
 import threading
@@ -20,12 +20,9 @@ class AppState(Enum):
     """Application states"""
     IDLE = "idle" 
     LISTENING = "listening" # After startup, awaiting voice detection and starting browser session
-    RECORDING = "recording" # After voice detection, awaiting silence
     PROCESSING = "processing" # After silence, awaiting command orchestrator response
-    AWAITING_INPUT = "awaiting_input"  # Command orchestrator needs clarification
     EXECUTING = "executing" # executing browser orchestrator
     ERROR = "error" # error in browser orchestrator
-    STOP = "stop" # application stopping and closing browser session
 
 
 @dataclass
@@ -126,19 +123,15 @@ class StateManager:
         
         Valid transitions:
         - IDLE -> LISTENING
-        - LISTENING -> RECORDING or ERROR
-        - RECORDING -> PROCESSING or ERROR
-        - PROCESSING -> EXECUTING or AWAITING_INPUT or ERROR
-        - AWAITING_INPUT -> LISTENING or EXECUTING or ERROR
-        - EXECUTING -> IDLE or ERROR
+        - LISTENING -> PROCESSING or ERROR
+        - PROCESSING -> EXECUTING or ERROR
+        - EXECUTING -> IDLE or LISTENING or ERROR
         - ERROR -> IDLE or LISTENING
         """
         valid_transitions = {
             AppState.IDLE: [AppState.LISTENING],
-            AppState.LISTENING: [AppState.RECORDING, AppState.ERROR, AppState.PROCESSING],
-            AppState.RECORDING: [AppState.PROCESSING, AppState.ERROR],
-            AppState.PROCESSING: [AppState.EXECUTING, AppState.AWAITING_INPUT, AppState.ERROR],
-            AppState.AWAITING_INPUT: [AppState.LISTENING, AppState.EXECUTING, AppState.ERROR],
+            AppState.LISTENING: [AppState.PROCESSING, AppState.ERROR],
+            AppState.PROCESSING: [AppState.EXECUTING, AppState.ERROR],
             AppState.EXECUTING: [AppState.IDLE, AppState.LISTENING, AppState.ERROR],
             AppState.ERROR: [AppState.IDLE, AppState.LISTENING]
         }
