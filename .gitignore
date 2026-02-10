@@ -398,3 +398,6 @@ __pycache__/
 
 */models/adapters/*
 log
+
+# Model cache
+src/models/hf_cache/
