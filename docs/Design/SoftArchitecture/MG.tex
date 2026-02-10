@@ -56,6 +56,7 @@ Jan 10, 2026 & 1.4 & Implemented TA Feedback for M7-M11\\
 Jan 10, 2026 & 1.4 & Implemented TA and Peer Feedback for AC/UC distinctions\\
 Jan 21, 2026 & 2.0 & Merged modules in application layer and updated timeline\\
 Jan 21, 2026 & 2.1 & Added communication protocol details\\
+Feb 10, 2026 & 2.2 & Implemented advisor feedback on structure, clarity and terminology \\
 \bottomrule
 \end{tabularx}
 
@@ -251,29 +252,52 @@ Modularity was chosen for maintainability and scalability. Changing to a less mo
 \section{Module Hierarchy} \label{SecMH}
 
 This section provides an overview of the module design. The system is organized into architectural layers, each containing modules that encapsulate specific responsibilities. Table~\ref{TblMH} presents the hierarchy of modules by their layers, including their primary purposes and responsibilities. The modules listed below, which are leaves in the hierarchy tree, are the modules that will be implemented.
+\subsection{Architectural Terminology}
 
-\begin{description}
-\item [\refstepcounter{mnum}\mthemnum\label{m1}:] User Interface Module
-\item [\refstepcounter{mnum}\mthemnum\label{m2}:] Accessibility Layer
-\item [\refstepcounter{mnum}\mthemnum\label{m3}:] Feedback Display Module
-\item [\refstepcounter{mnum}\mthemnum\label{m4}:] Speech-to-Text Engine
-\item [\refstepcounter{mnum}\mthemnum\label{m5}:] Command Orchestrator
-\item [\refstepcounter{mnum}\mthemnum\label{m6}:] Error Feedback
-\item [\refstepcounter{mnum}\mthemnum\label{m7}:] Browser Controller
-\item [\refstepcounter{mnum}\mthemnum\label{m8}:] Session Manager
-\item [\refstepcounter{mnum}\mthemnum\label{m9}:] Data Management Layer
-\item [\refstepcounter{mnum}\mthemnum\label{m10}:] User Profile Manager
-\item [\refstepcounter{mnum}\mthemnum\label{m11}:] Audit Logger
-\item [\refstepcounter{mnum}\mthemnum\label{m12}:] Credential Manager
-\item [\refstepcounter{mnum}\mthemnum\label{m13}:] Encryption Manager
-\item [\refstepcounter{mnum}\mthemnum\label{m14}:] Out-of-Scope Handler
-\item [\refstepcounter{mnum}\mthemnum\label{m15}:] Microphone Manager
-\item [\refstepcounter{mnum}\mthemnum\label{m16}:] VAD Noise Filter
-\item [\refstepcounter{mnum}\mthemnum\label{m17}:] Prompting Module
-\item [\refstepcounter{mnum}\mthemnum\label{m18}:] Model Tuner
-\end{description}
+To clarify the structural organization of this system, we distinguish between three key architectural concepts:
+
+\textbf{Layer:} A layer is a horizontal grouping of modules that share a common level of abstraction and responsibility within the system architecture. Layers enforce separation of concerns by restricting dependencies—modules within a layer may only depend on modules in lower layers, never on those in higher layers. For example, the Presentation Layer contains all user-facing components (M1-M3), while the Data Management Layer (M9-M14) handles persistence and security. Layers represent what broad categories of functionality exist.
+
+\textbf{Module:} A module is a self-contained software component that encapsulates a specific set of secrets (design decisions) and provides a well-defined set of services through its interface. Each module is the fundamental unit of implementation and change—modifications to a module's internal implementation should not require changes to other modules, provided its interface remains stable. Modules represent how specific responsibilities are implemented and hidden behind abstractions.
+
+\textbf{Orchestrator:} An orchestrator is a specialized type of module whose primary responsibility is coordinating the interactions between other modules to accomplish complex workflows. Unlike standard modules that focus on a single domain-specific task, orchestrators manage sequencing, decision-making, and data flow across module boundaries. In this system, M5 (Command Orchestrator) exemplifies this pattern by synthesizing speech transcripts into browser commands through coordination with M4, M17 (Prompting Module), M7 (Browser Controller), and M8 (Session Manager). Orchestrators represent when modules interact and why certain sequences occur.
 
 
+\subsection{Design Rationale}
+
+\textbf{Separation of Concerns:} The architecture strictly separates presentation (M1-M3), processing (M4-M6), control (M7-M8), data (M9-M14), input (M15-M16), and personalization (M17-M18). This ensures that changes in one layer (e.g., switching STT engines) do not cascade across unrelated modules.
+
+\textbf{Security by Design:} Security-critical functions are isolated in dedicated modules (M11-M14) with restricted access patterns. Credentials, encryption keys, and audit logs are managed independently to support defense-in-depth.
+
+\textbf{Accessibility First:} The Accessibility Layer (M2) is a first-class architectural component rather than an afterthought, ensuring WCAG compliance is enforced systematically across all UI components.
+
+\textbf{LLM-Driven Command Synthesis:} Unlike traditional intent-based systems with fixed command registries, the Command Orchestrator (M5) uses prompt engineering and schema validation to synthesize commands dynamically, enabling flexible natural language understanding without hardcoded mappings.
+
+\textbf{Personalization Without Privacy Trade-offs:} The Model Tuner (M18) and User Profile Manager (M10) work in tandem with Encryption (M13) to enable user-specific adaptations while maintaining data anonymization for model training.
+
+\subsection{Module Listing}
+The following 18 modules represent the leaf nodes in the architectural decomposition and will be implemented as distinct software components:
+
+\begin{itemize}
+  \item User Interface Module
+  \item Accessibility Layer
+  \item Feedback Display Module
+  \item Speech-to-Text Engine
+  \item Command Orchestrator
+  \item Error Feedback
+  \item Browser Controller
+  \item Session Manager
+  \item Data Management Layer
+  \item User Profile Manager
+  \item Audit Logger
+  \item Credential Manager
+  \item Encryption Manager
+  \item Out-of-Scope Handler
+  \item Microphone Manager
+  \item VAD Noise Filter
+  \item Prompting Module
+  \item Model Tuner
+\end{itemize}
 
 \section{Connection Between Requirements and Design} \label{SecConnection} \label{SecConnection}
 
@@ -356,7 +380,7 @@ Provides user prompting, model fine-tuning, and instruction management. Supports
 % ---------- Presentation Layer ----------
 \subsection*{Presentation Layer Modules}
 
-\subsubsection*{M1: User Interface Module}
+\subsubsection*{M1: User Interface Module} \refstepcounter{mnum}\mthemnum\label{m1}
 \textbf{Secrets:} 
 \begin{itemize}
   \item Representation of UI state, layout, and visible components
@@ -373,7 +397,7 @@ Provides user prompting, model fine-tuning, and instruction management. Supports
 \textbf{Implemented By:} UserInterface module using the browser rendering engine and DOM/event APIs.
 
 \medskip
-\subsubsection*{M2: Accessibility Layer}
+\subsubsection*{M2: Accessibility Layer} \refstepcounter{mnum}\mthemnum\label{m2}
 \textbf{Secrets:} 
 \begin{itemize}
   \item Encoding of accessibility configuration (AccessConfig)
@@ -389,7 +413,7 @@ Provides user prompting, model fine-tuning, and instruction management. Supports
 \textbf{Implemented By:} AccessibilityLayer module operating on UI elements exposed by UserInterface.
 
 \medskip
-\subsubsection*{M3: Feedback Display Module}
+\subsubsection*{M3: Feedback Display Module} \refstepcounter{mnum}\mthemnum\label{m3}
 \textbf{Secrets:} 
 \begin{itemize}
   \item Internal representation of FeedbackItems keyed by UUID
@@ -405,9 +429,9 @@ Provides user prompting, model fine-tuning, and instruction management. Supports
 \textbf{Implemented By:} FeedbackDisplay module rendering via UserInterface and coordinating with AccessibilityLayer.
 
 % ---------- Application Processing Layer ----------
-\subsection*{Application (Processing) Modules}
+\subsection*{Application (Processing) Modules} 
 
-\subsubsection*{M4: Speech-to-Text Engine}
+\subsubsection*{M4: Speech-to-Text Engine} \refstepcounter{mnum}\mthemnum\label{m4}
 \textbf{Secrets:} 
 \begin{itemize}
   \item Configuration (AsrConfig) and internal processing details of the speech-to-text engine
@@ -423,7 +447,7 @@ Provides user prompting, model fine-tuning, and instruction management. Supports
 
 
 \medskip
-\subsubsection*{M5: Command Orchestrator}
+\subsubsection*{M5: Command Orchestrator} \refstepcounter{mnum}\mthemnum\label{m5}
 
 \textbf{Secrets:} 
 \begin{itemize}
@@ -442,7 +466,7 @@ Provides user prompting, model fine-tuning, and instruction management. Supports
 \textbf{Implemented By:} CommandOrchestrator module using an external LLM API, dynamic context injection, and a JSON schema validation layer.
 
 \medskip
-\subsubsection*{M6: Error Feedback}
+\subsubsection*{M6: Error Feedback} \refstepcounter{mnum}\mthemnum\label{m6}
 
 \textbf{Secrets:} 
 \begin{itemize}
@@ -464,7 +488,7 @@ Provides user prompting, model fine-tuning, and instruction management. Supports
 % ---------- Control (Orchestration) ----------
 \subsection*{Control (Orchestration) Modules}
 
-\subsubsection*{M7: BrowserController}
+\subsubsection*{M7: BrowserController} \refstepcounter{mnum}\mthemnum\label{m7}
 \textbf{Secrets:} 
 \begin{itemize}
   \item Transport protocol to the browser controller
@@ -481,7 +505,7 @@ Provides user prompting, model fine-tuning, and instruction management. Supports
 \textbf{Implemented By:} Automation bridge client.
 
 \medskip
-\subsubsection*{M8: Session Manager}
+\subsubsection*{M8: Session Manager} \refstepcounter{mnum}\mthemnum\label{m8}
 \textbf{Secrets:} 
 \begin{itemize}
   \item Session lifecycle rules
@@ -499,7 +523,7 @@ Provides user prompting, model fine-tuning, and instruction management. Supports
 
 \subsection*{Data Management Modules}
 \medskip
-\subsubsection*{M9: Storage Management Module}
+\subsubsection*{M9: Storage Management Module} \refstepcounter{mnum}\mthemnum\label{m9}
 \textbf{Secrets:}
 \begin{itemize}
   \item Database connection credentials
@@ -516,7 +540,7 @@ Provides user prompting, model fine-tuning, and instruction management. Supports
 \textbf{Implemented By:} DataStorageManager.
 
 \medskip
-\subsubsection*{M10: User Profile Management Module}
+\subsubsection*{M10: User Profile Management Module} \refstepcounter{mnum}\mthemnum\label{m10}
 \textbf{Secrets:}
 \begin{itemize}
   \item User tokens and refresh keys
@@ -532,7 +556,7 @@ Provides user prompting, model fine-tuning, and instruction management. Supports
 \textbf{Implemented By:} UserProfileManagerImpl.
 
 \medskip
-\subsubsection*{M11: Audit Logging Module}
+\subsubsection*{M11: Audit Logging Module} \refstepcounter{mnum}\mthemnum\label{m11}
 \textbf{Secrets:}
 \begin{itemize}
   \item Log signing key
@@ -548,10 +572,10 @@ Provides user prompting, model fine-tuning, and instruction management. Supports
 \textbf{Implemented By:} AuditLoggerImpl.
 
 \medskip
-\subsubsection*{M12: Credential Management Module}
+\subsubsection*{M12: Credential Management Module} \refstepcounter{mnum}\mthemnum\label{m12}
 \textbf{Secrets:}
 \begin{itemize}
-  \item Vault master key
+  \item Vault root key
   \item Token signing keypair
   \item OAuth client secrets
 \end{itemize}
@@ -564,7 +588,7 @@ Provides user prompting, model fine-tuning, and instruction management. Supports
 \textbf{Implemented By:} CredentialManagerImpl.
 
 \medskip
-\subsubsection*{M13: Encryption Management Module}
+\subsubsection*{M13: Encryption Management Module} \refstepcounter{mnum}\mthemnum\label{m13}
 \textbf{Secrets:}
 \begin{itemize}
   \item Private encryption keypair
@@ -581,10 +605,10 @@ Provides user prompting, model fine-tuning, and instruction management. Supports
 \textbf{Implemented By:} EncryptionManagerImpl.
 
 \medskip
-\subsubsection*{M14: Out-of-Scope Handling Module}
+\subsubsection*{M14: Out-of-Scope Handling Module} \refstepcounter{mnum}\mthemnum\label{m14}
 \textbf{Secrets:}
 \begin{itemize}
-  \item Command whitelist/blacklist configuration
+  \item Command allowlist/denylist configuration
   \item Safety policy file checksum
   \item Secure incident reporting token
 \end{itemize}
@@ -599,7 +623,7 @@ Provides user prompting, model fine-tuning, and instruction management. Supports
 
 \subsection*{Input Processing Layer Modules}
 
-\subsubsection*{M15: Microphone Manager}
+\subsubsection*{M15: Microphone Manager} \refstepcounter{mnum}\mthemnum\label{m15}
 \textbf{Secrets:} 
 \begin{itemize}
   \item Device-level audio capture configuration and sampling parameters
@@ -616,7 +640,7 @@ Provides user prompting, model fine-tuning, and instruction management. Supports
 \textbf{Implemented By:} Browser audio APIs or OS audio interface.
 
 \medskip
-\subsubsection*{M16: VAD Noise Filter}
+\subsubsection*{M16: VAD Noise Filter} \refstepcounter{mnum}\mthemnum\label{m16}
 \textbf{Secrets:} 
 \begin{itemize}
   \item Voice-activity-detection thresholds
@@ -633,7 +657,7 @@ Provides user prompting, model fine-tuning, and instruction management. Supports
 \textbf{Implemented By:} DSP/VAD library.
 
 \subsection*{Personalization Layer}
-\subsubsection*{M17: Prompting Module}
+\subsubsection*{M17: Prompting Module} \refstepcounter{mnum}\mthemnum\label{m17}
 \textbf{Secrets:} 
 \begin{itemize}
   \item Prompt templates and personalization rules
@@ -649,7 +673,7 @@ Provides user prompting, model fine-tuning, and instruction management. Supports
 \textbf{Implemented By:} Application prompt engine.
 
 \medskip
-\subsubsection*{M18: Model Tuner}
+\subsubsection*{M18: Model Tuner} \refstepcounter{mnum}\mthemnum\label{m18}
 \textbf{Secrets:} 
 \begin{itemize}
   \item Adaptation strategy for user-specific speech patterns
