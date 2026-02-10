@@ -5,13 +5,13 @@
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-/* Extension overlay styles */
+/* Extension overlay styles - widget aligned to top */
 .App.extension-overlay {
   min-height: 100vh;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
-  padding: 20px;
+  padding: 24px 20px 20px 20px;
   position: relative;
   background: transparent !important;
 }
@@ -184,7 +184,7 @@
   display: flex;
   justify-content: center;
   align-items: stretch;
-  padding: 2rem;
+  padding: 1rem 2rem;
   transition: background 0.3s ease;
   overflow-y: auto;
   border-radius: 0 0 16px 16px;
@@ -200,8 +200,9 @@
 
 .main-container {
   display: flex;
-  flex-direction: column;
-  gap: 1rem;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 0.75rem;
   max-width: 1400px;
   width: 100%;
   align-items: stretch;
@@ -210,14 +211,90 @@
 .left-panel {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 280px;
 }
 
 .right-panel {
   display: flex;
   flex-direction: column;
-  height: 100%;
-  min-height: 100%;
+  flex: 1;
+  min-width: 280px;
+  justify-content: flex-end;
+}
+
+.llm-response-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 12px;
+  border: 1px dashed;
+  flex: 0 0 auto;
+  max-height: 4.5rem;
+  overflow: hidden;
+}
+
+.dark-mode .llm-response-panel {
+  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.light-mode .llm-response-panel {
+  border-color: rgba(0, 0, 0, 0.15);
+  background: rgba(0, 0, 0, 0.02);
+}
+
+.llm-response-heading {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.dark-mode .llm-response-heading {
+  color: #a0a0a0;
+}
+
+.light-mode .llm-response-heading {
+  color: #666666;
+}
+
+.llm-response-placeholder {
+  flex: 1;
+  min-height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  font-size: 0.9rem;
+}
+
+.dark-mode .llm-response-placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.light-mode .llm-response-placeholder {
+  color: rgba(0, 0, 0, 0.4);
+}
+
+.llm-response-content {
+  padding: 0.25rem 0;
+  word-wrap: break-word;
+  white-space: pre-wrap;
+  min-height: 1.25rem;
+  max-height: 2.5rem;
+  overflow-y: auto;
+  font-size: 0.9rem;
+  line-height: 1.3;
+}
+
+.dark-mode .llm-response-content {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.light-mode .llm-response-content {
+  color: rgba(0, 0, 0, 0.85);
 }
 
 .App-footer {
@@ -241,8 +318,8 @@
 
 @media (max-width: 1024px) {
   .main-container {
-    grid-template-columns: 1fr;
-    gap: 1.5rem;
+    flex-direction: column;
+    gap: 0.75rem;
   }
 }
 
@@ -256,6 +333,6 @@
   }
 
   .main-container {
-    gap: 1rem;
+    gap: 0.5rem;
   }
 }
