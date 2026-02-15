@@ -170,7 +170,7 @@ to speech processing, browser automation, and interaction workflows:
 
     \item \textbf{Command} — validated, executable instruction produced by CommandMapping and consumed by the Execution Layer.
 
-    \item \textbf{BackendReq / BackendResp} — typed request/response objects exchanged with the BrowserController and automation bridge.
+    \item \textbf{BackendReq / BackendResp} — typed request/response objects exchanged with the Browser Orchestrator and automation bridge.
 \end{itemize}
 
 \noindent
@@ -194,7 +194,7 @@ The high-level module decomposition of the system is summarized in Table 1 of th
   \item Accessibility Layer (M2) to ensure UI semantics, ARIA roles, and announcements.
   \item Feedback Display Module (M3) to present messages, prompts, and recovery options.
   \item Command Orchestrator (M5) for forwarding validated user events.
-  \item BrowserController / rendering engine to perform DOM updates and capture input events.
+  \item Browser Orchestrator (M7) / rendering engine to perform DOM updates and capture input events.
 \end{itemize}
 
 \subsection{Syntax:}
@@ -631,7 +631,7 @@ validateModelReady & - & bool & ModelValidationError \\ \hline
 \noindent\texttt{processTranscript(text)}:
 \begin{itemize}
 \item \textbf{transition:} Append \texttt{text} to \texttt{conversation\_history}; send history + \texttt{system\_prompt} to LLM; parse resulting string into a \texttt{Command} object.
-\item \textbf{output:} A structured \texttt{Command} object ready for the Browser Controller.
+\item \textbf{output:} A structured \texttt{Command} object ready for the Browser Orchestrator.
 \item \textbf{exception:} \texttt{InferenceError} if the API fails, times out, or returns a non-parsable response.
 \end{itemize}
 
@@ -766,21 +766,19 @@ UI client is available and permitted to display notifications.
 %   \item \texttt{make\_recovery(options)} — build prompt content
 % \end{itemize}
 
-\section{(M7) MIS of BrowserController} 
+\section{(M7) MIS of Browser Orchestrator}
 \label{M7}
-\textbf{Module:} BrowserController
+\textbf{Module:} BrowserOrchestrator
 
 \subsection{Uses}
 \begin{itemize}
-  \item Credential Manager (M17) to obtain/validate authentication material required to call the controller endpoint (when applicable).
-  \item Error Feedback (M6) to standardize timeout/retry decisions and error classification for transport failures.
-  \item AuditLogger (M16) to record request/response summaries, failures, and timeouts.
+  \item Session Manager (M8) to obtain the active \texttt{Browser} instance used for command execution.
+  \item \texttt{browser\_use} library (\texttt{Agent}, \texttt{Browser}, \texttt{ChatBrowserUse}) to perform LLM-powered browser automation.
 \end{itemize}
 
 \subsection{Syntax}
 
 \subsubsection{Exported Constants}
-
 None.
 
 \subsubsection{Exported Access Programs}
@@ -790,12 +788,7 @@ None.
 \hline
 \textbf{Name} & \textbf{In} & \textbf{Out} & \textbf{Exceptions} \\
 \hline
-\texttt{BrowserController} & \texttt{bridge: Client, timeout\_s: N} & self & -- \\
-\texttt{send} & \texttt{req: BackendReq} & \texttt{BackendResp} & \texttt{TimeoutError}, \texttt{TransportError} \\
-\texttt{get\_status} & \texttt{cmd\_id: UUID} & \texttt{ExecStatus} & \texttt{NotFoundError} \\
-\texttt{cancel} & \texttt{cmd\_id: UUID} & \texttt{bool} & \texttt{NotFoundError} \\
-\texttt{open\_session} & \texttt{user\_id: UUID} & \texttt{SessionId} & \texttt{TransportError} \\
-\texttt{close\_session} & \texttt{session\_id: SessionId} & \texttt{bool} & \texttt{TransportError} \\
+\texttt{run\_command} & \texttt{command: str, browser: Browser} & \texttt{history: Any} & \texttt{Exception} \\
 \hline
 \end{tabular}
 \end{center}
@@ -803,96 +796,54 @@ None.
 \subsection{Semantics}
 
 \subsubsection{State Variables}
-
-\begin{itemize}
-  \item \texttt{bridge: Client} — transport to the browser controller
-  \item \texttt{default\_timeout\_s: int} — call timeout
-  \item \texttt{sessions: set[SessionId]} — open sessions
-\end{itemize}
+None.
 
 \subsubsection{Environment Variables}
-
 \begin{itemize}
-  \item \texttt{BROWSER\_BRIDGE\_URL} — endpoint for the controller
+  \item \texttt{BROWSER\_USE\_API\_KEY} --- API key used by the \texttt{browser\_use} provider (loaded from \texttt{.env}).
 \end{itemize}
 
 \subsubsection{Assumptions}
-
-Controller endpoint is reachable and authenticated.
+\begin{itemize}
+  \item A valid, started \texttt{Browser} instance is provided as input (typically from M8).
+  \item The \texttt{browser\_use} provider is configured correctly via environment variables (e.g., \texttt{BROWSER\_USE\_API\_KEY}).
+\end{itemize}
 
 \subsubsection{Access Routine Semantics}
 
-\noindent \texttt{BrowserController}(\texttt{bridge}, \texttt{timeout\_s}):
+\noindent \texttt{run\_command}(\texttt{command, browser}):
 \begin{itemize}
-\item transition: set \texttt{bridge}, \texttt{default\_timeout\_s}, clear \texttt{sessions}
-\item output: initialized instance
-\item exception: -
-\end{itemize}
-
-\noindent \texttt{send}(\texttt{req}):
-\begin{itemize}
-\item transition: none
-\item output: \texttt{BackendResp} from controller
-\item exception: \texttt{TimeoutError}, \texttt{TransportError} on failures
-\end{itemize}
-
-\noindent \texttt{get\_status}(\texttt{cmd\_id}):
-\begin{itemize}
-\item transition: none
-\item output: current \texttt{ExecStatus}
-\item exception: \texttt{NotFoundError} if unknown
-\end{itemize}
-
-\noindent \texttt{cancel}(\texttt{cmd\_id}):
-\begin{itemize}
-\item transition: signal cancellation upstream
-\item output: \texttt{true} if accepted
-\item exception: \texttt{NotFoundError} if unknown
-\end{itemize}
-
-\noindent \texttt{open\_session}(\texttt{user\_id}):
-\begin{itemize}
-\item transition: create session; add to \texttt{sessions}
-\item output: \texttt{SessionId}
-\item exception: \texttt{TransportError} if controller rejects
-\end{itemize}
-
-\noindent \texttt{close\_session}(\texttt{session\_id}):
-\begin{itemize}
-\item transition: close remotely; remove from \texttt{sessions}
-\item output: \texttt{true} on success; otherwise \texttt{false}
-\item exception: \texttt{TransportError} on failure
+  \item transition:
+    \begin{itemize}
+      \item instantiate \texttt{llm := ChatBrowserUse()}
+      \item instantiate \texttt{agent := Agent(task=command, llm=llm, browser=browser)}
+      \item execute \texttt{history := await agent.run()}
+    \end{itemize}
+  \item output: \texttt{history} returned by \texttt{agent.run()} (may be empty/falsey)
+  \item exception: propagates any raised \texttt{Exception} from \texttt{browser\_use} or underlying runtime
 \end{itemize}
 
 \subsubsection{Local Functions}
-\begin{itemize}
-  \item \texttt{with\_timeout}(\texttt{ClientCall call}): \texttt{ClientCall} $\rightarrow$ \texttt{ClientCall} \\
-  \textbf{Description:} \texttt{with\_timeout(call)} returns wrapped call that fails if it exceeds timeout limit.
+None.
 
-  \item \texttt{normalize}(\texttt{BackendResp resp}): \texttt{BackendResp} $\rightarrow$ \texttt{BackendResp} \\
-  \textbf{Description:} \texttt{normalize(resp)} returns controller response with standardized fields and error codes.
-\end{itemize}
 % \begin{itemize}
 %   \item \texttt{with\_timeout(call)} — wrap a bridge call with timeout
 %   \item \texttt{normalize(resp)} — normalize controller response
 % \end{itemize}
 
 
-\section{(M8) MIS of Session Manager} \label{M8}
+\section{(M8) MIS of Session Manager}
+\label{M8}
 \textbf{Module:} SessionManager
 
 \subsection{Uses}
-
-15.2 Uses:
 \begin{itemize}
-  \item Storage Management Module (M14) as the persistent store/cache for session state.
-  \item AuditLogger (M16) to record session lifecycle events (start/stop/expiry) and state transitions.
+  \item \texttt{browser\_use} library (\texttt{Browser}) to create and manage a single shared browser instance.
 \end{itemize}
 
 \subsection{Syntax}
 
 \subsubsection{Exported Constants}
-
 None.
 
 \subsubsection{Exported Access Programs}
@@ -902,12 +853,9 @@ None.
 \hline
 \textbf{Name} & \textbf{In} & \textbf{Out} & \textbf{Exceptions} \\
 \hline
-\texttt{SessionManager} & \texttt{store: Store}, \texttt{ttl\_s: int} & self & - \\
-\texttt{start} & \texttt{user\_id: UUID} & \texttt{SessionId} & \texttt{StoreError} \\
-\texttt{stop} & \texttt{SessionId} & \texttt{bool} & \texttt{StoreError} \\
-\texttt{get} & \texttt{SessionId} & \texttt{SessionState} & \texttt{NotFoundError} \\
-\texttt{attach\_command} & \texttt{SessionId}, \texttt{cmd\_id: UUID} & \texttt{bool} & \texttt{NotFoundError} \\
-\texttt{set\_state} & \texttt{SessionId}, \texttt{state: SessionState} & \texttt{bool} & \texttt{StoreError} \\
+\texttt{start\_session} & -- & \texttt{str} & \texttt{Exception} \\
+\texttt{stop\_session} & -- & \texttt{str} & \texttt{Exception} \\
+\texttt{get\_browser} & -- & \texttt{Browser | None} & -- \\
 \hline
 \end{tabular}
 \end{center}
@@ -915,76 +863,61 @@ None.
 \subsection{Semantics}
 
 \subsubsection{State Variables}
-
 \begin{itemize}
-  \item \texttt{store: Store} — persistence for sessions
-  \item \texttt{ttl\_s: int} — idle expiry threshold
-  \item \texttt{index: map[SessionId] to SessionState} — in-memory cache
+  \item \texttt{\_browser: Browser | None} --- single shared browser instance for the whole app (module-level global).
 \end{itemize}
 
 \subsubsection{Environment Variables}
-
-\begin{itemize}
-  \item \texttt{SESSION\_TTL\_S} — default idle timeout
-\end{itemize}
+None.
 
 \subsubsection{Assumptions}
-
-Store operations are atomic per session key.
+\begin{itemize}
+  \item The application requires at most one shared browser session at a time.
+  \item When started, the browser is kept alive across commands using \texttt{keep\_alive=True}.
+\end{itemize}
 
 \subsubsection{Access Routine Semantics}
 
-\noindent \texttt{SessionManager}(\texttt{store}, \texttt{ttl\_s}):
+\noindent \texttt{start\_session}():
 \begin{itemize}
-\item transition: set fields; warm cache from store if available
-\item output: initialized instance
-\item exception: -
+  \item transition:
+    \begin{itemize}
+      \item if \texttt{\_browser} is not \texttt{None}, no change
+      \item else set \texttt{\_browser := Browser(keep\_alive=True)} and \texttt{await \_browser.start()}
+    \end{itemize}
+  \item output:
+    \begin{itemize}
+      \item \texttt{"Browser already running"} if \texttt{\_browser} was already initialized
+      \item \texttt{"Browser started"} if a new browser was created and started
+    \end{itemize}
+  \item exception: propagates any \texttt{Exception} from browser creation/start
 \end{itemize}
 
-\noindent \texttt{start}(\texttt{user\_id}):
+\noindent \texttt{stop\_session}():
 \begin{itemize}
-\item transition: create session; write to store; cache in \texttt{index}
-\item output: \texttt{SessionId}
-\item exception: \texttt{StoreError} on failure
+  \item transition:
+    \begin{itemize}
+      \item if \texttt{\_browser} is \texttt{None}, no change
+      \item else \texttt{await \_browser.stop()} and set \texttt{\_browser := None}
+    \end{itemize}
+  \item output:
+    \begin{itemize}
+      \item \texttt{"Browser already stopped"} if no browser exists
+      \item \texttt{"Browser stopped"} if the browser was stopped and cleared
+    \end{itemize}
+  \item exception: propagates any \texttt{Exception} from browser stop
 \end{itemize}
 
-\noindent \texttt{stop}(\texttt{session\_id}):
+\noindent \texttt{get\_browser}():
 \begin{itemize}
-\item transition: mark closed; evict from \texttt{index}; update store
-\item output: \texttt{true} on success; otherwise \texttt{false}
-\item exception: \texttt{StoreError} on failure
-\end{itemize}
-
-\noindent \texttt{get}(\texttt{session\_id}):
-\begin{itemize}
-\item transition: none
-\item output: current \texttt{SessionState}
-\item exception: \texttt{NotFoundError} if unknown
-\end{itemize}
-
-\noindent \texttt{attach\_command}(\texttt{session\_id}, \texttt{cmd\_id}):
-\begin{itemize}
-\item transition: append command reference to session state
-\item output: \texttt{true} if attached
-\item exception: \texttt{NotFoundError} if session unknown
-\end{itemize}
-
-\noindent \texttt{set\_state}(\texttt{session\_id}, \texttt{state}):
-\begin{itemize}
-\item transition: update state in cache and store
-\item output: \texttt{true} if updated
-\item exception: \texttt{StoreError} on write failure
+  \item transition: none
+  \item output: current value of \texttt{\_browser} (a \texttt{Browser} if running, otherwise \texttt{None})
+  \item exception: --
 \end{itemize}
 
 \subsubsection{Local Functions}
+None.
 
-\begin{itemize}
-  \item \texttt{now}(): $\rightarrow$ \texttt{timestamp} \\
-  \textbf{Description:} \texttt{now()} returns the current system timestamp.
-
-  \item \texttt{expired}(\texttt{SessionState state}): \texttt{SessionState} $\rightarrow$ \texttt{bool} \\
-  \textbf{Description:} \texttt{expired(state)} returns \texttt{true} if the session state has exceeded its idle expiry time.
-\end{itemize}
 % \begin{itemize}
 %   \item \texttt{calc\_backoff(cmd\_id)} — compute next delay
 %   \item \texttt{is\_idempotent(cmd\_id)} — check compensation safety
