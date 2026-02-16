@@ -211,7 +211,7 @@ The high-level module decomposition of the system is summarized in Table 1 of th
 \begin{tabular}{|l|l|l|l|}
 \hline
 \textbf{Name} & \textbf{In} & \textbf{Out} & \textbf{Exceptions} \\ \hline
-\texttt{UserInterface} & \texttt{config: UiConfig} & self & InitializationError \\ 
+\texttt{UserInterface} & \texttt{config: UiConfig} & \texttt{self: UserInterface} & \texttt{InitializationError} \\ 
 \texttt{receiveInput} & \texttt{event: UiEvent} & - & \texttt{InputError} \\ 
 \texttt{render} & \texttt{state: UiState} & - & RenderError \\ 
 \texttt{showFeedback} & \texttt{msg: FeedbackItem} & - & - \\ 
@@ -1397,7 +1397,7 @@ Updates the user's model profile upon successful tuning.
 
 
 \bibliographystyle {plainnat}
-\bibliography {../../../refs/References}
+\bibliography{refs/References}
 
 \newpage
 
