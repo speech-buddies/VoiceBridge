@@ -70,8 +70,16 @@ Jan 28, 2026 & 2.1 & Added reflection for peer module implementation\\
 \begin{tabular}{|l|l|}
 \hline
 \textbf{Acronym} & \textbf{Meaning} \\ \hline
-DOM & Document Object Model \\ \hline
+API & Application Programming Interface \\ \hline
 ARIA & Accessible Rich Internet Applications \\ \hline
+ASR & Automatic Speech Recognition \\ \hline
+DOM & Document Object Model \\ \hline
+DSP & Digital Signal Processing \\ \hline
+IR & Integrity Requirement \\ \hline
+MIS & Module Interface Specification \\ \hline
+PCM & Pulse Code Modulation \\ \hline
+RMS & Root Mean Square \\ \hline
+VAD & Voice Activity Detection \\ \hline
 \end{tabular}
 
 \vspace{1em}
@@ -1281,88 +1289,143 @@ Integrates with M11 to log anomaly-triggered safety events.
 \end{itemize}
 
 
+\section{(M15) MIS of RealtimeAudioCapture} \label{M15}
 
-\section{(M15) MIS of MicrophoneManager} \label{M15}
-
-\textbf{Module:} MicrophoneManager
+\textbf{Module:} RealtimeAudioCapture
 
 \subsection{Uses:}
 \begin{itemize}
-\item VAD Noise Filter (M16) for downstream speech/noise classification.
-\item Session Manager (M8) for tracking active input sessions.
-\item AuditLogger (M11) for logging permission events or device failures.
+\item Logger (M11) for state transitions, errors, and capture statistics.
+\item External libraries: sounddevice for audio streaming, webrtcvad for voice activity detection.
 \end{itemize}
 
 \subsection{Syntax:}
+
+\subsubsection{Exported Types:}
+
+\texttt{AudioConfig} = \{sample\_rate, channels, chunk\_duration\_ms, vad\_aggressiveness, \\
+\hspace*{3cm} pre\_buffer\_duration\_ms, silence\_duration\_ms, max\_recording\_duration\_s, \\
+\hspace*{3cm} energy\_threshold, device\}
+
 
 \subsubsection{Exported Access Programs:}
 
 \begin{tabular}{|l|l|l|l|}
 \hline
 \textbf{Name} & \textbf{In} & \textbf{Out} & \textbf{Exceptions} \\ \hline
-\texttt{listDevices} & - & deviceList & DeviceQueryException \\ 
-\texttt{startCapture} & deviceID & \texttt{status: bool} & PermissionException \\ 
-\texttt{readFrame} & - & audioFrame & CaptureInactiveException \\ \hline
+\texttt{\_\_init\_\_} & config: AudioConfig, & - & ValueError \\ 
+ & callback: Callable & & \\
+\texttt{start} & - & - & RuntimeError \\ 
+\texttt{stop} & - & - & - \\ 
+\texttt{get\_stats} & - & Dict[str, Any] & - \\
+\texttt{list\_audio\_devices} & - & List[Tuple] & - \\ \hline
 \end{tabular}
 
 \subsection{Semantics}
 
-Implements audio acquisition requirements (FR1). Provides consistent, normalized microphone
-input to subsequent modules. Integrates with M8 to maintain session continuity.
+\subsubsection{State Variables:}
+\begin{itemize}
+\item \texttt{config}: AudioConfig - audio capture and VAD configuration parameters
+\item \texttt{state}: AudioState - current capture state
+\item \texttt{vad}: webrtcvad.Vad - voice activity detector instance
+\item \texttt{pre\_buffer}: deque - circular buffer storing recent audio chunks before speech detection
+\item \texttt{recording\_buffer}: list - accumulates audio chunks during active recording
+\item \texttt{silence\_counter}: int - tracks consecutive silent chunks
+\item \texttt{recording\_chunks\_count}: int - counts chunks in current recording
+\item \texttt{stream}: sounddevice.InputStream - active audio input stream
+\item \texttt{stats}: dict - capture statistics (total recordings, audio seconds, errors)
+\end{itemize}
+
+\subsubsection{Environment Variables:}
+Audio input device hardware accessible through sounddevice library.
+
+\subsubsection{Assumptions:}
+\begin{itemize}
+\item Audio device supports requested sample rate (8000, 16000, 32000, or 48000 Hz)
+\item Chunk duration is 10, 20, or 30ms (required by WebRTC VAD)
+\item Callback function \texttt{on\_audio\_ready} processes audio asynchronously
+\end{itemize}
 
 \subsubsection{Access Routine Semantics:}
 
-\noindent\texttt{startCapture(deviceID)}:
+\noindent\texttt{\_\_init\_\_(config, on\_audio\_ready)}:
 \begin{itemize}
-\item \textbf{transition:} Initializes device stream and marks microphone as active.
+\item \textbf{transition:} Initializes VAD with specified aggressiveness level (0-3), validates configuration parameters, sets state to IDLE.
+\item \textbf{output:} None
+\item \textbf{exception:} ValueError if configuration validation fails (invalid sample rate or chunk duration).
 \end{itemize}
 
-\noindent\texttt{readFrame()}:
+\noindent\texttt{start()}:
 \begin{itemize}
-\item \textbf{transition:} Retrieves the latest audio frame for processing.
+\item \textbf{transition:} Creates and starts sounddevice InputStream, transitions state from IDLE to LISTENING. Begins continuous audio capture with callback processing.
+\item \textbf{output:} None
+\item \textbf{exception:} RuntimeError if audio stream fails to start or if already running.
 \end{itemize}
 
-\label{MIS:M16}
-
-\section{(M16) MIS of VADNoiseFilter} \label{M16}
-
-\textbf{Module:} VADNoiseFilter
-
-\subsection{Uses:}
+\noindent\texttt{stop()}:
 \begin{itemize}
-\item MicrophoneManager (M15) for raw audio frames.
-\item Speech-to-Text Engine (M4) for improved transcription accuracy.
-\item AuditLogger (M11) for tracking confidence drops or noise anomalies.
+\item \textbf{transition:} Transitions state to STOPPED, stops and closes audio stream, clears buffers, returns state to IDLE.
+\item \textbf{output:} None
 \end{itemize}
 
-\subsection{Syntax:}
-
-\subsubsection{Exported Access Programs:}
-
-\begin{tabular}{|l|l|l|l|}
-\hline
-\textbf{Name} & \textbf{In} & \textbf{Out} & \textbf{Exceptions} \\ \hline
-\texttt{filterFrame} & \texttt{audioFrame: AudioFrame} & \texttt{cleanedFrame: AudioFrame} & - \\ 
-\texttt{detectSpeech} & \texttt{audioFrame: AudioFrame} & \texttt{isSpeech: bool} & - \\ 
-\texttt{resetState} & - & \texttt{status: bool} & - \\ \hline
-\end{tabular}
-
-\subsection{Semantics}
-
-Supports Integrity Requirements (IR2) by reducing background noise prior to transcription.
-Provides binary VAD detections for downstream timing and segmentation.
-
-\subsubsection{Access Routine Semantics:}
-
-\noindent\texttt{filterFrame(frame)}:
+\noindent\texttt{get\_stats()}:
 \begin{itemize}
-\item \textbf{transition:} Updates internal noise profile and returns processed audio.
+\item \textbf{output:} Dictionary containing total\_recordings, total\_audio\_seconds, vad\_errors, stream\_errors.
 \end{itemize}
 
-\noindent\texttt{detectSpeech(frame)}:
+\noindent\texttt{list\_audio\_devices()} (static):
 \begin{itemize}
-\item \textbf{transition:} Computes speech probability using configured thresholds.
+\item \textbf{output:} List of tuples (device\_index, device\_info) for all available input devices.
 \end{itemize}
+
+\subsubsection{Internal Processing (State Machine):}
+
+The module implements a state machine that processes audio chunks through the following logic:
+
+\begin{itemize}
+\item \textbf{LISTENING}: Maintains pre-buffer of recent chunks. On speech detection → SPEECH\_DETECTED.
+\item \textbf{SPEECH\_DETECTED}: Copies pre-buffer to recording buffer → RECORDING.
+\item \textbf{RECORDING}: Accumulates audio chunks. Increments silence\_counter when no speech detected. Ends recording when:
+  \begin{itemize}
+  \item Silence duration exceeds threshold (default 1500ms), or
+  \item Maximum recording duration reached (default 30s)
+  \end{itemize}
+\item \textbf{PROCESSING}: Converts accumulated int16 audio to float32, invokes callback with audio array and metadata, then → LISTENING.
+\end{itemize}
+
+Speech detection uses WebRTC VAD and optionally combines with energy threshold analysis.
+
+\subsubsection{Local Functions:}
+
+\noindent\texttt{\_is\_speech(audio\_chunk: bytes) → bool}:
+\begin{itemize}
+\item Applies WebRTC VAD to determine if chunk contains speech.
+\item If energy\_threshold configured, also computes RMS energy and returns OR of both criteria.
+\item Increments vad\_errors on exception.
+\end{itemize}
+
+\noindent\texttt{\_process\_audio\_chunk(audio\_chunk: bytes)}:
+\begin{itemize}
+\item Implements state machine logic based on current state and speech detection result.
+\end{itemize}
+
+\noindent\texttt{\_start\_recording()}:
+\begin{itemize}
+\item Initializes recording\_buffer with pre\_buffer contents.
+\end{itemize}
+
+\noindent\texttt{\_end\_recording()}:
+\begin{itemize}
+\item Concatenates recording buffer, converts to float32, creates metadata, invokes callback.
+\item Updates statistics and resets recording state.
+\end{itemize}
+
+\noindent\texttt{\_audio\_callback(indata, frames, time\_info, status)}:
+\begin{itemize}
+\item Sounddevice callback invoked for each audio chunk.
+\item Converts float32 input to int16 bytes and forwards to \_process\_audio\_chunk.
+\end{itemize}
+
 
 \label{MIS:M17}
 
