@@ -20,6 +20,7 @@
 \usepackage{caption}
 \usepackage{fullpage}
 \usepackage{array}
+\usepackage{makecell}
 \hypersetup{
 bookmarks=true,     % show bookmarks bar?
 colorlinks=true,       % false: boxed links; true: colored links
@@ -60,6 +61,7 @@ Nov 12, 2025 & 1.0 & Added Modules M1-M19\\
 Jan 11, 2026 & 1.1 & Updated local functions\\
 Jan 21, 2026 & 2.0 & Merged modules in application layer\\
 Jan 28, 2026 & 2.1 & Added reflection for peer module implementation\\
+Feb 16, 2026 & 2.2 & Updated module specifications to resemble rev0 implementation\\
 \bottomrule
 \end{tabularx}
 
@@ -575,8 +577,8 @@ validateModelReady & - & bool & ModelValidationError \\ \hline
 
 \subsection{Uses:}
 \begin{itemize}
-  \item External LLM API (e.g., GPT-4o, Claude) for natural language reasoning.
-  \item User Profile Manager (M8) for personalized context and preferences.
+  \item Google Gemini API for natural language understanding and command clarification.
+ \item User Profile Manager (M8) for personalized context and preferences.
   \item Error Feedback Module (M6) for reporting API or schema validation failures.
   \item Security Layer (M9) for managing API credentials and encryption.
 \end{itemize}
@@ -585,8 +587,7 @@ validateModelReady & - & bool & ModelValidationError \\ \hline
 
 \subsubsection{Exported Constants:}
 \begin{itemize}
-  \item \texttt{MAX\_CONTEXT\_TOKENS}: Integer defining the limit for conversation history.
-  \item \texttt{COMMAND\_SCHEMA}: JSON object defining the required structure for browser commands.
+  \item None — Configuration values are passed via constructor parameters or loaded from system prompt.
 \end{itemize}
 
 \subsubsection{Exported Access Programs:}
@@ -595,70 +596,75 @@ validateModelReady & - & bool & ModelValidationError \\ \hline
 \hline
 \textbf{Name} & \textbf{In} & \textbf{Out} & \textbf{Exceptions} \\ \hline
 \texttt{CommandOrchestrator} & - & self & InitializationError \\ 
-\texttt{processTranscript} & \texttt{text: String} & \texttt{Command} & \texttt{InferenceError} \\ 
-\texttt{validateSchema} & \texttt{output: String} & \texttt{bool} & - \\ 
-\texttt{resetContext} & - & - & - \\ \hline
+\texttt{process} & \begin{tabular}[t]{@{}l@{}}\texttt{user\_input: str} \\ \texttt{conversation\_context:} \\ \texttt{\hspace{1em}Optional[List[dict]]}\end{tabular} & \texttt{OrchestratorResponse} & \texttt{InferenceError} \\
+\texttt{reset} & - & - & - \\ 
+\texttt{apply\_guardrails} & \texttt{command: String} & \texttt{(bool, String)} & - \\ \hline
 \end{tabular}
 
 \subsection{Semantics}
 
 \subsubsection{State Variables:}
 \begin{itemize}
-  \item \texttt{system\_prompt: String} — The core instructions and few-shot examples for the LLM.
-  \item \texttt{conversation\_history: List<Message>} — The rolling buffer of recent interactions.
-  \item \texttt{api\_config: Config} — Parameters including temperature, model ID, and endpoint URLs.
+  \item apiKey: stores API key for LLM service authentication
+  \item client: LLM API client instance for command clarification
+  \item modelId: identifier for selected LLM model
+  \item systemPrompt: current system prompt instructions for LLM
+  \item conversationHistory: list of user/assistant turns for multi-turn context
+  \item currentGoal: most recent clarified user intent (if any)
 \end{itemize}
 
 \subsubsection{Environment Variables:}
 \begin{itemize}
-  \item \texttt{LLM\_API\_KEY} — Authenticated credential for the external inference service.
+  \item \texttt{GEMINI\_API\_KEY} — API key for Google Gemini service (used if api\_key parameter not provided to constructor)
 \end{itemize}
 
 \subsubsection{Assumptions:}
 \begin{itemize}
-  \item The LLM API is reachable and maintains a structured output format (JSON); the system prompt effectively constrains the model to the browser's domain.
+  \item LLM returns valid JSON in format \texttt{\{"needs\_clarification": bool, "question": String\}} or \texttt{\{"needs\_clarification": bool, "clarified\_command": String\}}
+  \item System prompt effectively guides the LLM to ask for clarification only when truly necessary
+  \item Browser controller can handle natural language commands
 \end{itemize}
 
 \subsubsection{Access Routine Semantics}
 
-\noindent\texttt{CommandOrchestrator()}:
+\noindent\texttt{CommandOrchestrator(api\_key, model\_id, prompt\_path)}:
 \begin{itemize}
-  \item \textbf{transition:} Load \texttt{system\_prompt}, \texttt{api\_config}, and initialize an empty \texttt{conversation\_history}.
+  \item \textbf{transition:} Load environment variables; initialize client, set \texttt{model\_id} (default "gemini-2.5-flash"); load \texttt{system\_prompt} from \texttt{prompt\_path} if provided, otherwise use default prompt; initialize empty \texttt{conversation\_history}; set \texttt{current\_goal} to None.
   \item \textbf{output:} Initialized orchestrator instance.
-  \item \textbf{exception:} \texttt{InitializationError} if API keys are missing or config is malformed.
+  \item \textbf{exception:} \texttt{InitializationError} if API key is missing or config is malformed.
 \end{itemize}
 
-\noindent\texttt{processTranscript(text)}:
+\noindent\texttt{process(user\_input, conversation\_context)}:
 \begin{itemize}
-\item \textbf{transition:} Append \texttt{text} to \texttt{conversation\_history}; send history + \texttt{system\_prompt} to LLM; parse resulting string into a \texttt{Command} object.
-\item \textbf{output:} A structured \texttt{Command} object ready for the Browser Orchestrator.
-\item \textbf{exception:} \texttt{InferenceError} if the API fails, times out, or returns a non-parsable response.
+\item \textbf{transition:} Build message list: add messages from \texttt{conversation\_context} if provided, then append \texttt{user\_input} as new user message; call \texttt{\_call\_llm(messages)} to send to Gemini with \texttt{system\_prompt}; parse JSON response using \texttt{\_parse\_response()}; construct and return OrchestratorResponse.
+\item \textbf{output:} \texttt{OrchestratorResponse} object with fields: \texttt{needs\_clarification} (bool), \texttt{user\_prompt} (optional question for user), \texttt{clarified\_command} (optional natural language command), \texttt{reasoning} (optional debug info), \texttt{metadata} (optional dict with "original\_input" and other context).
+\item \textbf{exception:} \texttt{InferenceError} if LLM API call fails, times out, or returns unparsable response.
 \end{itemize}
 
-\noindent\texttt{validateSchema(output)}:
+\noindent\texttt{reset()}:
 \begin{itemize}
-\item \textbf{transition:} Compare the LLM's raw output against \texttt{COMMAND\_SCHEMA}.
-\item \textbf{output:} \texttt{true} if the output contains all required keys (e.g., action, target, value); otherwise \texttt{false}.
-\item \textbf{exception:} -.
-\end{itemize}
-
-\noindent\texttt{resetContext()}:
-\begin{itemize}
-\item \textbf{transition:} Clear the \texttt{conversation\_history} list.
+\item \textbf{transition:} Clear \texttt{conversation\_history} to empty list; set \texttt{current\_goal} to None.
 \item \textbf{output:} None.
-\item \textbf{exception:} -.
+\item \textbf{exception:} None.
+\end{itemize}
+
+\noindent\texttt{apply\_guardrails(command)} [static method]:
+\begin{itemize}
+\item \textbf{transition:} None (pure function).
+\item \textbf{output:} Tuple \texttt{(allowed: bool, message: String)} where \texttt{allowed} is \texttt{False} if command contains blocked keywords AND is phrased as an imperative action; \texttt{message} contains "Sorry, this command cannot be executed because it violates safety policy." if blocked, None otherwise.
+\item \textbf{exception:} None.
 \end{itemize}
 
 \subsubsection{Local Functions:}
 \begin{itemize}
-  \item \texttt{construct\_payload}(\texttt{String text}): \texttt{String} $\rightarrow$ \texttt{JSON} \\
-  \textbf{Description:} Packages the system prompt and conversation history into the specific JSON format required by the external API provider.
+  \item \texttt{\_get\_default\_system\_prompt()}: \texttt{void} $\rightarrow$ \texttt{String} \\
+  \textbf{Description:} Returns default system prompt containing instructions for command clarification, JSON output format specification, examples of when to ask clarification vs. when to proceed, and guidance to ignore filler words while extracting user intent.
 
-  \item \texttt{apply\_guardrails}(\texttt{Command cmd}): \texttt{Command} $\rightarrow$ \texttt{bool} \\
-  \textbf{Description:} Checks the generated command against safety policies (e.g., preventing the LLM from executing "delete\_all\_history" without confirmation).
+  \item \texttt{\_call\_llm(messages: List[Dict[String, String]])}: \texttt{List[Dict]} $\rightarrow$ \texttt{String} \\
+  \textbf{Description:} Constructs full message list with \texttt{system\_prompt} as first user message, then appends all messages from conversation history (converting "user"/"assistant" roles to "user"/"model" for Gemini API); returns response text.
 
-  \item \texttt{update\_history}(\texttt{Message msg}): \texttt{Message} $\rightarrow$ \texttt{void} \\
-  \textbf{Description:} Manages the context window by removing the oldest messages if \texttt{MAX\_CONTEXT\_TOKENS} is exceeded.
+  \item \texttt{\_parse\_response(response\_text: String, original\_input: String)}: \texttt{String} $\times$ \texttt{String} $\rightarrow$ \texttt{OrchestratorResponse} \\
+  \textbf{Description:} Strips markdown code fences from response\_text; parses JSON; if \texttt{needs\_clarification=true}, returns OrchestratorResponse with \texttt{user\_prompt} set to question from JSON; if \texttt{needs\_clarification=false}, returns OrchestratorResponse with \texttt{clarified\_command} from JSON; if parsing fails, returns fallback OrchestratorResponse requesting clarification with error details in \texttt{reasoning} and \texttt{metadata}.
 \end{itemize}
 
 
