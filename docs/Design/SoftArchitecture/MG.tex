@@ -283,26 +283,24 @@ To clarify the structural organization of this system, we distinguish between th
 The following 18 modules represent the leaf nodes in the architectural decomposition and will be implemented as distinct software components:
 
 \begin{itemize}
-  \item User Interface Module
-  \item Accessibility Layer
-  \item Feedback Display Module
-  \item Speech-to-Text Engine
-  \item Command Orchestrator
-  \item Error Feedback
-  \item Browser Orchestrator
-  \item Session Manager
-  \item Data Management Layer
-  \item User Profile Manager
-  \item Audit Logger
-  \item Credential Manager
-  \item Encryption Manager
-  \item Out-of-Scope Handler
-  \item Microphone Manager
-  \item VAD Noise Filter
-  \item Prompting Module
-  \item Model Tuner
+  \item \textbf{User Interface Module} - Manages visual presentation and user interaction through browser DOM elements
+  \item \textbf{Accessibility Layer} - Ensures WCAG compliance and provides accessible interfaces for users with disabilities
+  \item \textbf{Feedback Display Module} - Manages display and lifecycle of user-facing feedback messages and notifications
+  \item \textbf{Speech-to-Text Engine} - Converts audio input into accurate text transcripts using acoustic and language models
+  \item \textbf{Command Orchestrator} - Synthesizes natural language into validated, executable browser commands using LLM-based reasoning
+  \item \textbf{Error Feedback} - Normalizes errors into user-friendly messages with recovery options and logging capabilities
+  \item \textbf{Browser Controller} - Manages communication with browser automation layer through transport protocols and session handling
+  \item \textbf{Session Manager} - Manages session lifecycle, state persistence, and expiry handling for user interactions
+  \item \textbf{Data Management Layer} - Handles secure storage, retrieval, backup, and retention of application data and user files
+  \item \textbf{User Profile Manager} - Manages user profiles, preferences, and consent records with secure identification
+  \item \textbf{Audit Logger} - Provides tamper-proof logging, querying, and anomaly detection for system activities
+  \item \textbf{Credential Manager} - Handles authentication, session token issuance, and secure password storage
+  \item \textbf{Encryption Manager} - Manages encryption, key rotation, data anonymization, and integrity verification
+  \item \textbf{Out-of-Scope Handler} - Validates command safety, provides fallback handling, and reports unsafe operations
+  \item \textbf{Audio Capture} - Captures and normalizes audio input from system microphone using voice activity detection (VAD) on audio stream
+  \item \textbf{Prompting Module} - Generates contextual, accessible, and confidence-based prompts for user clarification
+  \item \textbf{Model Tuner} - Adapts speech and intent models to individual user patterns through personalized embeddings
 \end{itemize}
-
 \section{Connection Between Requirements and Design} \label{SecConnection} \label{SecConnection}
 
 The design of the system is intended to satisfy the requirements developed in the 
@@ -624,38 +622,31 @@ Provides user prompting, model fine-tuning, and instruction management. Supports
 
 \subsection*{Input Processing Layer Modules}
 
-\subsubsection*{M15: Microphone Manager} \refstepcounter{mnum}\mthemnum\label{m15}
+\subsubsection*{M15: Real-time Audio Capture with Voice Activity Detection} \refstepcounter{mnum}\mthemnum\label{m15}
 \textbf{Secrets:} 
 \begin{itemize}
-  \item Device-level audio capture configuration and sampling parameters
-  \item Buffering strategy and fallback device selection
-  \item Normalization of raw audio before downstream processing
+  \item Audio device configuration and sampling parameters (sample rate, channels, chunk size)
+  \item WebRTC VAD integration and aggressiveness levels (0--3)
+  \item Hybrid speech detection combining VAD and optional energy thresholds
+  \item State machine logic (IDLE, LISTENING, SPEECH\_DETECTED, RECORDING, PROCESSING, STOPPED)
+  \item Pre-buffering mechanism to capture audio before speech detection
+  \item Silence detection thresholds and automatic recording termination
+  \item Audio format conversion between int16 (for VAD) and float32 (for output)
+  \item Stream management and threading strategy for continuous capture
 \end{itemize}
 \textbf{Services:} 
 \begin{itemize}
-  \item Start and stop microphone stream
-  \item Read audio frames
-  \item Provide normalized PCM buffer
-  \item Expose current device status and surface hardware errors
+  \item Configure audio parameters via \texttt{AudioConfig} (sample rate, VAD aggressiveness, buffer durations, silence thresholds)
+  \item Start and stop continuous audio stream with state management
+  \item Detect speech frames vs. silence using WebRTC VAD
+  \item Optionally apply energy-based speech detection as secondary criterion
+  \item Automatically trigger recording on speech detection with pre-buffered audio
+  \item End recording after configurable silence duration (default 1500ms) or maximum duration (default 30s)
+  \item Emit complete audio recordings as float32 arrays with metadata (duration, sample count, timestamp)
+  \item List available audio input devices
+  \item Provide capture statistics (total recordings, audio duration, VAD errors, stream errors)
 \end{itemize}
-\textbf{Implemented By:} Browser audio APIs or OS audio interface.
-
-\medskip
-\subsubsection*{M16: VAD Noise Filter} \refstepcounter{mnum}\mthemnum\label{m16}
-\textbf{Secrets:} 
-\begin{itemize}
-  \item Voice-activity-detection thresholds
-  \item Noise-suppression heuristics and smoothing windows
-  \item Adaptive gain rules
-\end{itemize}
-\textbf{Services:} 
-\begin{itemize}
-  \item Filter raw microphone frames
-  \item Determine speech vs. silence
-  \item Emit clean audio frames
-  \item Send VAD events (start/stop speech)
-\end{itemize}
-\textbf{Implemented By:} DSP/VAD library.
+\textbf{Implemented By:} \texttt{audio\_capture.py} using sounddevice and webrtcvad libraries.
 
 \subsection*{Personalization Layer}
 \subsubsection*{M17: Prompting Module} \refstepcounter{mnum}\mthemnum\label{m17}

@@ -11,12 +11,8 @@ from threading import Thread, Event, Lock
 from typing import Optional, Callable, Dict, Any
 import time
 
-# --- MODIFIED: Import local logger utility ---
 from utils.logger import get_logger
-
-# Initialize the logger for this specific module
 logger = get_logger("AudioCapture")
-# ---------------------------------------------
 
 class AudioConfig:
     """Configuration for audio capture and processing"""
@@ -256,23 +252,3 @@ class RealtimeAudioCapture:
                 input_devices.append((idx, device))
                 print(f"[{idx}] {device['name']}")
         return input_devices
-
-
-if __name__ == "__main__":
-    RealtimeAudioCapture.list_audio_devices()
-    
-    def on_audio_captured(audio_array: np.ndarray, metadata: Dict[str, Any]):
-        # Now using standard print for the user interface, 
-        # but the module internals use the logger.
-        print(f"\n Audio captured! {metadata['duration_s']:.2f}s")
-    
-    config = AudioConfig(sample_rate=16000, vad_aggressiveness=3)
-    capture = RealtimeAudioCapture(config=config, on_audio_ready=on_audio_captured)
-    
-    try:
-        print("\n Starting audio capture (Check app.log for debug details)...")
-        capture.start()
-        while True:
-            time.sleep(1)
-    except KeyboardInterrupt:
-        capture.stop()
