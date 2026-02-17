@@ -20,6 +20,7 @@
 \usepackage{caption}
 \usepackage{fullpage}
 \usepackage{array}
+\usepackage{makecell}
 \hypersetup{
 bookmarks=true,     % show bookmarks bar?
 colorlinks=true,       % false: boxed links; true: colored links
@@ -60,6 +61,7 @@ Nov 12, 2025 & 1.0 & Added Modules M1-M19\\
 Jan 11, 2026 & 1.1 & Updated local functions\\
 Jan 21, 2026 & 2.0 & Merged modules in application layer\\
 Jan 28, 2026 & 2.1 & Added reflection for peer module implementation\\
+Feb 16, 2026 & 2.2 & Updated module specifications to resemble rev0 implementation\\
 \bottomrule
 \end{tabularx}
 
@@ -70,16 +72,8 @@ Jan 28, 2026 & 2.1 & Added reflection for peer module implementation\\
 \begin{tabular}{|l|l|}
 \hline
 \textbf{Acronym} & \textbf{Meaning} \\ \hline
-API & Application Programming Interface \\ \hline
-ARIA & Accessible Rich Internet Applications \\ \hline
-ASR & Automatic Speech Recognition \\ \hline
 DOM & Document Object Model \\ \hline
-DSP & Digital Signal Processing \\ \hline
-IR & Integrity Requirement \\ \hline
-MIS & Module Interface Specification \\ \hline
-PCM & Pulse Code Modulation \\ \hline
-RMS & Root Mean Square \\ \hline
-VAD & Voice Activity Detection \\ \hline
+ARIA & Accessible Rich Internet Applications \\ \hline
 \end{tabular}
 
 \vspace{1em}
@@ -178,7 +172,7 @@ to speech processing, browser automation, and interaction workflows:
 
     \item \textbf{Command} — validated, executable instruction produced by CommandMapping and consumed by the Execution Layer.
 
-    \item \textbf{BackendReq / BackendResp} — typed request/response objects exchanged with the BrowserController and automation bridge.
+    \item \textbf{BackendReq / BackendResp} — typed request/response objects exchanged with the Browser Orchestrator and automation bridge.
 \end{itemize}
 
 \noindent
@@ -202,7 +196,7 @@ The high-level module decomposition of the system is summarized in Table 1 of th
   \item Accessibility Layer (M2) to ensure UI semantics, ARIA roles, and announcements.
   \item Feedback Display Module (M3) to present messages, prompts, and recovery options.
   \item Command Orchestrator (M5) for forwarding validated user events.
-  \item BrowserController / rendering engine to perform DOM updates and capture input events.
+  \item Browser Orchestrator (M7) / rendering engine to perform DOM updates and capture input events.
 \end{itemize}
 
 \subsection{Syntax:}
@@ -217,7 +211,7 @@ The high-level module decomposition of the system is summarized in Table 1 of th
 \begin{tabular}{|l|l|l|l|}
 \hline
 \textbf{Name} & \textbf{In} & \textbf{Out} & \textbf{Exceptions} \\ \hline
-\texttt{UserInterface} & \texttt{config: UiConfig} & self & InitializationError \\ 
+\texttt{UserInterface} & \texttt{config: UiConfig} & \texttt{self: UserInterface} & \texttt{InitializationError} \\ 
 \texttt{receiveInput} & \texttt{event: UiEvent} & - & \texttt{InputError} \\ 
 \texttt{render} & \texttt{state: UiState} & - & RenderError \\ 
 \texttt{showFeedback} & \texttt{msg: FeedbackItem} & - & - \\ 
@@ -583,8 +577,8 @@ validateModelReady & - & bool & ModelValidationError \\ \hline
 
 \subsection{Uses:}
 \begin{itemize}
-  \item External LLM API (e.g., GPT-4o, Claude) for natural language reasoning.
-  \item User Profile Manager (M8) for personalized context and preferences.
+  \item Google Gemini API for natural language understanding and command clarification.
+ \item User Profile Manager (M8) for personalized context and preferences.
   \item Error Feedback Module (M6) for reporting API or schema validation failures.
   \item Security Layer (M9) for managing API credentials and encryption.
 \end{itemize}
@@ -593,8 +587,7 @@ validateModelReady & - & bool & ModelValidationError \\ \hline
 
 \subsubsection{Exported Constants:}
 \begin{itemize}
-  \item \texttt{MAX\_CONTEXT\_TOKENS}: Integer defining the limit for conversation history.
-  \item \texttt{COMMAND\_SCHEMA}: JSON object defining the required structure for browser commands.
+  \item None — Configuration values are passed via constructor parameters or loaded from system prompt.
 \end{itemize}
 
 \subsubsection{Exported Access Programs:}
@@ -603,70 +596,75 @@ validateModelReady & - & bool & ModelValidationError \\ \hline
 \hline
 \textbf{Name} & \textbf{In} & \textbf{Out} & \textbf{Exceptions} \\ \hline
 \texttt{CommandOrchestrator} & - & self & InitializationError \\ 
-\texttt{processTranscript} & \texttt{text: String} & \texttt{Command} & \texttt{InferenceError} \\ 
-\texttt{validateSchema} & \texttt{output: String} & \texttt{bool} & - \\ 
-\texttt{resetContext} & - & - & - \\ \hline
+\texttt{process} & \begin{tabular}[t]{@{}l@{}}\texttt{user\_input: str} \\ \texttt{conversation\_context:} \\ \texttt{\hspace{1em}Optional[List[dict]]}\end{tabular} & \texttt{OrchestratorResponse} & \texttt{InferenceError} \\
+\texttt{reset} & - & - & - \\ 
+\texttt{apply\_guardrails} & \texttt{command: String} & \texttt{(bool, String)} & - \\ \hline
 \end{tabular}
 
 \subsection{Semantics}
 
 \subsubsection{State Variables:}
 \begin{itemize}
-  \item \texttt{system\_prompt: String} — The core instructions and few-shot examples for the LLM.
-  \item \texttt{conversation\_history: List<Message>} — The rolling buffer of recent interactions.
-  \item \texttt{api\_config: Config} — Parameters including temperature, model ID, and endpoint URLs.
+  \item apiKey: stores API key for LLM service authentication
+  \item client: LLM API client instance for command clarification
+  \item modelId: identifier for selected LLM model
+  \item systemPrompt: current system prompt instructions for LLM
+  \item conversationHistory: list of user/assistant turns for multi-turn context
+  \item currentGoal: most recent clarified user intent (if any)
 \end{itemize}
 
 \subsubsection{Environment Variables:}
 \begin{itemize}
-  \item \texttt{LLM\_API\_KEY} — Authenticated credential for the external inference service.
+  \item \texttt{GEMINI\_API\_KEY} — API key for Google Gemini service (used if api\_key parameter not provided to constructor)
 \end{itemize}
 
 \subsubsection{Assumptions:}
 \begin{itemize}
-  \item The LLM API is reachable and maintains a structured output format (JSON); the system prompt effectively constrains the model to the browser's domain.
+  \item LLM returns valid JSON in format \texttt{\{"needs\_clarification": bool, "question": String\}} or \texttt{\{"needs\_clarification": bool, "clarified\_command": String\}}
+  \item System prompt effectively guides the LLM to ask for clarification only when truly necessary
+  \item Browser controller can handle natural language commands
 \end{itemize}
 
 \subsubsection{Access Routine Semantics}
 
-\noindent\texttt{CommandOrchestrator()}:
+\noindent\texttt{CommandOrchestrator(api\_key, model\_id, prompt\_path)}:
 \begin{itemize}
-  \item \textbf{transition:} Load \texttt{system\_prompt}, \texttt{api\_config}, and initialize an empty \texttt{conversation\_history}.
+  \item \textbf{transition:} Load environment variables; initialize client, set \texttt{model\_id} (default "gemini-2.5-flash"); load \texttt{system\_prompt} from \texttt{prompt\_path} if provided, otherwise use default prompt; initialize empty \texttt{conversation\_history}; set \texttt{current\_goal} to None.
   \item \textbf{output:} Initialized orchestrator instance.
-  \item \textbf{exception:} \texttt{InitializationError} if API keys are missing or config is malformed.
+  \item \textbf{exception:} \texttt{InitializationError} if API key is missing or config is malformed.
 \end{itemize}
 
-\noindent\texttt{processTranscript(text)}:
+\noindent\texttt{process(user\_input, conversation\_context)}:
 \begin{itemize}
-\item \textbf{transition:} Append \texttt{text} to \texttt{conversation\_history}; send history + \texttt{system\_prompt} to LLM; parse resulting string into a \texttt{Command} object.
-\item \textbf{output:} A structured \texttt{Command} object ready for the Browser Controller.
-\item \textbf{exception:} \texttt{InferenceError} if the API fails, times out, or returns a non-parsable response.
+\item \textbf{transition:} Build message list: add messages from \texttt{conversation\_context} if provided, then append \texttt{user\_input} as new user message; call \texttt{\_call\_llm(messages)} to send to Gemini with \texttt{system\_prompt}; parse JSON response using \texttt{\_parse\_response()}; construct and return OrchestratorResponse.
+\item \textbf{output:} \texttt{OrchestratorResponse} object with fields: \texttt{needs\_clarification} (bool), \texttt{user\_prompt} (optional question for user), \texttt{clarified\_command} (optional natural language command), \texttt{reasoning} (optional debug info), \texttt{metadata} (optional dict with "original\_input" and other context).
+\item \textbf{exception:} \texttt{InferenceError} if LLM API call fails, times out, or returns unparsable response.
 \end{itemize}
 
-\noindent\texttt{validateSchema(output)}:
+\noindent\texttt{reset()}:
 \begin{itemize}
-\item \textbf{transition:} Compare the LLM's raw output against \texttt{COMMAND\_SCHEMA}.
-\item \textbf{output:} \texttt{true} if the output contains all required keys (e.g., action, target, value); otherwise \texttt{false}.
-\item \textbf{exception:} -.
-\end{itemize}
-
-\noindent\texttt{resetContext()}:
-\begin{itemize}
-\item \textbf{transition:} Clear the \texttt{conversation\_history} list.
+\item \textbf{transition:} Clear \texttt{conversation\_history} to empty list; set \texttt{current\_goal} to None.
 \item \textbf{output:} None.
-\item \textbf{exception:} -.
+\item \textbf{exception:} None.
+\end{itemize}
+
+\noindent\texttt{apply\_guardrails(command)} [static method]:
+\begin{itemize}
+\item \textbf{transition:} None (pure function).
+\item \textbf{output:} Tuple \texttt{(allowed: bool, message: String)} where \texttt{allowed} is \texttt{False} if command contains blocked keywords AND is phrased as an imperative action; \texttt{message} contains "Sorry, this command cannot be executed because it violates safety policy." if blocked, None otherwise.
+\item \textbf{exception:} None.
 \end{itemize}
 
 \subsubsection{Local Functions:}
 \begin{itemize}
-  \item \texttt{construct\_payload}(\texttt{String text}): \texttt{String} $\rightarrow$ \texttt{JSON} \\
-  \textbf{Description:} Packages the system prompt and conversation history into the specific JSON format required by the external API provider.
+  \item \texttt{\_get\_default\_system\_prompt()}: \texttt{void} $\rightarrow$ \texttt{String} \\
+  \textbf{Description:} Returns default system prompt containing instructions for command clarification, JSON output format specification, examples of when to ask clarification vs. when to proceed, and guidance to ignore filler words while extracting user intent.
 
-  \item \texttt{apply\_guardrails}(\texttt{Command cmd}): \texttt{Command} $\rightarrow$ \texttt{bool} \\
-  \textbf{Description:} Checks the generated command against safety policies (e.g., preventing the LLM from executing "delete\_all\_history" without confirmation).
+  \item \texttt{\_call\_llm(messages: List[Dict[String, String]])}: \texttt{List[Dict]} $\rightarrow$ \texttt{String} \\
+  \textbf{Description:} Constructs full message list with \texttt{system\_prompt} as first user message, then appends all messages from conversation history (converting "user"/"assistant" roles to "user"/"model" for Gemini API); returns response text.
 
-  \item \texttt{update\_history}(\texttt{Message msg}): \texttt{Message} $\rightarrow$ \texttt{void} \\
-  \textbf{Description:} Manages the context window by removing the oldest messages if \texttt{MAX\_CONTEXT\_TOKENS} is exceeded.
+  \item \texttt{\_parse\_response(response\_text: String, original\_input: String)}: \texttt{String} $\times$ \texttt{String} $\rightarrow$ \texttt{OrchestratorResponse} \\
+  \textbf{Description:} Strips markdown code fences from response\_text; parses JSON; if \texttt{needs\_clarification=true}, returns OrchestratorResponse with \texttt{user\_prompt} set to question from JSON; if \texttt{needs\_clarification=false}, returns OrchestratorResponse with \texttt{clarified\_command} from JSON; if parsing fails, returns fallback OrchestratorResponse requesting clarification with error details in \texttt{reasoning} and \texttt{metadata}.
 \end{itemize}
 
 
@@ -774,21 +772,19 @@ UI client is available and permitted to display notifications.
 %   \item \texttt{make\_recovery(options)} — build prompt content
 % \end{itemize}
 
-\section{(M7) MIS of BrowserController} 
+\section{(M7) MIS of Browser Orchestrator}
 \label{M7}
-\textbf{Module:} BrowserController
+\textbf{Module:} BrowserOrchestrator
 
 \subsection{Uses}
 \begin{itemize}
-  \item Credential Manager (M17) to obtain/validate authentication material required to call the controller endpoint (when applicable).
-  \item Error Feedback (M6) to standardize timeout/retry decisions and error classification for transport failures.
-  \item AuditLogger (M16) to record request/response summaries, failures, and timeouts.
+  \item Session Manager (M8) to obtain the active \texttt{Browser} instance used for command execution.
+  \item \texttt{browser\_use} library (\texttt{Agent}, \texttt{Browser}, \texttt{ChatBrowserUse}) to perform LLM-powered browser automation.
 \end{itemize}
 
 \subsection{Syntax}
 
 \subsubsection{Exported Constants}
-
 None.
 
 \subsubsection{Exported Access Programs}
@@ -798,12 +794,7 @@ None.
 \hline
 \textbf{Name} & \textbf{In} & \textbf{Out} & \textbf{Exceptions} \\
 \hline
-\texttt{BrowserController} & \texttt{bridge: Client, timeout\_s: N} & self & -- \\
-\texttt{send} & \texttt{req: BackendReq} & \texttt{BackendResp} & \texttt{TimeoutError}, \texttt{TransportError} \\
-\texttt{get\_status} & \texttt{cmd\_id: UUID} & \texttt{ExecStatus} & \texttt{NotFoundError} \\
-\texttt{cancel} & \texttt{cmd\_id: UUID} & \texttt{bool} & \texttt{NotFoundError} \\
-\texttt{open\_session} & \texttt{user\_id: UUID} & \texttt{SessionId} & \texttt{TransportError} \\
-\texttt{close\_session} & \texttt{session\_id: SessionId} & \texttt{bool} & \texttt{TransportError} \\
+\texttt{run\_command} & \texttt{command: str, browser: Browser} & \texttt{history: Any} & \texttt{Exception} \\
 \hline
 \end{tabular}
 \end{center}
@@ -811,96 +802,54 @@ None.
 \subsection{Semantics}
 
 \subsubsection{State Variables}
-
-\begin{itemize}
-  \item \texttt{bridge: Client} — transport to the browser controller
-  \item \texttt{default\_timeout\_s: int} — call timeout
-  \item \texttt{sessions: set[SessionId]} — open sessions
-\end{itemize}
+None.
 
 \subsubsection{Environment Variables}
-
 \begin{itemize}
-  \item \texttt{BROWSER\_BRIDGE\_URL} — endpoint for the controller
+  \item \texttt{BROWSER\_USE\_API\_KEY} --- API key used by the \texttt{browser\_use} provider (loaded from \texttt{.env}).
 \end{itemize}
 
 \subsubsection{Assumptions}
-
-Controller endpoint is reachable and authenticated.
+\begin{itemize}
+  \item A valid, started \texttt{Browser} instance is provided as input (typically from M8).
+  \item The \texttt{browser\_use} provider is configured correctly via environment variables (e.g., \texttt{BROWSER\_USE\_API\_KEY}).
+\end{itemize}
 
 \subsubsection{Access Routine Semantics}
 
-\noindent \texttt{BrowserController}(\texttt{bridge}, \texttt{timeout\_s}):
+\noindent \texttt{run\_command}(\texttt{command, browser}):
 \begin{itemize}
-\item transition: set \texttt{bridge}, \texttt{default\_timeout\_s}, clear \texttt{sessions}
-\item output: initialized instance
-\item exception: -
-\end{itemize}
-
-\noindent \texttt{send}(\texttt{req}):
-\begin{itemize}
-\item transition: none
-\item output: \texttt{BackendResp} from controller
-\item exception: \texttt{TimeoutError}, \texttt{TransportError} on failures
-\end{itemize}
-
-\noindent \texttt{get\_status}(\texttt{cmd\_id}):
-\begin{itemize}
-\item transition: none
-\item output: current \texttt{ExecStatus}
-\item exception: \texttt{NotFoundError} if unknown
-\end{itemize}
-
-\noindent \texttt{cancel}(\texttt{cmd\_id}):
-\begin{itemize}
-\item transition: signal cancellation upstream
-\item output: \texttt{true} if accepted
-\item exception: \texttt{NotFoundError} if unknown
-\end{itemize}
-
-\noindent \texttt{open\_session}(\texttt{user\_id}):
-\begin{itemize}
-\item transition: create session; add to \texttt{sessions}
-\item output: \texttt{SessionId}
-\item exception: \texttt{TransportError} if controller rejects
-\end{itemize}
-
-\noindent \texttt{close\_session}(\texttt{session\_id}):
-\begin{itemize}
-\item transition: close remotely; remove from \texttt{sessions}
-\item output: \texttt{true} on success; otherwise \texttt{false}
-\item exception: \texttt{TransportError} on failure
+  \item transition:
+    \begin{itemize}
+      \item instantiate \texttt{llm := ChatBrowserUse()}
+      \item instantiate \texttt{agent := Agent(task=command, llm=llm, browser=browser)}
+      \item execute \texttt{history := await agent.run()}
+    \end{itemize}
+  \item output: \texttt{history} returned by \texttt{agent.run()} (may be empty/falsey)
+  \item exception: propagates any raised \texttt{Exception} from \texttt{browser\_use} or underlying runtime
 \end{itemize}
 
 \subsubsection{Local Functions}
-\begin{itemize}
-  \item \texttt{with\_timeout}(\texttt{ClientCall call}): \texttt{ClientCall} $\rightarrow$ \texttt{ClientCall} \\
-  \textbf{Description:} \texttt{with\_timeout(call)} returns wrapped call that fails if it exceeds timeout limit.
+None.
 
-  \item \texttt{normalize}(\texttt{BackendResp resp}): \texttt{BackendResp} $\rightarrow$ \texttt{BackendResp} \\
-  \textbf{Description:} \texttt{normalize(resp)} returns controller response with standardized fields and error codes.
-\end{itemize}
 % \begin{itemize}
 %   \item \texttt{with\_timeout(call)} — wrap a bridge call with timeout
 %   \item \texttt{normalize(resp)} — normalize controller response
 % \end{itemize}
 
 
-\section{(M8) MIS of Session Manager} \label{M8}
+\section{(M8) MIS of Session Manager}
+\label{M8}
 \textbf{Module:} SessionManager
 
 \subsection{Uses}
-
-15.2 Uses:
 \begin{itemize}
-  \item Storage Management Module (M14) as the persistent store/cache for session state.
-  \item AuditLogger (M16) to record session lifecycle events (start/stop/expiry) and state transitions.
+  \item \texttt{browser\_use} library (\texttt{Browser}) to create and manage a single shared browser instance.
 \end{itemize}
 
 \subsection{Syntax}
 
 \subsubsection{Exported Constants}
-
 None.
 
 \subsubsection{Exported Access Programs}
@@ -910,12 +859,9 @@ None.
 \hline
 \textbf{Name} & \textbf{In} & \textbf{Out} & \textbf{Exceptions} \\
 \hline
-\texttt{SessionManager} & \texttt{store: Store}, \texttt{ttl\_s: int} & self & - \\
-\texttt{start} & \texttt{user\_id: UUID} & \texttt{SessionId} & \texttt{StoreError} \\
-\texttt{stop} & \texttt{SessionId} & \texttt{bool} & \texttt{StoreError} \\
-\texttt{get} & \texttt{SessionId} & \texttt{SessionState} & \texttt{NotFoundError} \\
-\texttt{attach\_command} & \texttt{SessionId}, \texttt{cmd\_id: UUID} & \texttt{bool} & \texttt{NotFoundError} \\
-\texttt{set\_state} & \texttt{SessionId}, \texttt{state: SessionState} & \texttt{bool} & \texttt{StoreError} \\
+\texttt{start\_session} & -- & \texttt{str} & \texttt{Exception} \\
+\texttt{stop\_session} & -- & \texttt{str} & \texttt{Exception} \\
+\texttt{get\_browser} & -- & \texttt{Browser | None} & -- \\
 \hline
 \end{tabular}
 \end{center}
@@ -923,76 +869,61 @@ None.
 \subsection{Semantics}
 
 \subsubsection{State Variables}
-
 \begin{itemize}
-  \item \texttt{store: Store} — persistence for sessions
-  \item \texttt{ttl\_s: int} — idle expiry threshold
-  \item \texttt{index: map[SessionId] to SessionState} — in-memory cache
+  \item \texttt{\_browser: Browser | None} --- single shared browser instance for the whole app (module-level global).
 \end{itemize}
 
 \subsubsection{Environment Variables}
-
-\begin{itemize}
-  \item \texttt{SESSION\_TTL\_S} — default idle timeout
-\end{itemize}
+None.
 
 \subsubsection{Assumptions}
-
-Store operations are atomic per session key.
+\begin{itemize}
+  \item The application requires at most one shared browser session at a time.
+  \item When started, the browser is kept alive across commands using \texttt{keep\_alive=True}.
+\end{itemize}
 
 \subsubsection{Access Routine Semantics}
 
-\noindent \texttt{SessionManager}(\texttt{store}, \texttt{ttl\_s}):
+\noindent \texttt{start\_session}():
 \begin{itemize}
-\item transition: set fields; warm cache from store if available
-\item output: initialized instance
-\item exception: -
+  \item transition:
+    \begin{itemize}
+      \item if \texttt{\_browser} is not \texttt{None}, no change
+      \item else set \texttt{\_browser := Browser(keep\_alive=True)} and \texttt{await \_browser.start()}
+    \end{itemize}
+  \item output:
+    \begin{itemize}
+      \item \texttt{"Browser already running"} if \texttt{\_browser} was already initialized
+      \item \texttt{"Browser started"} if a new browser was created and started
+    \end{itemize}
+  \item exception: propagates any \texttt{Exception} from browser creation/start
 \end{itemize}
 
-\noindent \texttt{start}(\texttt{user\_id}):
+\noindent \texttt{stop\_session}():
 \begin{itemize}
-\item transition: create session; write to store; cache in \texttt{index}
-\item output: \texttt{SessionId}
-\item exception: \texttt{StoreError} on failure
+  \item transition:
+    \begin{itemize}
+      \item if \texttt{\_browser} is \texttt{None}, no change
+      \item else \texttt{await \_browser.stop()} and set \texttt{\_browser := None}
+    \end{itemize}
+  \item output:
+    \begin{itemize}
+      \item \texttt{"Browser already stopped"} if no browser exists
+      \item \texttt{"Browser stopped"} if the browser was stopped and cleared
+    \end{itemize}
+  \item exception: propagates any \texttt{Exception} from browser stop
 \end{itemize}
 
-\noindent \texttt{stop}(\texttt{session\_id}):
+\noindent \texttt{get\_browser}():
 \begin{itemize}
-\item transition: mark closed; evict from \texttt{index}; update store
-\item output: \texttt{true} on success; otherwise \texttt{false}
-\item exception: \texttt{StoreError} on failure
-\end{itemize}
-
-\noindent \texttt{get}(\texttt{session\_id}):
-\begin{itemize}
-\item transition: none
-\item output: current \texttt{SessionState}
-\item exception: \texttt{NotFoundError} if unknown
-\end{itemize}
-
-\noindent \texttt{attach\_command}(\texttt{session\_id}, \texttt{cmd\_id}):
-\begin{itemize}
-\item transition: append command reference to session state
-\item output: \texttt{true} if attached
-\item exception: \texttt{NotFoundError} if session unknown
-\end{itemize}
-
-\noindent \texttt{set\_state}(\texttt{session\_id}, \texttt{state}):
-\begin{itemize}
-\item transition: update state in cache and store
-\item output: \texttt{true} if updated
-\item exception: \texttt{StoreError} on write failure
+  \item transition: none
+  \item output: current value of \texttt{\_browser} (a \texttt{Browser} if running, otherwise \texttt{None})
+  \item exception: --
 \end{itemize}
 
 \subsubsection{Local Functions}
+None.
 
-\begin{itemize}
-  \item \texttt{now}(): $\rightarrow$ \texttt{timestamp} \\
-  \textbf{Description:} \texttt{now()} returns the current system timestamp.
-
-  \item \texttt{expired}(\texttt{SessionState state}): \texttt{SessionState} $\rightarrow$ \texttt{bool} \\
-  \textbf{Description:} \texttt{expired(state)} returns \texttt{true} if the session state has exceeded its idle expiry time.
-\end{itemize}
 % \begin{itemize}
 %   \item \texttt{calc\_backoff(cmd\_id)} — compute next delay
 %   \item \texttt{is\_idempotent(cmd\_id)} — check compensation safety
@@ -1289,143 +1220,88 @@ Integrates with M11 to log anomaly-triggered safety events.
 \end{itemize}
 
 
-\section{(M15) MIS of RealtimeAudioCapture} \label{M15}
 
-\textbf{Module:} RealtimeAudioCapture
+\section{(M15) MIS of MicrophoneManager} \label{M15}
+
+\textbf{Module:} MicrophoneManager
 
 \subsection{Uses:}
 \begin{itemize}
-\item Logger (M11) for state transitions, errors, and capture statistics.
-\item External libraries: sounddevice for audio streaming, webrtcvad for voice activity detection.
+\item VAD Noise Filter (M16) for downstream speech/noise classification.
+\item Session Manager (M8) for tracking active input sessions.
+\item AuditLogger (M11) for logging permission events or device failures.
 \end{itemize}
 
 \subsection{Syntax:}
-
-\subsubsection{Exported Types:}
-
-\texttt{AudioConfig} = \{sample\_rate, channels, chunk\_duration\_ms, vad\_aggressiveness, \\
-\hspace*{3cm} pre\_buffer\_duration\_ms, silence\_duration\_ms, max\_recording\_duration\_s, \\
-\hspace*{3cm} energy\_threshold, device\}
-
 
 \subsubsection{Exported Access Programs:}
 
 \begin{tabular}{|l|l|l|l|}
 \hline
 \textbf{Name} & \textbf{In} & \textbf{Out} & \textbf{Exceptions} \\ \hline
-\texttt{\_\_init\_\_} & config: AudioConfig, & - & ValueError \\ 
- & callback: Callable & & \\
-\texttt{start} & - & - & RuntimeError \\ 
-\texttt{stop} & - & - & - \\ 
-\texttt{get\_stats} & - & Dict[str, Any] & - \\
-\texttt{list\_audio\_devices} & - & List[Tuple] & - \\ \hline
+\texttt{listDevices} & - & deviceList & DeviceQueryException \\ 
+\texttt{startCapture} & deviceID & \texttt{status: bool} & PermissionException \\ 
+\texttt{readFrame} & - & audioFrame & CaptureInactiveException \\ \hline
 \end{tabular}
 
 \subsection{Semantics}
 
-\subsubsection{State Variables:}
-\begin{itemize}
-\item \texttt{config}: AudioConfig - audio capture and VAD configuration parameters
-\item \texttt{state}: AudioState - current capture state
-\item \texttt{vad}: webrtcvad.Vad - voice activity detector instance
-\item \texttt{pre\_buffer}: deque - circular buffer storing recent audio chunks before speech detection
-\item \texttt{recording\_buffer}: list - accumulates audio chunks during active recording
-\item \texttt{silence\_counter}: int - tracks consecutive silent chunks
-\item \texttt{recording\_chunks\_count}: int - counts chunks in current recording
-\item \texttt{stream}: sounddevice.InputStream - active audio input stream
-\item \texttt{stats}: dict - capture statistics (total recordings, audio seconds, errors)
-\end{itemize}
-
-\subsubsection{Environment Variables:}
-Audio input device hardware accessible through sounddevice library.
-
-\subsubsection{Assumptions:}
-\begin{itemize}
-\item Audio device supports requested sample rate (8000, 16000, 32000, or 48000 Hz)
-\item Chunk duration is 10, 20, or 30ms (required by WebRTC VAD)
-\item Callback function \texttt{on\_audio\_ready} processes audio asynchronously
-\end{itemize}
+Implements audio acquisition requirements (FR1). Provides consistent, normalized microphone
+input to subsequent modules. Integrates with M8 to maintain session continuity.
 
 \subsubsection{Access Routine Semantics:}
 
-\noindent\texttt{\_\_init\_\_(config, on\_audio\_ready)}:
+\noindent\texttt{startCapture(deviceID)}:
 \begin{itemize}
-\item \textbf{transition:} Initializes VAD with specified aggressiveness level (0-3), validates configuration parameters, sets state to IDLE.
-\item \textbf{output:} None
-\item \textbf{exception:} ValueError if configuration validation fails (invalid sample rate or chunk duration).
+\item \textbf{transition:} Initializes device stream and marks microphone as active.
 \end{itemize}
 
-\noindent\texttt{start()}:
+\noindent\texttt{readFrame()}:
 \begin{itemize}
-\item \textbf{transition:} Creates and starts sounddevice InputStream, transitions state from IDLE to LISTENING. Begins continuous audio capture with callback processing.
-\item \textbf{output:} None
-\item \textbf{exception:} RuntimeError if audio stream fails to start or if already running.
+\item \textbf{transition:} Retrieves the latest audio frame for processing.
 \end{itemize}
 
-\noindent\texttt{stop()}:
+\label{MIS:M16}
+
+\section{(M16) MIS of VADNoiseFilter} \label{M16}
+
+\textbf{Module:} VADNoiseFilter
+
+\subsection{Uses:}
 \begin{itemize}
-\item \textbf{transition:} Transitions state to STOPPED, stops and closes audio stream, clears buffers, returns state to IDLE.
-\item \textbf{output:} None
+\item MicrophoneManager (M15) for raw audio frames.
+\item Speech-to-Text Engine (M4) for improved transcription accuracy.
+\item AuditLogger (M11) for tracking confidence drops or noise anomalies.
 \end{itemize}
 
-\noindent\texttt{get\_stats()}:
+\subsection{Syntax:}
+
+\subsubsection{Exported Access Programs:}
+
+\begin{tabular}{|l|l|l|l|}
+\hline
+\textbf{Name} & \textbf{In} & \textbf{Out} & \textbf{Exceptions} \\ \hline
+\texttt{filterFrame} & \texttt{audioFrame: AudioFrame} & \texttt{cleanedFrame: AudioFrame} & - \\ 
+\texttt{detectSpeech} & \texttt{audioFrame: AudioFrame} & \texttt{isSpeech: bool} & - \\ 
+\texttt{resetState} & - & \texttt{status: bool} & - \\ \hline
+\end{tabular}
+
+\subsection{Semantics}
+
+Supports Integrity Requirements (IR2) by reducing background noise prior to transcription.
+Provides binary VAD detections for downstream timing and segmentation.
+
+\subsubsection{Access Routine Semantics:}
+
+\noindent\texttt{filterFrame(frame)}:
 \begin{itemize}
-\item \textbf{output:} Dictionary containing total\_recordings, total\_audio\_seconds, vad\_errors, stream\_errors.
+\item \textbf{transition:} Updates internal noise profile and returns processed audio.
 \end{itemize}
 
-\noindent\texttt{list\_audio\_devices()} (static):
+\noindent\texttt{detectSpeech(frame)}:
 \begin{itemize}
-\item \textbf{output:} List of tuples (device\_index, device\_info) for all available input devices.
+\item \textbf{transition:} Computes speech probability using configured thresholds.
 \end{itemize}
-
-\subsubsection{Internal Processing (State Machine):}
-
-The module implements a state machine that processes audio chunks through the following logic:
-
-\begin{itemize}
-\item \textbf{LISTENING}: Maintains pre-buffer of recent chunks. On speech detection → SPEECH\_DETECTED.
-\item \textbf{SPEECH\_DETECTED}: Copies pre-buffer to recording buffer → RECORDING.
-\item \textbf{RECORDING}: Accumulates audio chunks. Increments silence\_counter when no speech detected. Ends recording when:
-  \begin{itemize}
-  \item Silence duration exceeds threshold (default 1500ms), or
-  \item Maximum recording duration reached (default 30s)
-  \end{itemize}
-\item \textbf{PROCESSING}: Converts accumulated int16 audio to float32, invokes callback with audio array and metadata, then → LISTENING.
-\end{itemize}
-
-Speech detection uses WebRTC VAD and optionally combines with energy threshold analysis.
-
-\subsubsection{Local Functions:}
-
-\noindent\texttt{\_is\_speech(audio\_chunk: bytes) → bool}:
-\begin{itemize}
-\item Applies WebRTC VAD to determine if chunk contains speech.
-\item If energy\_threshold configured, also computes RMS energy and returns OR of both criteria.
-\item Increments vad\_errors on exception.
-\end{itemize}
-
-\noindent\texttt{\_process\_audio\_chunk(audio\_chunk: bytes)}:
-\begin{itemize}
-\item Implements state machine logic based on current state and speech detection result.
-\end{itemize}
-
-\noindent\texttt{\_start\_recording()}:
-\begin{itemize}
-\item Initializes recording\_buffer with pre\_buffer contents.
-\end{itemize}
-
-\noindent\texttt{\_end\_recording()}:
-\begin{itemize}
-\item Concatenates recording buffer, converts to float32, creates metadata, invokes callback.
-\item Updates statistics and resets recording state.
-\end{itemize}
-
-\noindent\texttt{\_audio\_callback(indata, frames, time\_info, status)}:
-\begin{itemize}
-\item Sounddevice callback invoked for each audio chunk.
-\item Converts float32 input to int16 bytes and forwards to \_process\_audio\_chunk.
-\end{itemize}
-
 
 \label{MIS:M17}
 
@@ -1521,7 +1397,7 @@ Updates the user's model profile upon successful tuning.
 
 
 \bibliographystyle {plainnat}
-\bibliography {../../../refs/References}
+\bibliography{refs/References}
 
 \newpage
 
