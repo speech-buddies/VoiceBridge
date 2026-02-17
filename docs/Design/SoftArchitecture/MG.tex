@@ -60,6 +60,7 @@ Jan 10, 2026 & 1.4 & Implemented TA and Peer Feedback for AC/UC distinctions\\
 Jan 21, 2026 & 2.0 & Merged modules in application layer and updated timeline\\
 Jan 21, 2026 & 2.1 & Added communication protocol details\\
 Feb 10, 2026 & 2.2 & Implemented advisor feedback on structure, clarity and terminology \\
+Feb 16, 2026 & 2.3 & Updated module descriptions to resemble rev0 architecture \\
 \bottomrule
 \end{tabularx}
 
@@ -189,7 +190,7 @@ Personalization features may evolve to accommodate changing user speech patterns
 
 \item[\refstepcounter{acnum} \actheacnum \label{acCommandSupport}:]
 Command mapping and browser automation protocols. \\
-Browser capabilities, permission models, and automation interfaces (such as extension manifests and scripting APIs) are expected to evolve over time. New commands, revised command schemas, and updated browser/OS integration will require changes localized to the Command Orchestration and Browser Controller modules, which are designed to isolate such API-level changes from the rest of the system.
+Browser capabilities, permission models, and automation interfaces (such as extension manifests and scripting APIs) are expected to evolve over time. New commands, revised command schemas, and updated browser/OS integration will require changes localized to the Command Orchestration and Browser Orchestrator modules, which are designed to isolate such API-level changes from the rest of the system.
 
 
 \item[\refstepcounter{acnum} \actheacnum \label{acUIAndAccessibility}:]
@@ -244,7 +245,7 @@ The system uses speech recognition models adapted for users with speech impairme
 
 \item[\refstepcounter{ucnum} \uctheucnum \label{ucCommandSystem}:]
 Complete redesign of command mapping and browser control modules. \\
-The system uses a browser-bridge automation pattern, with dedicated modules (Command Orchestrator, Browser Controller) that encapsulate browser APIs and OS integration. Updates to support new browser APIs or extensions are expected, but replacing the underlying automation architecture is not planned.
+The system uses a browser-bridge automation pattern, with dedicated modules (Command Orchestrator, Browser Orchestrator) that encapsulate browser APIs and OS integration. Updates to support new browser APIs or extensions are expected, but replacing the underlying automation architecture is not planned.
 
 \item[\refstepcounter{ucnum} \uctheucnum \label{ucArchitecture}:]
 Abandoning modular design for a monolithic or radically different architecture. \\
@@ -263,7 +264,7 @@ To clarify the structural organization of this system, we distinguish between th
 
 \textbf{Module:} A module is a self-contained software component that encapsulates a specific set of secrets (design decisions) and provides a well-defined set of services through its interface. Each module is the fundamental unit of implementation and change—modifications to a module's internal implementation should not require changes to other modules, provided its interface remains stable. Modules represent how specific responsibilities are implemented and hidden behind abstractions.
 
-\textbf{Orchestrator:} An orchestrator is a specialized type of module whose primary responsibility is coordinating the interactions between other modules to accomplish complex workflows. Unlike standard modules that focus on a single domain-specific task, orchestrators manage sequencing, decision-making, and data flow across module boundaries. In this system, M5 (Command Orchestrator) exemplifies this pattern by synthesizing speech transcripts into browser commands through coordination with M4, M17 (Prompting Module), M7 (Browser Controller), and M8 (Session Manager). Orchestrators represent when modules interact and why certain sequences occur.
+\textbf{Orchestrator:} An orchestrator is a specialized type of module whose primary responsibility is coordinating the interactions between other modules to accomplish complex workflows. Unlike standard modules that focus on a single domain-specific task, orchestrators manage sequencing, decision-making, and data flow across module boundaries. In this system, M5 (Command Orchestrator) exemplifies this pattern by synthesizing speech transcripts into browser commands through coordination with M4, M17 (Prompting Module), M7 (Browser Orchestrator), and M8 (Session Manager). Orchestrators represent when modules interact and why certain sequences occur.
 
 
 \subsection{Design Rationale}
@@ -329,7 +330,7 @@ Manages direct user interaction and feedback presentation. Displays transcribed 
 \midrule
 
 \textbf{Control (Orchestration) Layer} &
-Browser Controller \newline
+Browser Orchestrator \newline
 Session Manager  &
 Coordinates and manages flow between modules. Tracks session states such as capture, transcribe, confirm, and execute. Manages events, exceptions, retries, and cancellations to ensure smooth operation. \\
 \midrule
@@ -450,19 +451,20 @@ Provides user prompting, model fine-tuning, and instruction management. Supports
 \medskip
 \subsubsection*{M5: Command Orchestrator} \refstepcounter{mnum}\mthemnum\label{m5}
 
-\textbf{Secrets:} 
+\textbf{Secrets:}
 \begin{itemize}
-    \item Prompt engineering strategies and system instructions for direct command synthesis.
-    \item Session-based conversation context and short-term memory management.
-    \item Heuristics for mapping natural language to browser-specific schemas without a fixed registry.
-    \item Validation logic for ensuring LLM outputs conform to executable security guardrails.
+  \item Prompt engineering strategies and system instructions for command clarification and synthesis.
+  \item Session-based conversation context and short-term memory management for multi-turn interactions.
+  \item LLM API integration details (e.g., Gemini API configuration, dynamic context injection).
+  \item Heuristics for mapping natural language to browser-specific schemas without a fixed registry.
+  \item Safety guardrail heuristics for blocking malicious or ambiguous commands while allowing informational queries.
 \end{itemize}
-\textbf{Services:} 
+\textbf{Services:}
 \begin{itemize}
-    \item Initialize the orchestrator with system prompts and API configurations.
-    \item Synthesize raw speech transcripts directly into structured, validated browser commands.
-    \item Assign confidence scores based on model reasoning.
-    \item Reset session context and clear conversation history.
+  \item Initialize the orchestrator with system prompts, API key, model configuration, and optional custom system prompt.
+  \item Process user input to determine if intent is clear or needs clarification, returning either a clarified browser command or a clarification question.
+  \item Apply safety guardrails to prevent execution of harmful or ambiguous commands.
+  \item Reset session context and clear conversation history.
 \end{itemize}
 \textbf{Implemented By:} CommandOrchestrator module using an external LLM API, dynamic context injection, and a JSON schema validation layer.
 
@@ -489,38 +491,34 @@ Provides user prompting, model fine-tuning, and instruction management. Supports
 % ---------- Control (Orchestration) ----------
 \subsection*{Control (Orchestration) Modules}
 
-\subsubsection*{M7: BrowserController} \refstepcounter{mnum}\mthemnum\label{m7}
-\textbf{Secrets:} 
+\subsubsection*{M7: Browser Orchestrator} \refstepcounter{mnum}\mthemnum\label{m7}
+\textbf{Secrets:}
 \begin{itemize}
-  \item Transport protocol to the browser controller
-  \item Timeout wrappers and normalization of responses
-  \item Session plumbing
+  \item Construction of the \texttt{browser\_use} agent (\texttt{Agent}) and LLM wrapper (\texttt{ChatBrowserUse})
+  \item How the natural-language \texttt{command} is passed to the agent (\texttt{task=command})
+  \item Interpretation/formatting of the returned execution \texttt{history}
 \end{itemize}
-\textbf{Services:} 
+\textbf{Services:}
 \begin{itemize}
-  \item Send request
-  \item Get status
-  \item Cancel operations
-  \item Open and close controller sessions
+  \item Execute a natural-language browser command using an active \texttt{Browser} instance
 \end{itemize}
-\textbf{Implemented By:} Automation bridge client.
+\textbf{Implemented By:} \texttt{src/control/browser\_orchestrator.py}
 
 \medskip
 \subsubsection*{M8: Session Manager} \refstepcounter{mnum}\mthemnum\label{m8}
-\textbf{Secrets:} 
+\textbf{Secrets:}
 \begin{itemize}
-  \item Session lifecycle rules
-  \item Storage schema
-  \item TTL and expiry handling
+  \item Management of a single shared browser instance (\texttt{\_browser}) for the whole application
+  \item Browser start/stop lifecycle and cleanup logic
+  \item Keep-alive configuration for reusing the same browser across multiple commands (\texttt{keep\_alive=True})
 \end{itemize}
-\textbf{Services:} 
+\textbf{Services:}
 \begin{itemize}
-  \item Start and stop sessions
-  \item Get session state
-  \item Attach commands
-  \item Set state
+  \item Start the shared browser session
+  \item Stop the shared browser session
+  \item Provide access to the active \texttt{Browser} instance (or \texttt{None} if not running)
 \end{itemize}
-\textbf{Implemented By:} In-memory cache + persistent store.
+\textbf{Implemented By:} \texttt{src/control/session\_manager.py}
 
 \subsection*{Data Management Modules}
 \medskip
@@ -955,7 +953,7 @@ Core functionality such as speech-to-text and command orchestrator was developed
 User Interface Module & January 15, 2026 & Kelvin \\
 Speech-to-Text Engine & January 15, 2026 & Luna \\
 Command Orchestrator & January 15, 2026 & Rawan \\
-Browser Controller & January 15, 2026 & Mazen \\ 
+browser orchestrator & January 15, 2026 & Mazen \\ 
 Accessibility Layer & January 18, 2026 & Mazen \\
 Feedback Display Module & January 18, 2026 & Rawan \\
 Error Feedback & January 18, 2026 & Kelvin \\ 
