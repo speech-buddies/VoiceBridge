@@ -254,7 +254,7 @@ function App() {
               {/* System message - always visible, never clipped */}
               {userPrompt && (
                 <div className="system-message-alert" style={{marginBottom: 20, maxWidth: '100%'}}>
-                  <div className="system-message-icon">⚠️</div>
+                  <div className="system-message-icon">ℹ️</div>
                   <div className="system-message-content">
                     <strong>System Message:</strong>
                     <p>{userPrompt}</p>

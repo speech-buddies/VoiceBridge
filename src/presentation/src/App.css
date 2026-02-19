@@ -296,28 +296,28 @@
   gap: 12px;
   padding: 16px;
   margin-bottom: 16px;
-  background-color: #fffbe6;
-  border: 3px solid #faad14;
+  background-color: #e6f2ff;
+  border: 1px solid #4a90e2;
   border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(250, 173, 20, 0.2);
+  box-shadow: 0 2px 8px rgba(74, 144, 226, 0.15);
   animation: slideDown 0.3s ease-out;
 }
 
 /* Light mode adjustments */
 .light-mode .system-message-alert {
-  background-color: #fff7e6;
-  border-color: #fa8c16;
-  box-shadow: 0 4px 12px rgba(250, 140, 22, 0.25);
+  background-color: #e6f2ff;
+  border-color: #4a90e2;
+  box-shadow: 0 2px 8px rgba(74, 144, 226, 0.15);
 }
 
 /* Dark mode adjustments */
 .dark-mode .system-message-alert {
-  background-color: rgba(250, 173, 20, 0.15);
-  border-color: #faad14;
-  box-shadow: 0 4px 12px rgba(250, 173, 20, 0.3);
+  background-color: rgba(74, 144, 226, 0.15);
+  border-color: #5ba3f5;
+  box-shadow: 0 2px 8px rgba(74, 144, 226, 0.2);
 }
 
-/* Warning icon */
+/* Info icon */
 .system-message-icon {
   font-size: 24px;
   flex-shrink: 0;
@@ -333,19 +333,19 @@
 .system-message-content strong {
   display: block;
   margin-bottom: 8px;
-  color: #d48806;
+  color: #4a90e2;
   font-size: 14px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0.3px;
 }
 
 .light-mode .system-message-content strong {
-  color: #d46b08;
+  color: #357abd;
 }
 
 .dark-mode .system-message-content strong {
-  color: #faad14;
+  color: #7bb3f0;
 }
 
 .system-message-content p {
