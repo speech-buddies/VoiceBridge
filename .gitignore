@@ -401,3 +401,6 @@ log
 
 # Model cache
 src/models/hf_cache/
+
+# Feedback logs
+src/data/feedback_log.jsonl
