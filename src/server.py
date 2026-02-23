@@ -23,7 +23,7 @@ from typing import Optional, List
 from contextlib import asynccontextmanager
 
 import numpy as np
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -33,6 +33,7 @@ from control.session_manager import get_browser, start_session, stop_session
 
 from app.command_orchestrator import CommandOrchestrator, OrchestratorError
 from app.speech_to_text_engine import SpeechToTextEngine
+from data.feedback_store import FeedbackStore
 
 # Windows compatibility
 if sys.platform.startswith("win"):
@@ -69,9 +70,16 @@ class StatusResponse(BaseModel):
     user_transcript: Optional[str] = None  # Latest user input
     clarified_command: Optional[str] = None  # LLM-clarified version
     last_command: Optional[str] = None
-    user_prompt: Optional[str] = None
+    user_prompt: Optional[str] = None       # Message shown to user (clarification OR confirmation summary)
+    awaiting_confirmation: bool = False     # True only when a complete command awaits yes/no
+    pending_command: Optional[str] = None   # The command text held until confirmed
 
-
+class FeedbackRequest(BaseModel):
+    command_id: str
+    feedback_type: str
+    value: str
+    source: str
+    command_text: str = None
 # ============================================================================
 # WebSocket Connection Manager
 # ============================================================================
@@ -164,9 +172,14 @@ class VoiceBridgeServer:
         self._clarified_command: Optional[str] = None  # LLM-clarified version
         
         # Conversation context for multi-turn interactions
-        # Format: [{"role": "user|assistant", "content": "...", "timestamp": "..."}]
         self._conversation_context: List[dict] = []
         self._current_user_prompt: Optional[str] = None
+
+        # Confirmation gate: True only while waiting for the user to say yes/no
+        # _pending_command holds the clarified command text until confirmed
+        self._awaiting_confirmation: bool = False
+        self._pending_command: Optional[str] = None
+        self.feedback_store = FeedbackStore()
     
     def _broadcast_state_change(self, state_data, old_state):
         """Broadcast state changes to WebSocket clients"""
@@ -291,17 +304,24 @@ class VoiceBridgeServer:
                     }
                 }
             logger.info(f"Orchestrator clarified command: '{clarified_command}'")
-            # Execute via browser controller (which handles natural language)
-            # Transition to executing state
-            print("**SWITCHED TO EXECUTING")
 
-            self.state_manager.transition_to(AppState.EXECUTING, transcript=clarified_command)
-            execution_result = await self._execute_browser_command(clarified_command)
+            # ----------------------------------------------------------------
+            # Complete command ready → enter confirmation gate.
+            # We stay in LISTENING state; _awaiting_confirmation=True means
+            # the next audio chunk will be routed to _process_confirmation.
+            # ----------------------------------------------------------------
+            self._pending_command = clarified_command
+            self._awaiting_confirmation = True
+            self._current_user_prompt = (
+                f"Ready to execute: \"{clarified_command}\". "
+                "Say yes to confirm or no to cancel."
+            )
+            self._last_command = clarified_command
+
             return {
-                "needs_input": False,
-                "success": True,
-                "command": clarified_command,
-                "details": execution_result
+                "needs_input": True,
+                "awaiting_confirmation": True,
+                "user_prompt": self._current_user_prompt,
             }
             
         except OrchestratorError as e:
@@ -393,6 +413,8 @@ class VoiceBridgeServer:
         if current_state != AppState.LISTENING:
             logger.warning(f"Received audio in unexpected state: {current_state.value}")
             return None
+        elif self._awaiting_confirmation:
+            await self._process_confirmation(audio_data)
         else:
             await self._process_new_command(audio_data)
 
@@ -427,33 +449,27 @@ class VoiceBridgeServer:
             
             # Handle result
             if result.get("needs_input"):
-                # Need clarification
+                # Either a clarification question OR a confirmation prompt, return to LISTENING so the user can respond.
                 self._current_user_prompt = result["user_prompt"]
-                self.state_manager.transition_to(
-                    AppState.LISTENING,
-                    transcript=transcript,
-                    metadata={
-                        "user_prompt": result["user_prompt"],
-                        "context": result.get("context", {})
-                    }
-                )
-                
-                # Add prompt to conversation
+
                 self._conversation_context.append({
                     "role": "assistant",
                     "content": result["user_prompt"],
                     "timestamp": self.state_manager.state_data.timestamp.isoformat()
                 })
-                
-                # Auto-start listening for response
-                if self.is_voice_mode_active:
-                    await asyncio.sleep(0.1)
-                    self.state_manager.transition_to(AppState.LISTENING)
+
+                self.state_manager.transition_to(
+                    AppState.LISTENING,
+                    transcript=transcript,
+                    metadata={"user_prompt": result["user_prompt"]}
+                )
             
             else:
-                # Command executed successfully
+                # Command executed successfully — close the confirmation window
                 self._last_command = transcript
                 self._current_user_prompt = None
+                self._awaiting_confirmation = False
+                self._pending_command = None
                 # Keep user_transcript and clarified_command for display
                 # They will be updated on next user input
                 
@@ -471,6 +487,8 @@ class VoiceBridgeServer:
             logger.error(f"Error processing command: {e}")
             self.state_manager.handle_error(str(e))
             self._current_user_prompt = None
+            self._awaiting_confirmation = False
+            self._pending_command = None
             
             # Return to listening/idle
             await asyncio.sleep(2)
@@ -479,6 +497,94 @@ class VoiceBridgeServer:
             else:
                 self.state_manager.transition_to(AppState.IDLE)
     
+    async def _process_confirmation(self, audio_data: bytes):
+        """
+        Handle a voice yes/no response while _awaiting_confirmation is True.
+
+        yes / yeah / yep          → log verbal feedback, execute pending command
+        no / nope / cancel / etc. → log verbal feedback, discard, back to LISTENING
+        anything else             → treat as a brand-new command
+        """
+        self.state_manager.transition_to(AppState.PROCESSING, audio_data=audio_data)
+
+        try:
+            transcript = await self.transcribe_audio(audio_data)
+            self._user_transcript = transcript
+            word = transcript.strip().lower().rstrip(".,!?")
+
+            if word in ("yes", "yeah", "yep"):
+                self.feedback_store.log_feedback(
+                    command_id=self._pending_command or "unknown",
+                    feedback_type="confirmation",
+                    value="yes",
+                    command_text=self._pending_command,
+                    source="verbal",
+                )
+                logger.info(f"Verbal YES — executing: '{self._pending_command}'")
+                await self._execute_confirmed_command()
+
+            elif word in ("no", "nope", "cancel", "nevermind", "never mind", "stop"):
+                self.feedback_store.log_feedback(
+                    command_id=self._pending_command or "unknown",
+                    feedback_type="confirmation",
+                    value="no",
+                    command_text=self._pending_command,
+                    source="verbal",
+                )
+                logger.info(f"Verbal NO — cancelling: '{self._pending_command}'")
+                await self._cancel_confirmed_command()
+
+            else:
+                # Ambiguous — not a yes/no. Treat as a new command.
+                logger.info(f"Ambiguous reply '{transcript}' — treating as new command")
+                self._reset_confirmation_gate()
+                await self._process_new_command(audio_data)
+
+        except Exception as e:
+            logger.error(f"Error in _process_confirmation: {e}")
+            self._reset_confirmation_gate()
+            self.state_manager.handle_error(str(e))
+            await asyncio.sleep(2)
+            target = AppState.LISTENING if self.is_voice_mode_active else AppState.IDLE
+            self.state_manager.transition_to(target)
+
+    def _reset_confirmation_gate(self):
+        """Clear all confirmation state without triggering any transitions."""
+        self._awaiting_confirmation = False
+        self._pending_command = None
+        self._current_user_prompt = None
+        self._conversation_context = []
+
+    async def _execute_confirmed_command(self):
+        """Execute the pending command and return to LISTENING."""
+        pending = self._pending_command
+        logger.info(f"[CONFIRMATION] Executing confirmed command: {pending}")
+        self._reset_confirmation_gate()
+
+        self.state_manager.transition_to(AppState.EXECUTING, transcript=pending)
+        try:
+            await self._execute_browser_command(pending)
+        except Exception as e:
+            logger.error(f"Execution error after confirmation: {e}")
+            self.state_manager.handle_error(str(e))
+
+        self._last_command = pending
+        await asyncio.sleep(0.1)
+        target = AppState.LISTENING if self.is_voice_mode_active else AppState.IDLE
+        self.state_manager.transition_to(target)
+        logger.info(f"[CONFIRMATION] Command executed, state reset to {target}")
+        if hasattr(self, 'manager') and self.manager:
+            await self.manager.broadcast({"state": self.state_manager.get_state_info()})
+
+    async def _cancel_confirmed_command(self):
+        self._reset_confirmation_gate()
+        await asyncio.sleep(0.1)
+        target = AppState.LISTENING if self.is_voice_mode_active else AppState.IDLE
+        self.state_manager.transition_to(target)
+        logger.info(f"[CONFIRMATION] Command cancelled, state reset to {target}")
+        if hasattr(self, 'manager') and self.manager:
+            await self.manager.broadcast({"state": self.state_manager.get_state_info()})
+
     # ========================================================================
     # Audio Capture Management
     # ========================================================================
@@ -556,15 +662,19 @@ class VoiceBridgeServer:
         status['last_command'] = self._last_command
         status['user_prompt'] = self._current_user_prompt
         status['transcript'] = self._last_transcript or status.get('transcript')
-        status['user_transcript'] = self._user_transcript  # Latest user input
-        status['clarified_command'] = self._clarified_command  # LLM version
+        status['user_transcript'] = self._user_transcript
+        status['clarified_command'] = self._clarified_command
         status['has_conversation_context'] = len(self._conversation_context) > 0
+        status['awaiting_confirmation'] = self._awaiting_confirmation
+        status['pending_command'] = self._pending_command
         return status
     
     def reset(self) -> dict:
         """Reset to idle state."""
         self.is_voice_mode_active = False
         self._current_user_prompt = None
+        self._awaiting_confirmation = False
+        self._pending_command = None
         self._conversation_context = []
         self._user_transcript = None
         self._clarified_command = None
@@ -683,6 +793,45 @@ async def reset_server():
     result = server.reset()
     return {"success": True, "message": "Server reset", "state": result["state"]}
 
+
+@app.post("/feedback")
+async def feedback_endpoint(request: Request):
+    """
+    Receive UI or verbal feedback for a pending confirmation.
+
+    thumbs_up  → log + execute the pending command
+    thumbs_down → log + cancel the pending command
+    Other values → log only (no state change)
+    """
+    if not server:
+        raise HTTPException(status_code=503, detail="Server not initialized")
+    data = await request.json()
+    try:
+        value = data.get("value", "")
+        source = data.get("source", "ui")
+        command_id = data.get("command_id") or server._pending_command or "unknown"
+        command_text = data.get("command_text") or server._pending_command
+
+        server.feedback_store.log_feedback(
+            command_id=command_id,
+            feedback_type=data.get("feedback_type", "ui"),
+            value=value,
+            command_text=command_text,
+            source=source,
+        )
+
+        if server._awaiting_confirmation:
+            if value in ("thumbs_up", "yes"):
+                logger.info(f"UI confirm — executing: '{server._pending_command}'")
+                asyncio.create_task(server._execute_confirmed_command())
+            elif value in ("thumbs_down", "no"):
+                logger.info(f"UI cancel — discarding: '{server._pending_command}'")
+                asyncio.create_task(server._cancel_confirmed_command())
+
+        return {"success": True}
+    except Exception as e:
+        logger.error(f"Feedback logging failed: {e}")
+        return {"success": False, "error": str(e)}
 
 @app.get("/health")
 async def health_check():

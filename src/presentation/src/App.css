@@ -441,3 +441,140 @@
     gap: 0.5rem;
   }
 }
+
+/* Confirmation-ready alert */
+.system-message-alert.confirmation-ready {
+  background-color: #e6f7ee;
+  border-color: #2f9e44;
+  box-shadow: 0 2px 8px rgba(47, 158, 68, 0.15);
+}
+
+.dark-mode .system-message-alert.confirmation-ready {
+  background-color: rgba(47, 158, 68, 0.12);
+  border-color: #40c057;
+  box-shadow: 0 2px 8px rgba(47, 158, 68, 0.2);
+}
+
+.system-message-alert.confirmation-ready .system-message-content strong {
+  color: #2f9e44;
+}
+
+.dark-mode .system-message-alert.confirmation-ready .system-message-content strong {
+  color: #69db7c;
+}
+
+/* ── Confirmation UI ── */
+.confirmation-ui {
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  animation: slideDown 0.2s ease;
+}
+
+.dark-mode .confirmation-ui {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #e8e8e8;
+}
+
+.light-mode .confirmation-ui {
+  background: rgba(0, 0, 0, 0.03);
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  color: #222;
+}
+
+/* Verbal cues — displayed as instructional text, not buttons */
+.confirmation-verbal-cues {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.confirmation-cue {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.92rem;
+  padding: 8px 12px;
+  border-radius: 6px;
+}
+
+.dark-mode .confirmation-cue--yes {
+  background: rgba(47, 158, 68, 0.15);
+  border-left: 3px solid #2f9e44;
+}
+
+.dark-mode .confirmation-cue--no {
+  background: rgba(201, 42, 42, 0.15);
+  border-left: 3px solid #c92a2a;
+}
+
+.light-mode .confirmation-cue--yes {
+  background: rgba(47, 158, 68, 0.08);
+  border-left: 3px solid #2f9e44;
+}
+
+.light-mode .confirmation-cue--no {
+  background: rgba(201, 42, 42, 0.08);
+  border-left: 3px solid #c92a2a;
+}
+
+/* Thumbs section */
+.confirmation-thumbs-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.confirmation-thumbs-toggle {
+  background: transparent;
+  border: none;
+  font-size: 0.75rem;
+  cursor: pointer;
+  padding: 2px 0;
+  text-align: left;
+  opacity: 0.55;
+  transition: opacity 0.15s;
+}
+
+.dark-mode .confirmation-thumbs-toggle { color: #ccc; }
+.light-mode .confirmation-thumbs-toggle { color: #555; }
+.confirmation-thumbs-toggle:hover { opacity: 0.9; }
+
+.confirmation-thumbs-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+.confirmation-btn {
+  flex: 1;
+  padding: 9px 0;
+  border: none;
+  border-radius: 7px;
+  font-size: 0.92rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: filter 0.15s, transform 0.1s;
+}
+
+.confirmation-btn:focus-visible {
+  outline: 2px solid #4dabf7;
+  outline-offset: 2px;
+}
+
+.confirmation-btn:active { transform: scale(0.97); }
+
+.confirmation-btn--up {
+  background: #2f9e44;
+  color: #fff;
+}
+.confirmation-btn--up:hover { filter: brightness(1.15); }
+
+.confirmation-btn--down {
+  background: #c92a2a;
+  color: #fff;
+}
+.confirmation-btn--down:hover { filter: brightness(1.15); }
