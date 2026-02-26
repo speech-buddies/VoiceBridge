@@ -11,6 +11,11 @@ import AccessibilityLayer from './utils/accessibilityLayer';
 const AUDIO_BACKEND_BASE = 'http://localhost:8000';
 
 function App() {
+  // Confirmation state
+  const [awaitingConfirmation, setAwaitingConfirmation] = useState(false);
+  const [lastCommandId, setLastCommandId] = useState(null);
+  const [pendingCommand, setPendingCommand] = useState(null);
+
   const [isListening, setIsListening] = useState(true);
   const [status, setStatus] = useState('listening'); // idle, listening
   const [error, setError] = useState(null);
@@ -24,6 +29,101 @@ function App() {
   const uiClientRef = useRef(null);
   const auditLoggerRef = useRef(null);
   const accessibilityLayerRef = useRef(null);
+
+  // Toggle thumbs button visibility
+  const [showThumbs, setShowThumbs] = useState(true);
+
+  useEffect(() => {
+    const tick = () => {
+      fetch(`${AUDIO_BACKEND_BASE}/status`)
+        .then((r) => r.json())
+        .then((data) => {
+          setUserPrompt(data.user_prompt ?? null);
+          setUserTranscript(data.user_transcript ?? null);
+          setAwaitingConfirmation(data.awaiting_confirmation ?? false);
+          setPendingCommand(data.pending_command ?? null);
+          setLastCommandId(data.last_command ?? null);
+        })
+        .catch(() => {});
+    };
+    tick(); 
+    const interval = setInterval(tick, 400);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Send UI feedback (thumbs) — also triggers execute/cancel on backend
+  const sendThumbsFeedback = (value) => {
+    fetch(`${AUDIO_BACKEND_BASE}/feedback`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        command_id: lastCommandId || pendingCommand || 'unknown',
+        feedback_type: 'ui',
+        value,
+        source: 'ui',
+        command_text: pendingCommand || userPrompt || ''
+      })
+    }).then(() => {
+      setAwaitingConfirmation(false);
+      setPendingCommand(null);
+    }).catch(() => {});
+  };
+
+  // Confirmation, only rendered when a complete command is pending verbal yes/no
+  const renderConfirmationUI = () => {
+    if (!awaitingConfirmation) return null;
+    return (
+      <section
+        className="confirmation-ui"
+        aria-label="Awaiting verbal confirmation"
+        aria-live="polite"
+      >
+        {/* Verbal instruction — these are spoken, not clicked */}
+        <div className="confirmation-verbal-cues">
+          <span className="confirmation-cue confirmation-cue--yes" aria-label="Say Yes to confirm">
+            🎙 Say <strong>"Yes"</strong> to confirm
+          </span>
+          <span className="confirmation-cue confirmation-cue--no" aria-label="Say No to cancel">
+            🎙 Say <strong>"No"</strong> to cancel
+          </span>
+        </div>
+
+        {/* Thumbs toggle + buttons */}
+        <div className="confirmation-thumbs-row">
+          <button
+            type="button"
+            className="confirmation-thumbs-toggle"
+            onClick={() => setShowThumbs(prev => !prev)}
+            aria-label={showThumbs ? 'Hide button controls' : 'Show button controls'}
+            title={showThumbs ? 'Hide buttons' : 'Show buttons'}
+          >
+            {showThumbs ? 'Hide buttons ▲' : 'Show buttons ▼'}
+          </button>
+
+          {showThumbs && (
+            <div className="confirmation-thumbs-buttons" role="group" aria-label="Button alternatives">
+              <button
+                type="button"
+                className="confirmation-btn confirmation-btn--up"
+                onClick={() => sendThumbsFeedback('thumbs_up')}
+                aria-label="Thumbs up — confirm command"
+              >
+                👍 Confirm
+              </button>
+              <button
+                type="button"
+                className="confirmation-btn confirmation-btn--down"
+                onClick={() => sendThumbsFeedback('thumbs_down')}
+                aria-label="Thumbs down — cancel command"
+              >
+                👎 Cancel
+              </button>
+            </div>
+          )}
+        </div>
+      </section>
+    );
+  };
 
   useEffect(() => {
     // Initialize modules
@@ -62,9 +162,9 @@ function App() {
     } else {
       fetch(`${base}/audio/capture/stop`, { method: 'POST' }).catch(() => {});
     }
-  });
+  }, [isListening]);
 
-  // Poll backend capture status and user_prompt/user_transcript from /status
+  // Poll backend capture status
   useEffect(() => {
     if (!isListening) return;
     const base = AUDIO_BACKEND_BASE;
@@ -83,30 +183,7 @@ function App() {
           }
         })
         .catch(() => {});
-      fetch(`${base}/status`)
-        .then((r) => r.json())
-        .then((data) => {
-          setUserPrompt(data.user_prompt ?? null);
-          setUserTranscript(data.user_transcript ?? null);
-        })
-        .catch(() => {});
     }, 400);
-    return () => clearInterval(interval);
-  }, [isListening]);
-
-  // Poll /status for user_prompt and user_transcript when not in voice mode (e.g. after stop)
-  useEffect(() => {
-    if (isListening) return;
-    const base = AUDIO_BACKEND_BASE;
-    const interval = setInterval(() => {
-      fetch(`${base}/status`)
-        .then((r) => r.json())
-        .then((data) => {
-          setUserPrompt(data.user_prompt ?? null);
-          setUserTranscript(data.user_transcript ?? null);
-        })
-        .catch(() => {});
-    }, 1000);
     return () => clearInterval(interval);
   }, [isListening]);
 
@@ -241,22 +318,30 @@ function App() {
           <div className="main-container">
             <div className="left-panel">
               <StatusIndicator status={status} error={error} isLightMode={isLightMode} />
-              <SpeechInput
-                isListening={isListening}
-                status={status}
-                onAudioData={handleAudioData}
-                onError={handleError}
-                isLightMode={isLightMode}
-                backendBase={AUDIO_BACKEND_BASE}
-              />
+              {(status === 'listening' || awaitingConfirmation) && (
+                <SpeechInput
+                  isListening={isListening}
+                  status={status}
+                  onAudioData={handleAudioData}
+                  onError={handleError}
+                  isLightMode={isLightMode}
+                  backendBase={AUDIO_BACKEND_BASE}
+                />
+              )}
+              {renderConfirmationUI()}
             </div>
             <div className="right-panel">
               {/* System message - always visible, never clipped */}
               {userPrompt && (
-                <div className="system-message-alert" style={{marginBottom: 20, maxWidth: '100%'}}>
-                  <div className="system-message-icon">ℹ️</div>
+                <div
+                  className={`system-message-alert${awaitingConfirmation ? ' confirmation-ready' : ''}`}
+                  style={{marginBottom: 20, maxWidth: '100%'}}
+                >
+                  <div className="system-message-icon">
+                    {awaitingConfirmation ? '✅' : 'ℹ️'}
+                  </div>
                   <div className="system-message-content">
-                    <strong>System Message:</strong>
+                    <strong>{awaitingConfirmation ? 'Ready to Execute:' : 'System Message:'}</strong>
                     <p>{userPrompt}</p>
                   </div>
                 </div>

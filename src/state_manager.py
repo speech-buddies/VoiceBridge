@@ -131,7 +131,7 @@ class StateManager:
         valid_transitions = {
             AppState.IDLE: [AppState.LISTENING],
             AppState.LISTENING: [AppState.PROCESSING, AppState.ERROR],
-            AppState.PROCESSING: [AppState.EXECUTING, AppState.ERROR],
+            AppState.PROCESSING: [AppState.EXECUTING, AppState.ERROR, AppState.LISTENING],
             AppState.EXECUTING: [AppState.IDLE, AppState.LISTENING, AppState.ERROR],
             AppState.ERROR: [AppState.IDLE, AppState.LISTENING]
         }
