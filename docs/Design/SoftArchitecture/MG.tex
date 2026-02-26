@@ -323,7 +323,7 @@ The following 18 modules represent the leaf nodes in the architectural decomposi
   \item \textbf{Prompting Module} - Generates contextual, accessible, and confidence-based prompts for user clarification
   \item \textbf{Model Tuner} - Adapts speech and intent models to individual user patterns through personalized embeddings
 \end{itemize}
-\section{Connection Between Requirements and Design} \label{SecConnection} \label{SecConnection}
+\section{Connection Between Requirements and Design} \label{SecConnection}
 
 The design of the system is intended to satisfy the requirements developed in the 
 (\href{https://github.com/speech-buddies/VoiceBridge/blob/main/docs/SRS-Volere/SRS.pdf}{SRS}).
@@ -400,7 +400,7 @@ Provides user prompting, model fine-tuning, and instruction management. Supports
 % =========================
 % Module Decomposition
 % =========================
-\section{Module Decomposition} \label{SecMD}  \label{SecMD}
+\section{Module Decomposition} \label{SecMD}
 % ---------- Presentation Layer ----------
 \subsection*{Presentation Layer Modules}
 
@@ -719,11 +719,11 @@ within a single module.
 \toprule
 \textbf{Req.} & \textbf{Modules}\\
 \midrule
-\frref{fr:FR1}& \mref{m15}, \mref{m4}, \mref{m8}\\
-\frref{fr:FR2}& \mref{m4}, \mref{m18}, \mref{m9}\\
-\frref{fr:FR3}& \mref{m1}, \mref{m2}, \mref{m3}, \mref{m6}\\
-\frref{fr:FR4}& \mref{m5}, \mref{m6}\\
-\frref{fr:FR5}& \mref{m7}, \mref{m7}, \mref{m11}, \mref{m6}\\
+\hyperref[fr:FR1]{FR1} & \mref{m15}, \mref{m4}, \mref{m8}\\
+\hyperref[fr:FR2]{FR2} & \mref{m4}, \mref{m18}, \mref{m9}\\
+\hyperref[fr:FR3]{FR3} & \mref{m1}, \mref{m2}, \mref{m3}, \mref{m6}\\
+\hyperref[fr:FR4]{FR4} & \mref{m5}, \mref{m6}\\
+\hyperref[fr:FR5]{FR5} & \mref{m7}, \mref{m7}, \mref{m11}, \mref{m6}\\
 \bottomrule
 \end{tabular}
 \caption{Trace Between Functional Requirements and Modules}
@@ -736,8 +736,8 @@ within a single module.
 \toprule
 \textbf{Req.} & \textbf{Modules}\\
 \midrule
-\lfref{req:AR1}& \mref{m1}, \mref{m2}, \mref{m3}, \mref{m6}\\
-\lfref{req:SR1}& \mref{m1}, \mref{m2}, \mref{m17}, \mref{m3}\\
+\hyperref[req:AR1]{LF1} & \mref{m1}, \mref{m2}, \mref{m3}, \mref{m6}\\
+\hyperref[req:SR1]{LF2} & \mref{m1}, \mref{m2}, \mref{m17}, \mref{m3}\\
 \bottomrule
 \end{tabular}
 \caption{Trace Between Look \& Feel Requirements and Modules}
@@ -750,11 +750,11 @@ within a single module.
 \toprule
 \textbf{Req.} & \textbf{Modules}\\
 \midrule
-\uhref{req:EU1}& \mref{m1}, \mref{m2}, \mref{m3}, \mref{m6}\\
-\uhref{req:PI1}& \mref{m10}, \mref{m9}, \mref{m5}, \mref{m6}\\
-\uhref{req:LR1}& \mref{m1}, \mref{m2}, \mref{m17}, \mref{m8}\\
-\uhref{req:UP1}& \mref{m6}, \mref{m3}, \mref{m2}, \mref{m17}\\
-\uhref{req:AC1}& \mref{m2}, \mref{m1}, \mref{m3}, \mref{m6}\\
+\hyperref[req:EU1]{UH1} & \mref{m1}, \mref{m2}, \mref{m3}, \mref{m6}\\
+\hyperref[req:PI1]{UH2} & \mref{m10}, \mref{m9}, \mref{m5}, \mref{m6}\\
+\hyperref[req:LR1]{UH3} & \mref{m1}, \mref{m2}, \mref{m17}, \mref{m8}\\
+\hyperref[req:UP1]{UH4} & \mref{m6}, \mref{m3}, \mref{m2}, \mref{m17}\\
+\hyperref[req:AC1]{UH5} & \mref{m2}, \mref{m1}, \mref{m3}, \mref{m6}\\
 \bottomrule
 \end{tabular}
 \caption{Trace Between Usability \& Humanity Requirements and Modules}
@@ -767,13 +767,13 @@ within a single module.
 \toprule
 \textbf{Req.} & \textbf{Modules}\\
 \midrule
-\pfref{req:PR1}& \mref{m4}, \mref{m5}, \mref{m6}, \mref{m7}, \mref{m7}\\
-\pfref{req:PR2}& \mref{m5}, \mref{m6}, \mref{m7}, \mref{m6}, \mref{m11}\\
-\pfref{req:PR3}& \mref{m4}, \mref{m18}, \mref{m5}\\
-\pfref{req:PR4}& \mref{m11}, \mref{m8}, \mref{m6}, \mref{m7}\\
-\pfref{req:PR5}& \mref{m8}, \mref{m9}, \mref{m10}\\
-\pfref{req:PR6}& \mref{m8}, \mref{m9}, \mref{m7}\\
-\pfref{req:PR7}& \mref{m9}, \mref{m10}, \mref{m11}, \mref{m12}\\
+\hyperref[req:PR1]{PF1} & \mref{m4}, \mref{m5}, \mref{m6}, \mref{m7}, \mref{m7}\\
+\hyperref[req:PR2]{PF2} & \mref{m5}, \mref{m6}, \mref{m7}, \mref{m6}, \mref{m11}\\
+\hyperref[req:PR3]{PF3} & \mref{m4}, \mref{m18}, \mref{m5}\\
+\hyperref[req:PR4]{PF4} & \mref{m11}, \mref{m8}, \mref{m6}, \mref{m7}\\
+\hyperref[req:PR5]{PF5} & \mref{m8}, \mref{m9}, \mref{m10}\\
+\hyperref[req:PR6]{PF6} & \mref{m8}, \mref{m9}, \mref{m7}\\
+\hyperref[req:PR7]{PF7} & \mref{m9}, \mref{m10}, \mref{m11}, \mref{m12}\\
 \bottomrule
 \end{tabular}
 \caption{Trace Between Performance Requirements and Modules}
@@ -786,11 +786,11 @@ within a single module.
 \toprule
 \textbf{Req.} & \textbf{Modules}\\
 \midrule
-\oerref{req:OE1}& \mref{m15}, \mref{m4}, \mref{m11}\\
-\oerref{req:OE2}& \mref{m1}, \mref{m2}, \mref{m7}, \mref{m8}\\
-\oerref{req:OE3}& \mref{m5}, \mref{m6}, \mref{m7}\\
-\oerref{req:OE4}& \mref{m9}, \mref{m10}, \mref{m11}, \mref{m12}, \mref{m8}\\
-\oerref{req:OE5}& \mref{m8}, \mref{m9}, \mref{m11}, \mref{m12}\\
+\hyperref[req:OE1]{OER1} & \mref{m15}, \mref{m4}, \mref{m11}\\
+\hyperref[req:OE2]{OER2} & \mref{m1}, \mref{m2}, \mref{m7}, \mref{m8}\\
+\hyperref[req:OE3]{OER3} & \mref{m5}, \mref{m6}, \mref{m7}\\
+\hyperref[req:OE4]{OER4} & \mref{m9}, \mref{m10}, \mref{m11}, \mref{m12}, \mref{m8}\\
+\hyperref[req:OE5]{OER5} & \mref{m8}, \mref{m9}, \mref{m11}, \mref{m12}\\
 \bottomrule
 \end{tabular}
 \caption{Trace Between Operational \& Environmental Requirements and Modules}
@@ -803,9 +803,9 @@ within a single module.
 \toprule
 \textbf{Req.} & \textbf{Modules}\\
 \midrule
-\msref{req:MS1}& \mref{m8}, \mref{m9}, \mref{m10}, \mref{m11}, \mref{m12}\\
-\msref{req:MS2}& \mref{m1}, \mref{m2}, \mref{m3}, \mref{m6}, \mref{m17}\\
-\msref{req:MS3}& \mref{m1}, \mref{m2}, \mref{m7}, \mref{m8}, \mref{m11}\\
+\hyperref[req:MS1]{MS1} & \mref{m8}, \mref{m9}, \mref{m10}, \mref{m11}, \mref{m12}\\
+\hyperref[req:MS2]{MS2} & \mref{m1}, \mref{m2}, \mref{m3}, \mref{m6}, \mref{m17}\\
+\hyperref[req:MS3]{MS3} & \mref{m1}, \mref{m2}, \mref{m7}, \mref{m8}, \mref{m11}\\
 \bottomrule
 \end{tabular}
 \caption{Trace Between Maintainability \& Support Requirements and Modules}
@@ -818,11 +818,11 @@ within a single module.
 \toprule
 \textbf{Req.} & \textbf{Modules}\\
 \midrule
-\secref{req:SEC1}& \mref{m12}, \mref{m13}, \mref{m10}, \mref{m9}, \mref{m8}\\
-\secref{req:SEC2}& \mref{m5}, \mref{m6}, \mref{m7}, \mref{m6}, \mref{m11}\\
-\secref{req:SEC3}& \mref{m9}, \mref{m10}, \mref{m11}, \mref{m12}, \mref{m13}\\
-\secref{req:SEC4}& \mref{m11}, \mref{m9}, \mref{m8}, \mref{m12}\\
-\secref{req:SEC5}& \mref{m11}, \mref{m6}, \mref{m7}, \mref{m7}\\
+\hyperref[req:SEC1]{SEC1} & \mref{m12}, \mref{m13}, \mref{m10}, \mref{m9}, \mref{m8}\\
+\hyperref[req:SEC2]{SEC2} & \mref{m5}, \mref{m6}, \mref{m7}, \mref{m6}, \mref{m11}\\
+\hyperref[req:SEC3]{SEC3} & \mref{m9}, \mref{m10}, \mref{m11}, \mref{m12}, \mref{m13}\\
+\hyperref[req:SEC4]{SEC4} & \mref{m11}, \mref{m9}, \mref{m8}, \mref{m12}\\
+\hyperref[req:SEC5]{SEC5} & \mref{m11}, \mref{m6}, \mref{m7}, \mref{m7}\\
 \bottomrule
 \end{tabular}
 \caption{Trace Between Security Requirements and Modules}
@@ -835,7 +835,7 @@ within a single module.
 \toprule
 \textbf{Req.} & \textbf{Modules}\\
 \midrule
-\culref{req:CR1}& \mref{m2}, \mref{m3}, \mref{m6}, \mref{m17}, \mref{m5}\\
+\hyperref[req:CR1]{CUL1} & \mref{m2}, \mref{m3}, \mref{m6}, \mref{m17}, \mref{m5}\\
 \bottomrule
 \end{tabular}
 \caption{Trace Between Cultural Requirements and Modules}
@@ -848,8 +848,8 @@ within a single module.
 \toprule
 \textbf{Req.} & \textbf{Modules}\\
 \midrule
-\cplref{req:CO1}& \mref{m9}, \mref{m10}, \mref{m11}, \mref{m12}, \mref{m13}\\
-\cplref{req:CO2}& \mref{m1}, \mref{m2}, \mref{m3}, \mref{m6}\\
+\hyperref[req:CO1]{CPL1} & \mref{m9}, \mref{m10}, \mref{m11}, \mref{m12}, \mref{m13}\\
+\hyperref[req:CO2]{CPL2} & \mref{m1}, \mref{m2}, \mref{m3}, \mref{m6}\\
 \bottomrule
 \end{tabular}
 \caption{Trace Between Compliance Requirements and Modules}
