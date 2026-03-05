@@ -23,7 +23,7 @@ from typing import Optional, List
 from contextlib import asynccontextmanager
 
 import numpy as np
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Request
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Request, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -73,6 +73,7 @@ class StatusResponse(BaseModel):
     user_prompt: Optional[str] = None       # Message shown to user (clarification OR confirmation summary)
     awaiting_confirmation: bool = False     # True only when a complete command awaits yes/no
     pending_command: Optional[str] = None   # The command text held until confirmed
+    cache_stats: Optional[dict] = None
 
 class FeedbackRequest(BaseModel):
     command_id: str
@@ -175,6 +176,11 @@ class VoiceBridgeServer:
         self._conversation_context: List[dict] = []
         self._current_user_prompt: Optional[str] = None
 
+        # Canonical first-turn transcript for the current session.
+        # Captured before conversation context is updated and used as the cache key.
+        # Cleared after execution, cancellation, error, or reset.
+        self._initial_intent: Optional[str] = None
+
         # Confirmation gate: True only while waiting for the user to say yes/no
         # _pending_command holds the clarified command text until confirmed
         self._awaiting_confirmation: bool = False
@@ -230,7 +236,8 @@ class VoiceBridgeServer:
     async def parse_and_execute_command(
         self,
         transcript: str,
-        conversation_context: Optional[List[dict]] = None
+        conversation_context: Optional[List[dict]] = None,
+        initial_intent: Optional[str] = None,
     ) -> dict:
         """
         Parse transcript and execute browser command.
@@ -274,10 +281,11 @@ class VoiceBridgeServer:
                         "content": msg["content"]
                     })
             
-            # Call orchestrator
+            # Call orchestrator. Pass initial_intent so it can use the first-turn transcript as the cache key.
             response = await self.command_orchestrator.process(
                 user_input=transcript,
-                conversation_context=orchestrator_context
+                conversation_context=orchestrator_context,
+                initial_intent=initial_intent,
             )
             
             # Step 2: Handle clarification
@@ -312,10 +320,17 @@ class VoiceBridgeServer:
             # ----------------------------------------------------------------
             self._pending_command = clarified_command
             self._awaiting_confirmation = True
-            self._current_user_prompt = (
-                f"Ready to execute: \"{clarified_command}\". "
-                "Say yes to confirm or no to cancel."
-            )
+            # Build user-facing command summary.
+            # Remove continuation clauses (e.g., "and keep", "until", "while")
+            # so the confirmation prompt shows only the primary action.
+            _trim_markers = [" and keep", " and keep it", " until the user", " while ", " unless"]
+            _display = clarified_command
+            for _marker in _trim_markers:
+                if _marker in _display.lower():
+                    _idx = _display.lower().index(_marker)
+                    _display = _display[:_idx]
+            _display = _display.rstrip(".,; ")
+            self._current_user_prompt = f'"{_display}" — say yes to confirm or no to cancel.'
             self._last_command = clarified_command
 
             return {
@@ -434,6 +449,14 @@ class VoiceBridgeServer:
             self._last_transcript = transcript
             self._user_transcript = transcript  # Store latest user input
             
+            # Capture initial intent before appending — empty context means first turn
+            if not self._conversation_context:
+                self._initial_intent = (
+                    self.command_orchestrator.cache._clean_key(transcript)
+                    if self.command_orchestrator else transcript.lower().strip()
+                )
+                logger.info(f"Session start: initial_intent='{self._initial_intent}'")
+
             # Add to conversation context
             self._conversation_context.append({
                 "role": "user",
@@ -441,10 +464,11 @@ class VoiceBridgeServer:
                 "timestamp": self.state_manager.state_data.timestamp.isoformat()
             })
             
-            # Parse and execute
+            # Parse and execute. Pass initial_intent for cache consistency.
             result = await self.parse_and_execute_command(
                 transcript,
-                self._conversation_context
+                self._conversation_context,
+                initial_intent=self._initial_intent,
             )
             
             # Handle result
@@ -489,6 +513,7 @@ class VoiceBridgeServer:
             self._current_user_prompt = None
             self._awaiting_confirmation = False
             self._pending_command = None
+            self._initial_intent = None
             
             # Return to listening/idle
             await asyncio.sleep(2)
@@ -554,12 +579,24 @@ class VoiceBridgeServer:
         self._pending_command = None
         self._current_user_prompt = None
         self._conversation_context = []
+        self._initial_intent = None  # Reset session root transcript
 
     async def _execute_confirmed_command(self):
         """Execute the pending command and return to LISTENING."""
         pending = self._pending_command
+        initial_intent = self._initial_intent  # capture before reset clears it
         logger.info(f"[CONFIRMATION] Executing confirmed command: {pending}")
         self._reset_confirmation_gate()
+
+        # Persist mapping after user confirmation.
+        # Stores initial_intent -> confirmed command only.
+        # Prevents partial or unverified commands from entering the cache.
+        if self.command_orchestrator and initial_intent and pending:
+            self.command_orchestrator.cache.set(initial_intent, pending)
+            logger.info(
+                "Cache WRITE (post-confirmation): '%s' -> '%s'",
+                initial_intent, pending,
+            )
 
         self.state_manager.transition_to(AppState.EXECUTING, transcript=pending)
         try:
@@ -667,19 +704,24 @@ class VoiceBridgeServer:
         status['has_conversation_context'] = len(self._conversation_context) > 0
         status['awaiting_confirmation'] = self._awaiting_confirmation
         status['pending_command'] = self._pending_command
+        if self.command_orchestrator:
+            status['cache_stats'] = self.command_orchestrator.get_cache_stats()
         return status
     
     def reset(self) -> dict:
-        """Reset to idle state."""
         self.is_voice_mode_active = False
         self._current_user_prompt = None
-        self._awaiting_confirmation = False
-        self._pending_command = None
         self._conversation_context = []
         self._user_transcript = None
         self._clarified_command = None
+        self._initial_intent = None
         if self.command_orchestrator:
+            # Reset conversation state; persistent cache remains intact.
             self.command_orchestrator.reset()
+            logger.info(
+                "Orchestrator reset. Cache preserved (%d entries).",
+                self.command_orchestrator.cache.size,
+            )
         self.state_manager.reset()
         return {"success": True, "state": "idle"}
 
@@ -874,6 +916,37 @@ async def websocket_endpoint(websocket: WebSocket):
         logger.error(f"WebSocket error: {e}")
         server.connection_manager.disconnect(websocket)
 
+
+@app.get("/cache/stats")
+async def cache_stats():
+    """Return command cache metadata."""
+    if not server or not server.command_orchestrator:
+        raise HTTPException(status_code=503, detail="Server not initialized")
+    return server.command_orchestrator.get_cache_stats()
+
+
+@app.delete("/cache/entry")
+async def cache_invalidate_entry(
+    transcript: str = Query(..., description="The transcript to remove from cache")
+):
+    """
+    Remove a cached entry for the given transcript.
+    """
+    if not server or not server.command_orchestrator:
+        raise HTTPException(status_code=503, detail="Server not initialized")
+    removed = server.command_orchestrator.invalidate_cached_command(transcript)
+    return {"removed": removed, "transcript": transcript}
+
+
+@app.delete("/cache/all")
+async def cache_clear_all():
+    """
+    Clear all cached commands and delete the backing file.
+    """
+    if not server or not server.command_orchestrator:
+        raise HTTPException(status_code=503, detail="Server not initialized")
+    count = server.command_orchestrator.clear_cache()
+    return {"cleared": True, "entries_removed": count}
 
 # ============================================================================
 # Run Server
