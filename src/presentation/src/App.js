@@ -15,6 +15,7 @@ function App() {
   const [awaitingConfirmation, setAwaitingConfirmation] = useState(false);
   const [lastCommandId, setLastCommandId] = useState(null);
   const [pendingCommand, setPendingCommand] = useState(null);
+  const [cancelled, setCancelled] = useState(false);
 
   const [isListening, setIsListening] = useState(true);
   const [status, setStatus] = useState('listening'); // idle, listening
@@ -33,16 +34,57 @@ function App() {
   // Toggle thumbs button visibility
   const [showThumbs, setShowThumbs] = useState(true);
 
+  const prevAwaitingRef = useRef(false);
+  const prevPendingRef = useRef(null);
+  const confirmedRef = useRef(false);
+  const cancelledTranscriptRef = useRef(null);
+
   useEffect(() => {
     const tick = () => {
       fetch(`${AUDIO_BACKEND_BASE}/status`)
         .then((r) => r.json())
         .then((data) => {
-          setUserPrompt(data.user_prompt ?? null);
-          setUserTranscript(data.user_transcript ?? null);
-          setAwaitingConfirmation(data.awaiting_confirmation ?? false);
-          setPendingCommand(data.pending_command ?? null);
+          const newAwaiting = data.awaiting_confirmation ?? false;
+          const newPending = data.pending_command ?? null;
+          const newTranscript = data.user_transcript ?? null;
+
+          // Detect verbal "No": awaiting flipped false, pendingCommand cleared, not a confirm
+          if (prevAwaitingRef.current && !newAwaiting && prevPendingRef.current && !newPending) {
+            if (!confirmedRef.current) {
+              setCancelled(true);
+              cancelledTranscriptRef.current = newTranscript; // remember what was active
+            }
+            confirmedRef.current = false;
+          }
+
+          prevAwaitingRef.current = newAwaiting;
+          prevPendingRef.current = newPending;
+
+          setAwaitingConfirmation(newAwaiting);
+          setPendingCommand(newPending);
           setLastCommandId(data.last_command ?? null);
+
+          // Only update visible transcript / prompt when not in cancelled state
+          // (prevents old command data from reappearing after cancel)
+          const CANCEL_WORDS = new Set(['no', 'no.', 'cancel', 'nope', 'nope.', 'cancel that']);
+          const isNewRealTranscript =
+            newTranscript &&
+            newTranscript.trim() !== '' &&
+            newTranscript !== cancelledTranscriptRef.current &&
+            !CANCEL_WORDS.has(newTranscript.trim().toLowerCase());
+
+          if (isNewRealTranscript) {
+            // New command spoken — clear cancelled and show fresh data
+            setCancelled(false);
+            cancelledTranscriptRef.current = null;
+            setUserPrompt(data.user_prompt ?? null);
+            setUserTranscript(newTranscript);
+          } else if (!cancelled) {
+            // Normal update — not in cancelled state, just refresh
+            setUserPrompt(data.user_prompt ?? null);
+            setUserTranscript(newTranscript);
+          }
+          // If cancelled and no new real transcript: do nothing — keep showing ❌ Cancelled
         })
         .catch(() => {});
     };
@@ -66,6 +108,12 @@ function App() {
     }).then(() => {
       setAwaitingConfirmation(false);
       setPendingCommand(null);
+      if (value === 'thumbs_down') {
+        setCancelled(true);
+        cancelledTranscriptRef.current = userTranscript; // remember so poll doesn't clear it
+      } else {
+        confirmedRef.current = true; // mark as confirmed so poll doesn't set cancelled
+      }
     }).catch(() => {});
   };
 
@@ -331,8 +379,8 @@ function App() {
               {renderConfirmationUI()}
             </div>
             <div className="right-panel">
-              {/* System message - always visible, never clipped */}
-              {userPrompt && (
+              {/* System message — show only during genuine clarification or awaiting confirmation */}
+              {userPrompt && !cancelled && (awaitingConfirmation || !pendingCommand) && (
                 <div
                   className={`system-message-alert${awaitingConfirmation ? ' confirmation-ready' : ''}`}
                   style={{marginBottom: 20, maxWidth: '100%'}}
@@ -350,11 +398,13 @@ function App() {
                 <h2 className="llm-response-heading">Executing</h2>
                 <div className="llm-response-content" style={{maxHeight: 'none', overflow: 'visible'}}>
                   <div className="transcript-text">
-                    {userTranscript && userTranscript.trim() !== ''
-                      ? userTranscript
-                      : userPrompt
-                        ? '—'
-                        : 'Say a command to proceed.'}
+                    {cancelled
+                      ? '❌ Cancelled'
+                      : userTranscript && userTranscript.trim() !== ''
+                        ? userTranscript
+                        : userPrompt
+                          ? '—'
+                          : 'Say a command to proceed.'}
                   </div>
                 </div>
               </section>
