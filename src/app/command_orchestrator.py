@@ -1,18 +1,24 @@
 """
-CommandOrchestrator Module - Simplified Version
+CommandOrchestrator
 
 Handles command clarification for natural language browser control:
-- Determines if user intent is clear
-- Asks clarifying questions when needed
-- Returns clarified natural language commands
-- The actual browser automation is handled by an LLM-powered browser controller
+Responsibilities:
+1. Translate user transcripts into executable browser commands
+2. Request clarification when intent is ambiguous
+3. Maintain multi-turn conversational state
+4. Enforce safety guardrails
+5. Use a persistent CommandCache so repeated commands (including those
+   previously clarified) bypass the LLM
 """
 
 import json
+import logging
 import os
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 from dataclasses import dataclass
+
+from app.command_cache import CommandCache
 
 
 # ============================================================================
@@ -26,17 +32,13 @@ class OrchestratorResponse:
     """
     # Indicates if we need user input before proceeding
     needs_clarification: bool
-    
     # If needs_clarification=True, this is the question to ask the user
     user_prompt: Optional[str] = None
-    
     # If needs_clarification=False, this is the clarified natural language command
     # to pass to the browser controller
     clarified_command: Optional[str] = None
-    
     # Additional context for debugging
     reasoning: Optional[str] = None
-    
     # Metadata from the orchestrator's processing
     metadata: Optional[Dict[str, Any]] = None
 
@@ -67,55 +69,60 @@ class InferenceError(OrchestratorError):
 class CommandOrchestrator:
     """
     Orchestrates natural language to browser commands using an LLM.
-    
     Key responsibilities:
     1. Parse user transcript into browser commands
     2. Ask clarifying questions when needed
     3. Maintain conversation context for multi-turn interactions
     4. Apply safety guardrails
+    5. Maintain a persistent cache (CommandCache) so repeat commands, including those that previously required clarification,
+       are served instantly without any LLM call.
     """
-    
+
     def __init__(
         self,
         api_key: Optional[str] = None,
         model_id: str = "gemini-2.5-flash",
-        prompt_path: Optional[str] = None
+        prompt_path: Optional[str] = None,
+        cache_path: Optional[str] = None,
     ):
         """
         Initialize the orchestrator.
-        
         Args:
             api_key: LLM API key (or use GEMINI_API_KEY env var)
             model_id: Model to use
             prompt_path: Path to system prompt file
+            cache_path: Optional override for command_cache.json location
         """
         self._api_key = api_key or os.environ.get("GEMINI_API_KEY")
         if not self._api_key:
             raise InitializationError("GEMINI_API_KEY not found")
-        
         # Initialize the Gen AI Client
         try:
             from google import genai
             self.client = genai.Client(api_key=self._api_key)
         except ImportError:
             raise InitializationError("google-genai package not installed. Run: pip install google-genai")
-        
         self.model_id = model_id
-        
         # Load system prompt
         if prompt_path and Path(prompt_path).exists():
             self.system_prompt = Path(prompt_path).read_text(encoding="utf-8")
         else:
-            # Default prompt
             self.system_prompt = self._get_default_system_prompt()
-        
         # Conversation history for multi-turn interactions
         # Format: [{"role": "user", "content": "..."}, {"role": "assistant", "content": "..."}]
         self.conversation_history: List[Dict[str, str]] = []
-        
         # Current state
         self.current_goal: Optional[str] = None
-    
+        # First-turn transcript used as the cache key.
+        # Set via `initial_intent` and preserved across clarification turns.
+        self._root_transcript: Optional[str] = None
+
+        # Persistent command cache: loaded from disk on startup, written on every newly learned command. Survives restarts
+        self.cache = CommandCache(path=cache_path)
+        logging.getLogger("CommandOrchestrator").info(
+            "Cache loaded from '%s' (%d entries)", self.cache.path, self.cache.size
+        )
+
     def _get_default_system_prompt(self) -> str:
         """Default system prompt if no file provided."""
         return """
@@ -204,24 +211,27 @@ Note: When executing a command to play a video, ensure the video remains playing
 
 Be concise and helpful. Only ask for clarification when truly necessary. The browser controller is intelligent and can handle natural language well.
 """
-    
+
     async def process(
         self,
         user_input: str,
-        conversation_context: Optional[List[Dict[str, str]]] = None
+        conversation_context: Optional[List[Dict[str, str]]] = None,
+        initial_intent: Optional[str] = None,
     ) -> OrchestratorResponse:
         """
-        Process user input and return either a clarified command or a clarification request.
-        
-        This method determines if the user's intent is clear. If clear, it returns a 
-        clarified natural language command to pass to the browser controller. If unclear,
-        it asks a clarifying question.
-        
+        Process user input and return either a clarified command or a
+        clarification request. Process user input using a cache-first strategy.
+            - Reject empty input early
+            - On first turn, check cache using `initial_intent`
+            - Skip cache lookup on clarification turns
+            - Cache writes occur server-side after confirmed execution
+       
         Args:
             user_input: The user's transcript or response
             conversation_context: Optional conversation history from the server
                                 Format: [{"role": "user|assistant", "content": "..."}]
-        
+            initial_intent: Canonical first-turn transcript for cache lookup
+
         Returns:
             OrchestratorResponse indicating what to do next:
             - If needs_clarification=True: Ask user the question in user_prompt
@@ -232,48 +242,73 @@ Be concise and helpful. Only ask for clarification when truly necessary. The bro
             response = await orchestrator.process("Open Gmail")
             # response.needs_clarification = False
             # response.clarified_command = "Navigate to Gmail"
-            
-            # Needs clarification
-            response = await orchestrator.process("Go to Google")
-            # response.needs_clarification = True
-            # response.user_prompt = "Which Google service? Google.com, Gmail, ..."
+            # cache stored: "open email" -> "Navigate to Gmail"
         """
+        # Reject empty input
+        if not user_input or not user_input.strip():
+            return OrchestratorResponse(
+                needs_clarification=True,
+                user_prompt="I didn't catch that. Could you repeat your command?",
+                metadata={"original_input": user_input, "rejected": "empty_input"},
+            )
+
+        # First-turn transcript used as the cache key.
+        # Provided by the server before conversation state is updated.
+        if initial_intent is not None:
+            self._root_transcript = initial_intent
+
+        is_first_turn = initial_intent is not None
+
+        # Cache lookup on first turn only
+        if is_first_turn:
+            cached_command = self.cache.get(self._root_transcript)
+            if cached_command is not None:
+                # Cache hit, return without touching the LLM.
+                return OrchestratorResponse(
+                    needs_clarification=False,
+                    clarified_command=cached_command,
+                    metadata={"original_input": user_input, "cache_hit": True},
+                )
+
         # Build conversation context
         messages = []
-        
+
         # Add conversation history if provided
         if conversation_context:
             messages.extend(conversation_context)
-        
+
         # Add current user input
         messages.append({
             "role": "user",
             "content": user_input
         })
-        
+
         # Call LLM
         try:
             response_text = await self._call_llm(messages)
-            
+
             # Parse response
-            return self._parse_response(response_text, user_input)
-            
+            response = self._parse_response(response_text, user_input)
+
         except Exception as e:
             raise InferenceError(f"Failed to process input: {str(e)}")
-    
+
+        # Cache writes occur server-side after confirmed execution.
+        return response
+
     async def _call_llm(self, messages: List[Dict[str, str]]) -> str:
         """
         Call the LLM API with the conversation history.
-        
+
         Args:
             messages: Conversation messages
-            
+
         Returns:
             LLM response text
         """
         try:
             from google.genai import types
-            
+
             # Construct the full conversation with system prompt
             full_messages = [
                 types.Content(
@@ -281,7 +316,7 @@ Be concise and helpful. Only ask for clarification when truly necessary. The bro
                     parts=[types.Part(text=self.system_prompt)]
                 )
             ]
-            
+
             # Add conversation messages
             for msg in messages:
                 role = "user" if msg["role"] == "user" else "model"
@@ -291,7 +326,7 @@ Be concise and helpful. Only ask for clarification when truly necessary. The bro
                         parts=[types.Part(text=msg["content"])]
                     )
                 )
-            
+
             # Generate response
             response = self.client.models.generate_content(
                 model=self.model_id,
@@ -301,20 +336,20 @@ Be concise and helpful. Only ask for clarification when truly necessary. The bro
                     max_output_tokens=512,
                 )
             )
-            
+
             return response.text
-            
+
         except Exception as e:
             raise InferenceError(f"LLM API call failed: {str(e)}")
-    
+
     def _parse_response(self, response_text: str, original_input: str) -> OrchestratorResponse:
         """
         Parse LLM response into an OrchestratorResponse.
-        
+
         Args:
             response_text: Raw LLM response
             original_input: Original user input
-            
+
         Returns:
             Parsed OrchestratorResponse
         """
@@ -326,10 +361,10 @@ Be concise and helpful. Only ask for clarification when truly necessary. The bro
                 cleaned = "\n".join(lines[1:-1])
                 if cleaned.startswith("json"):
                     cleaned = cleaned[4:].strip()
-            
+
             # Parse JSON
             data = json.loads(cleaned)
-            
+
             # Check if it's a clarification request
             if data.get("needs_clarification"):
                 return OrchestratorResponse(
@@ -337,16 +372,16 @@ Be concise and helpful. Only ask for clarification when truly necessary. The bro
                     user_prompt=data.get("question", "Could you clarify what you'd like me to do?"),
                     metadata={"original_input": original_input}
                 )
-            
+
             # Otherwise, it's a clarified command
             clarified_command = data.get("clarified_command", original_input)
-            
+
             return OrchestratorResponse(
                 needs_clarification=False,
                 clarified_command=clarified_command,
                 metadata={"original_input": original_input}
             )
-            
+
         except (json.JSONDecodeError, KeyError) as e:
             # If we can't parse the response, treat it as needing clarification
             return OrchestratorResponse(
@@ -355,12 +390,44 @@ Be concise and helpful. Only ask for clarification when truly necessary. The bro
                 reasoning=f"Failed to parse LLM response: {str(e)}",
                 metadata={"original_input": original_input, "raw_response": response_text}
             )
-    
+
     def reset(self):
         """Reset orchestrator state."""
         self.conversation_history = []
         self.current_goal = None
+        self._root_transcript = None  # cleared so next first-turn sets a fresh root
 
+    def get_cache_stats(self) -> dict:
+        """Return cache statistics."""
+        if hasattr(self, 'cache') and self.cache is not None:
+            return {
+                "size": len(self.cache._store),  
+                "file_path": str(self.cache.path), 
+                "status": "active"
+            }
+        return {
+            "size": 0,
+            "status": "inactive", 
+            "error": "Cache not initialized"
+        }
+
+    def invalidate_cached_command(self, transcript: str) -> bool:
+        """
+        Remove the cached entry for the given transcript.
+
+        Returns:
+            True if an entry was removed, otherwise False.
+        """
+        return self.cache.invalidate(transcript)
+
+    def clear_cache(self) -> int:
+        """
+        Clear all cached commands and delete the cache file.
+
+        Returns:
+            Number of entries removed.
+        """
+        return self.cache.clear()
     @staticmethod
     def apply_guardrails(command: str) -> (bool, str):
         """
@@ -398,23 +465,24 @@ Be concise and helpful. Only ask for clarification when truly necessary. The bro
 def create_orchestrator(
     api_key: Optional[str] = None,
     model_id: str = "gemini-3.5-flash",
-    prompt_path: Optional[str] = None
+    prompt_path: Optional[str] = None,
+    cache_path: Optional[str] = None,
 ) -> CommandOrchestrator:
     """
     Factory function to create a CommandOrchestrator.
-    
+
     Args:
         api_key: LLM API key
-        model_id: Model to use
+        model_id:    Model to use
         prompt_path: Path to system prompt
-        
+        cache_path:  Override path for command_cache.json
+
     Returns:
         Initialized CommandOrchestrator
     """
     return CommandOrchestrator(
         api_key=api_key,
         model_id=model_id,
-        prompt_path=prompt_path
+        prompt_path=prompt_path,
+        cache_path=cache_path,
     )
-
-
