@@ -136,6 +136,9 @@ This test \textbf{does not fully satisfy} PRF-13.1, since the measured average l
 \paragraph{Type}
 Automated, Dynamic
 
+\paragraph{Test Case Derivation}
+PRF-13.2
+
 \paragraph{Test Summary}
 The command pipeline latency benchmark was run using the same 20 audio samples from the ASR latency test. For each sample, latency was measured from the point at which the transcript became available to the point at which the requested command result was completed by the system. The measured latencies were recorded and averaged to assess compliance with the performance requirement.
 
@@ -191,6 +194,9 @@ This test satisfied the performance requirement, since the measured average late
 
 \paragraph{Type}
 Offline Evaluation
+
+\paragraph{Test Case Derivation}
+PRF-13.1, PRF-13.2
 
 \paragraph{Test Summary}
 This test was planned to evaluate ASR and command classification performance under stationary background noise conditions, including AC and fan noise mixed at 20 dB, 10 dB, and 5 dB SNR. The intended evaluation metrics were word recognition accuracy and command precision under noisy conditions.
