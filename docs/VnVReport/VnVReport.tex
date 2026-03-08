@@ -1,7 +1,9 @@
 \documentclass[12pt, titlepage]{article}
 
+\usepackage{amsmath}
 \usepackage{booktabs}
 \usepackage{tabularx}
+\usepackage{float}
 \usepackage{hyperref}
 \hypersetup{
     colorlinks,
@@ -35,7 +37,7 @@ Verification and Validation Report: \progname}
 \begin{tabularx}{\textwidth}{p{3cm}p{2cm}X}
 \toprule {\bf Date} & {\bf Version} & {\bf Notes}\\
 \midrule
-Date 1 & 1.0 & Notes\\
+March 8th, 2026 & 1.0 & Added Non-Functional Performance tests\\
 Date 2 & 1.1 & Notes\\
 \bottomrule
 \end{tabularx}
@@ -72,6 +74,135 @@ This document ...
 \section{Functional Requirements Evaluation}
 
 \section{Nonfunctional Requirements Evaluation}
+\subsection{test-PF-1: ASR Latency Benchmark}
+
+\paragraph{Type}
+Automated, Dynamic
+
+\paragraph{Test Case Derivation}
+PRF-13.1
+
+\paragraph{Test Summary}
+The ASR latency benchmark was executed using 20 audio samples spoken by various speakers. For each sample, latency was measured from the marked end-of-speech point to the time at which the transcript became available. The measured latencies were recorded and averaged to evaluate performance against the requirement threshold.
+
+\paragraph{Test Data and Results}
+
+\begin{table}[H]
+\centering
+\caption{ASR latency benchmark results for 20 audio samples}
+\begin{tabular}{|c|p{7cm}|c|c|}
+\hline
+\textbf{\#} & \textbf{Sample Text} & \textbf{Length (words)} & \textbf{Latency (s)} \\ \hline
+1  & open google & 2 & 5.81 \\ \hline
+2  & google.com & 1 & 6.30 \\ \hline
+3  & search Wikipedia about paris & 4 & 6.08 \\ \hline
+4  & navigate to paris's sport section & 5 & 5.93 \\ \hline
+5  & open gmail & 2 & 4.73 \\ \hline
+6  & open google and search for keyboards & 6 & 5.03 \\ \hline
+7  & go on bestbuy and search for newest game & 8 & 5.43 \\ \hline
+8  & search software engineering jobs & 4 & 4.48 \\ \hline
+9  & search how to boil pasta & 5 & 5.21 \\ \hline
+10 & search used honda civic & 4 & 6.08 \\ \hline
+11 & search toronto raptors schedule & 4 & 6.50 \\ \hline
+12 & go to the history section of the canada page & 9 & 7.01 \\ \hline
+13 & search apple stock price & 4 & 4.81 \\ \hline
+14 & search directions to union station & 5 & 5.21 \\ \hline
+15 & open reddit & 2 & 6.00 \\ \hline
+16 & play jazz music on youtube & 5 & 6.03 \\ \hline
+17 & search restaurants near me & 4 & 5.95 \\ \hline
+18 & open wikipedia & 2 & 4.83 \\ \hline
+19 & search mcmaster university & 3 & 6.80 \\ \hline
+20 & open ebay & 2 & 5.00 \\ \hline
+\multicolumn{3}{|r|}{\textbf{Average Latency}} & \textbf{5.66} \\ \hline
+\end{tabular}
+\label{tab:asr-latency-benchmark}
+\end{table}
+
+\paragraph{Calculation of Average Latency}
+The average latency is calculated as:
+\[
+\text{Average Latency} = \frac{\sum_{i=1}^{20} L_i}{20} = 5.66 \text{ s}
+\]
+where \(L_i\) is the latency measured for sample \(i\).
+
+\paragraph{Actual Result}
+The measured average latency across the 20 audio samples was 5.66 seconds.
+
+\paragraph{Conclusion}
+This test \textbf{does not fully satisfy} PRF-13.1, since the measured average latency exceeded the required threshold of 5 seconds.
+
+\subsubsection{test-PF-2: Command Pipeline Latency}
+
+\paragraph{Type}
+Automated, Dynamic
+
+\paragraph{Test Summary}
+The command pipeline latency benchmark was run using the same 20 audio samples from the ASR latency test. For each sample, latency was measured from the point at which the transcript became available to the point at which the requested command result was completed by the system. The measured latencies were recorded and averaged to assess compliance with the performance requirement.
+
+\paragraph{Test Data and Results}
+
+\begin{table}[H]
+\centering
+\caption{Command pipeline latency results for 20 audio samples}
+\begin{tabular}{|c|p{7cm}|c|c|}
+\hline
+\textbf{\#} & \textbf{Sample Text} & \textbf{Length (words)} & \textbf{Latency (s)} \\ \hline
+1  & open google & 2 & 8.92 \\ \hline
+2  & google.com & 1 & 9.41 \\ \hline
+3  & search Wikipedia about paris & 4 & 12.87 \\ \hline
+4  & navigate to paris's sport section & 5 & 14.35 \\ \hline
+5  & open gmail & 2 & 9.76 \\ \hline
+6  & open google and search for keyboards & 6 & 13.42 \\ \hline
+7  & go on bestbuy and search for newest game & 8 & 15.91 \\ \hline
+8  & search software engineering jobs & 4 & 12.26 \\ \hline
+9  & search how to boil pasta & 5 & 11.83 \\ \hline
+10 & search used honda civic & 4 & 13.74 \\ \hline
+11 & search toronto raptors schedule & 4 & 12.95 \\ \hline
+12 & go to the history section of the canada page & 9 & 18.62 \\ \hline
+13 & search apple stock price & 4 & 10.54 \\ \hline
+14 & search directions to union station & 5 & 14.08 \\ \hline
+15 & open reddit & 2 & 9.88 \\ \hline
+16 & play jazz music on youtube & 5 & 13.67 \\ \hline
+17 & search restaurants near me & 4 & 12.43 \\ \hline
+18 & open wikipedia & 2 & 9.15 \\ \hline
+19 & search mcmaster university & 3 & 11.96 \\ \hline
+20 & open ebay & 2 & 8.64 \\ \hline
+\multicolumn{3}{|r|}{\textbf{Average Latency}} & \textbf{12.52} \\ \hline
+\end{tabular}
+\label{tab:command-pipeline-latency}
+\end{table}
+
+\paragraph{Calculation of Average Latency}
+\[
+\begin{aligned}
+\text{Average Latency} &= \frac{1}{20}(8.92 + 9.41 + 12.87 + 14.35 + 9.76 + 13.42 + 15.91 + 12.26 + 11.83 + 13.74 \\
+&\quad + 12.95 + 18.62 + 10.54 + 14.08 + 9.88 + 13.67 + 12.43 + 9.15 + 11.96 + 8.64) \\
+&= 12.52 \text{ s}
+\end{aligned}
+\]
+
+\paragraph{Actual Result}
+The measured average command pipeline latency across the 20 audio samples was 12.52 seconds.
+
+\paragraph{Conclusion}
+This test satisfied the performance requirement, since the measured average latency was below the 15 second threshold.
+
+\subsubsection{test-PF-3: Accuracy \& Precision (Stationary Noise)}
+
+\paragraph{Type}
+Offline Evaluation
+
+\paragraph{Test Summary}
+This test was planned to evaluate ASR and command classification performance under stationary background noise conditions, including AC and fan noise mixed at 20 dB, 10 dB, and 5 dB SNR. The intended evaluation metrics were word recognition accuracy and command precision under noisy conditions.
+
+\paragraph{Result}
+This test was not executed during the current development cycle.
+
+\paragraph{Rationale}
+Robustness to stationary background noise was identified as a stretch goal for the project. At this stage, development and validation efforts were prioritized toward core functionality under standard operating conditions. As a result, noise robustness testing was deferred and is outside the current project scope.
+
+\paragraph{Conclusion}
+No result is reported for this test. Evaluation of performance under stationary noise remains future work.
 
 \subsection{Usability}
 		
