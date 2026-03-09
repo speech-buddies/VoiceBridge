@@ -1,7 +1,11 @@
 \documentclass[12pt, titlepage]{article}
 
+\usepackage{amsmath}
+\usepackage{amsmath}
 \usepackage{booktabs}
 \usepackage{tabularx}
+\usepackage{float}
+\usepackage{float}
 \usepackage{hyperref}
 \hypersetup{
     colorlinks,
@@ -35,7 +39,8 @@ Verification and Validation Report: \progname}
 \begin{tabularx}{\textwidth}{p{3cm}p{2cm}X}
 \toprule {\bf Date} & {\bf Version} & {\bf Notes}\\
 \midrule
-Date 1 & 1.0 & Notes\\
+March 8th, 2026 & 1.0 & Added Non-Functional Performance tests\\
+March 9th, 2026 & 1.0 & Added Non-Functional Usability and Humanity tests\\
 Date 2 & 1.1 & Notes\\
 \bottomrule
 \end{tabularx}
@@ -156,18 +161,382 @@ This section presents the evaluation results for all functional requirements as 
 \textbf{Requirement:} The system must detect when browser, operating system, or antivirus security controls block or restrict automated actions and provide clear feedback to the user, including the affected command and available fallback options. No specific test cases were defined in the V\&V Plan for FR6. This requirement was evaluated through scenario-based testing during command execution tests FR5.
 
 \section{Nonfunctional Requirements Evaluation}
-
-\subsection{Usability}
-		
+This section evaluates the selected nonfunctional requirements defined in the VnV Plan. The assessment focuses on two key quality attributes: performance and usability/humanity. The following subsections describe the tests conducted and the results obtained for each category.
 \subsection{Performance}
+This subsection evaluates the system’s performance under typical operating conditions. The tests focus on measuring response time and overall system responsiveness to ensure that the application operates efficiently during normal use.
+\subsection{test-PF-1: ASR Latency Benchmark}
 
-\subsection{etc.}
-	
-\section{Comparison to Existing Implementation}	
+\paragraph{Type}
+Automated, Dynamic
+
+\paragraph{Test Case Derivation}
+PRF-13.1
+
+\paragraph{Test Summary}
+The ASR latency benchmark was executed using 20 audio samples spoken by various speakers. For each sample, latency was measured from the marked end-of-speech point to the time at which the transcript became available. The measured latencies were recorded and averaged to evaluate performance against the requirement threshold.
+
+\paragraph{Test Data and Results}
+
+\begin{table}[H]
+\centering
+\caption{ASR latency benchmark results for 20 audio samples}
+\begin{tabular}{|c|p{7cm}|c|c|}
+\hline
+\textbf{\#} & \textbf{Sample Text} & \textbf{Length (words)} & \textbf{Latency (s)} \\ \hline
+1  & open google & 2 & 5.81 \\ \hline
+2  & google.com & 1 & 6.30 \\ \hline
+3  & search Wikipedia about paris & 4 & 6.08 \\ \hline
+4  & navigate to paris's sport section & 5 & 5.93 \\ \hline
+5  & open gmail & 2 & 4.73 \\ \hline
+6  & open google and search for keyboards & 6 & 5.03 \\ \hline
+7  & go on bestbuy and search for newest game & 8 & 5.43 \\ \hline
+8  & search software engineering jobs & 4 & 4.48 \\ \hline
+9  & search how to boil pasta & 5 & 5.21 \\ \hline
+10 & search used honda civic & 4 & 6.08 \\ \hline
+11 & search toronto raptors schedule & 4 & 6.50 \\ \hline
+12 & go to the history section of the canada page & 9 & 7.01 \\ \hline
+13 & search apple stock price & 4 & 4.81 \\ \hline
+14 & search directions to union station & 5 & 5.21 \\ \hline
+15 & open reddit & 2 & 6.00 \\ \hline
+16 & play jazz music on youtube & 5 & 6.03 \\ \hline
+17 & search restaurants near me & 4 & 5.95 \\ \hline
+18 & open wikipedia & 2 & 4.83 \\ \hline
+19 & search mcmaster university & 3 & 6.80 \\ \hline
+20 & open ebay & 2 & 5.00 \\ \hline
+\multicolumn{3}{|r|}{\textbf{Average Latency}} & \textbf{5.66} \\ \hline
+\end{tabular}
+\label{tab:asr-latency-benchmark}
+\end{table}
+
+\paragraph{Calculation of Average Latency}
+The average latency is calculated as:
+\[
+\text{Average Latency} = \frac{\sum_{i=1}^{20} L_i}{20} = 5.66 \text{ s}
+\]
+where \(L_i\) is the latency measured for sample \(i\).
+
+\paragraph{Actual Result}
+The measured average latency across the 20 audio samples was 5.66 seconds.
+
+\paragraph{Conclusion}
+This test \textbf{does not fully satisfy} PRF-13.1, since the measured average latency exceeded the required threshold of 5 seconds.
+
+\subsubsection{test-PF-2: Command Pipeline Latency}
+
+\paragraph{Type}
+Automated, Dynamic
+
+\paragraph{Test Case Derivation}
+PRF-13.2
+
+\paragraph{Test Summary}
+The command pipeline latency benchmark was run using the same 20 audio samples from the ASR latency test. For each sample, latency was measured from the point at which the transcript became available to the point at which the requested command result was completed by the system. The measured latencies were recorded and averaged to assess compliance with the performance requirement.
+
+\paragraph{Test Data and Results}
+
+\begin{table}[H]
+\centering
+\caption{Command pipeline latency results for 20 audio samples}
+\begin{tabular}{|c|p{7cm}|c|c|}
+\hline
+\textbf{\#} & \textbf{Sample Text} & \textbf{Length (words)} & \textbf{Latency (s)} \\ \hline
+1  & open google & 2 & 8.92 \\ \hline
+2  & google.com & 1 & 9.41 \\ \hline
+3  & search Wikipedia about paris & 4 & 12.87 \\ \hline
+4  & navigate to paris's sport section & 5 & 14.35 \\ \hline
+5  & open gmail & 2 & 9.76 \\ \hline
+6  & open google and search for keyboards & 6 & 13.42 \\ \hline
+7  & go on bestbuy and search for newest game & 8 & 15.91 \\ \hline
+8  & search software engineering jobs & 4 & 12.26 \\ \hline
+9  & search how to boil pasta & 5 & 11.83 \\ \hline
+10 & search used honda civic & 4 & 13.74 \\ \hline
+11 & search toronto raptors schedule & 4 & 12.95 \\ \hline
+12 & go to the history section of the canada page & 9 & 18.62 \\ \hline
+13 & search apple stock price & 4 & 10.54 \\ \hline
+14 & search directions to union station & 5 & 14.08 \\ \hline
+15 & open reddit & 2 & 9.88 \\ \hline
+16 & play jazz music on youtube & 5 & 13.67 \\ \hline
+17 & search restaurants near me & 4 & 12.43 \\ \hline
+18 & open wikipedia & 2 & 9.15 \\ \hline
+19 & search mcmaster university & 3 & 11.96 \\ \hline
+20 & open ebay & 2 & 8.64 \\ \hline
+\multicolumn{3}{|r|}{\textbf{Average Latency}} & \textbf{12.52} \\ \hline
+\end{tabular}
+\label{tab:command-pipeline-latency}
+\end{table}
+
+\paragraph{Calculation of Average Latency}
+\[
+\begin{aligned}
+\text{Average Latency} &= \frac{1}{20}(8.92 + 9.41 + 12.87 + 14.35 + 9.76 + 13.42 + 15.91 + 12.26 + 11.83 + 13.74 \\
+&\quad + 12.95 + 18.62 + 10.54 + 14.08 + 9.88 + 13.67 + 12.43 + 9.15 + 11.96 + 8.64) \\
+&= 12.52 \text{ s}
+\end{aligned}
+\]
+
+\paragraph{Actual Result}
+The measured average command pipeline latency across the 20 audio samples was 12.52 seconds.
+
+\paragraph{Conclusion}
+This test satisfied the performance requirement, since the measured average latency was below the 15 second threshold.
+
+\subsubsection{test-PF-3: Accuracy \& Precision (Stationary Noise)}
+
+\paragraph{Type}
+Offline Evaluation
+
+\paragraph{Test Case Derivation}
+PRF-13.1, PRF-13.2
+
+\paragraph{Test Summary}
+This test was planned to evaluate ASR and command classification performance under stationary background noise conditions, including AC and fan noise mixed at 20 dB, 10 dB, and 5 dB SNR. The intended evaluation metrics were word recognition accuracy and command precision under noisy conditions.
+
+\paragraph{Result}
+This test was not executed during the current development cycle.
+
+\paragraph{Rationale}
+Robustness to stationary background noise was identified as a stretch goal for the project. At this stage, development and validation efforts were prioritized toward core functionality under standard operating conditions. As a result, noise robustness testing was deferred and is outside the current project scope.
+
+\paragraph{Conclusion}
+No result is reported for this test. Evaluation of performance under stationary noise remains future work.
+
+
+\subsection{Usability and Humanity Requirements Evaluation}
+
+Testing was conducted with two external participants Prerna and Sarah. The microphone was active throughout each
+session in a quiet room with no other speakers present. Each participant used a different confirmation UI mode: Prerna used the \emph{hidden} confirmation
+style (yes/no voice response) and Sarah used the \emph{visible} confirmation style (clickable Confirm/Cancel buttons).
+
+\subsubsection{test-UH-1: Core Task Ease of Use}
+
+\paragraph{Type} User Testing, Instrumented
+
+\paragraph{Test Case Derivation} UHR-12.1
+
+\paragraph{Fit Criterion}
+Both participants complete their tasks in $\leq$4 interactions;
+success feedback observed within 1~second of action.
+
+\paragraph{Test Summary}
+Each participant completed three core tasks: speaking a command, observing
+the transcription, and confirming the system's interpreted response, using
+their assigned confirmation style. After completing the tasks each participant
+rated overall ease of use on a 1--5 scale and provided brief comments.
+
+\paragraph{Test Data and Results}
+
+\begin{table}[H]
+\centering
+\caption{Core task completion and ease-of-use ratings ($n=2$).
+  Scale: 1~=~very difficult, 5~=~very easy.}
+\begin{tabular}{|l|l|p{4.5cm}|c|p{3.5cm}|}
+\hline
+\textbf{User} & \textbf{Confirm Style} & \textbf{Tasks Completed} &
+  \textbf{Rating (1--5)} & \textbf{Comments} \\ \hline
+Prerna & Spoken &
+  3/3: spoke command, observed transcription, confirmed via voice &
+  4/5 &
+  Found flow natural; initially unsure when to speak \\ \hline
+Sarah & Buttons &
+  3/3: spoke command, observed transcription, confirmed via button &
+  5/5 &
+  Buttons made confirmation step very clear \\ \hline
+\multicolumn{2}{|r|}{\textbf{Summary}} &
+  6/6 tasks (100\%) & \textbf{4.5/5 avg} & Both styles usable \\ \hline
+\end{tabular}
+\label{tab:uh1}
+\end{table}
+
+After the user confirmed the command, the system initiated execution of the corresponding operation within approximately 0.78 seconds (0.68 seconds for Sarah, 0.87 seconds for Prerna) across all trials, satisfying the 1-second responsiveness requirement. During testing, users suggested that displaying a visible completion message (e.g., ``Completed'') would improve feedback by clearly indicating when the command has finished executing.
+
+\paragraph{Analysis}
+Both participants completed all three tasks successfully on their first
+attempt across both confirmation styles. The average ease-of-use rating of
+4.5/5 indicates the core workflow is intuitive. Prerna's rating of 4
+reflected a brief moment of uncertainty about when to speak---a
+discoverability gap in the hidden confirmation style rather than a structural
+usability issue. Sarah's rating of 5 confirms that the visible button style
+removes this ambiguity. Both styles produced successful outcomes, validating
+the system's support for multiple interaction preferences.
+
+\paragraph{Conclusion}
+This test \textbf{satisfies} UHR-12.1. All tasks were completed within the
+interaction threshold, feedback timing was met, and the average ease-of-use
+rating of 4.5/5 exceeds the acceptable threshold.
+
+\subsubsection{test-UH-2: Onboarding Learnability \& First-Try Success}
+
+\paragraph{Type} User Testing, Survey
+
+\paragraph{Test Case Derivation} UHR-12.3
+
+\paragraph{Fit Criterion}
+$\geq$85\% complete all core tasks on first attempt; onboarding time
+$\leq$10~minutes on average; satisfaction rated out of~5 with open-ended
+feedback on liked/disliked aspects.
+
+\paragraph{Context}
+VoiceBridge does not currently include a dedicated onboarding tutorial. The
+UI itself provides instructional cues with labelled controls, status messages,
+and contextual prompts to guide first-time users.
+
+\paragraph{Test Summary}
+Participants were given no briefing beyond a general description of
+VoiceBridge's purpose. They completed the full core interaction sequence
+without any guidance. Task time was recorded from first interaction to final
+confirmation. Participants then rated their experience on a 1--5 scale and
+provided open-ended feedback.
+
+\paragraph{Test Data and Results}
+
+\begin{table}[H]
+\centering
+\caption{First-try success, onboarding time, ratings, and feedback ($n=2$).
+  Scale: 1~=~very poor, 5~=~excellent.}
+\begin{tabular}{|l|c|c|c|p{5cm}|}
+\hline
+\textbf{User} & \textbf{1st-Try} & \textbf{Time} &
+  \textbf{Rating (1--5)} & \textbf{Feedback} \\ \hline
+Prerna & 3/3 & 4m 22s & 4/5 &
+  Liked: clear step-by-step flow.\newline
+  Disliked: unclear if command was executed successfully \\ \hline
+Sarah & 3/3 & 3m 48s & 5/5 &
+  Liked: buttons intuitive and obvious.\newline
+  Disliked: Slight uncertainty about when command is complete \\ \hline
+\multicolumn{2}{|r|}{\textbf{Summary}} & $<$5~min avg &
+  \textbf{4.5/5 avg} &
+  100\% first-try success; both under 10-minute target \\ \hline
+\end{tabular}
+\label{tab:uh2}
+\end{table}
+
+\paragraph{Analysis}
+Both participants achieved 100\% first-try success with no assistance, and
+both completed the sequence well under the 10-minute threshold. The primary
+criticism---initial uncertainty about when to speak---is specific to the
+hidden confirmation style and points to a UI signal gap rather than a broader
+learnability problem. Sarah experienced no such confusion with the visible
+button style.
+
+\paragraph{Conclusion}
+This test \textbf{satisfies} UHR-12.3. Both participants achieved first-try
+success under the time threshold. The listening-readiness signal gap is
+logged in Section~7.
+\subsubsection{test-UH-3: Personalization Ability}
+
+\paragraph{Type} Manual, Dynamic
+
+\paragraph{Test Case Derivation} UHR-12.2
+
+\paragraph{Fit Criterion}
+Personalized interaction should be consistent and predictable; user preferences must persist without unexpected resets.
+
+\paragraph{Test Summary}
+This evaluation assessed the **consistency, predictability, and persistence** of personalization mechanisms, including language/confirmation style and UI preferences (e.g., additional action buttons). The system was tested across session resets to confirm that preferences are retained and applied consistently.
+
+\paragraph{Test Data and Results}
+
+\begin{table}[H]
+\centering
+\caption{Personalization NFR observations.}
+\begin{tabular}{|p{4cm}|p{6cm}|p{3cm}|}
+\hline
+\textbf{Preference} & \textbf{Observed Consistency/Behavior} & \textbf{Result} \\ \hline
+Language / Confirmation Style & Settings consistently applied; interaction behavior matched user expectations across sessions & \checkmark\ Meets NFR \\ \hline
+UI preference — action buttons & Enabled buttons remained visible and accessible; consistent behavior after session reset & \checkmark\ Meets NFR \\ \hline
+Cross-session persistence & Preferences persisted across browser restarts and re-authentication & \checkmark\ Meets NFR \\ \hline
+\end{tabular}
+\label{tab:uh3_nfr}
+\end{table}
+
+\paragraph{Analysis}
+All personalization mechanisms operated predictably and consistently. Preferences were successfully retained across sessions, satisfying the NFR goals for consistency, predictability, and persistence.
+
+\paragraph{Conclusion}
+This test \textbf{satisfies} UHR-12.2. Personalization behavior meets NFR expectations, with consistent interaction and cross-session preference retention.
+
+\subsubsection{test-UH-4: Message Clarity \& Politeness}
+
+\paragraph{Type} Survey-Based Language Review
+
+\paragraph{Test Case Derivation} UHR-12.4
+
+\paragraph{Fit Criterion}
+$\geq$90\% of participants rate system messages $\geq$4/5 for clarity
+and tone.
+
+\paragraph{Test Summary}
+After completing their task sessions, both participants rated eight
+representative VoiceBridge system messages on two separate 1--5 Likert
+scales: \emph{clarity} (1~=~very unclear, 5~=~very clear) and \emph{tone}
+(1~=~impolite or unhelpful, 5~=~appropriate and supportive). Messages covered
+the full range of interaction states.
+
+\paragraph{Test Data and Results}
+
+\begin{table}[H]
+\centering
+\caption{Per-message clarity and tone ratings ($n=2$). Scale: 1--5.}
+\begin{tabular}{|p{6cm}|c|c|c|c|c|}
+\hline
+\textbf{Message / Scenario} & \textbf{P Clar} & \textbf{A Clar} & \textbf{P Tone} & \textbf{A Tone} & \textbf{Avg} \\ \hline
+``Which email service would you like to open? Gmail, Outlook, Yahoo Mail, or something else?'' + ``Maps to Gmail...'' & -- & 5 & -- & 5 & 5.0 \\ \hline
+``Play videos about McMaster University on YouTube'' & 5 & -- & 5 & -- & 5.0 \\ \hline
+``I'm not sure I understand. Could you rephrase that?'' & 2 & -- & 4 & -- & 3.0 \\ \hline
+``Listening... Speak your command'' & 5 & 4 & 5 & 5 & 4.8 \\ \hline
+\end{tabular}
+\end{table}
+
+Of the individual clarity ratings, 80\% were $\geq$4/5, which is below the 90\% target. For tone ratings, 100\% were $\geq$4/5, exceeding the target. P~=~Prerna, S~=~Sarah.
+
+\paragraph{Analysis}
+Overall, message tone is consistently strong. However, the "I'm not sure I understand. Could you rephrase that?" message received a low clarity score, highlighting it as the primary area for improvement. This message indicates a problem but does not provide a concrete next step or specify which part of the input was unclear.
+
+\paragraph{Conclusion}
+This test \textbf{partially satisfies} UHR-12.4. The primary issue is the "I'm not sure I understand. Could you rephrase that?" message, which has been identified for rewording in future iterations to improve clarity and user guidance.
+
+\subsubsection{test-UH-5: Assistive Navigation}
+
+\paragraph{Type} Manual Keyboard Testing
+
+\paragraph{Test Case Derivation} UHR-12.5
+
+\paragraph{Fit Criterion}
+All interactive elements reachable and operable via keyboard. 
+
+\paragraph{Test Summary}
+Keyboard-only navigation was performed following WCAG accessibility principles, with no formal automated audit conducted at this stage.
+Keyboard-only navigation was performed on all currently accessible interactive elements:
+
+\begin{itemize}
+    \item Light/Dark mode toggle
+    \item Visible confirmation toggle
+\end{itemize}
+
+Each element was successfully reached using the Tab key and activated with Enter or Space. Visual focus was clearly indicated when navigating with the keyboard. No automated accessibility audit was performed, but these core controls function correctly and comply with WCAG keyboard accessibility principles.
+
+\paragraph{Analysis}
+Within the tested scope, the interface supports predictable and consistent keyboard navigation. As additional interactive elements are added in future revisions, similar verification should be conducted to ensure ongoing accessibility compliance.
+
+\paragraph{Conclusion}
+This test \textbf{satisfies} the current scope of UHR-12.5. Keyboard accessibility is confirmed for all present interactive elements, and the system adheres to expected nonfunctional accessibility requirements.
+   
+\section{Comparison to Existing Implementation}  
 
 This section will not be appropriate for every project.
 
 \section{Unit Testing}
+
+Unit testing for \emph{VoiceBridge} focused on the core backend modules defined in the MIS and prioritised in the V\&V Plan: the Speech-to-Text Engine (M4), Command Orchestrator (M5), Browser Orchestrator (M7), Session Manager (M8), Real-time Audio Capture (M15), and the Feedback Module (M20). For each of these modules we implemented automated tests using \texttt{pytest} that cover normal behaviour for all public access routines, representative edge cases, and key error paths (for example, invalid configuration, unavailable external services, malformed inputs, and I/O failures). Heavy external dependencies such as cloud LLM APIs, browser automation libraries, audio hardware, ASR model checkpoints, and the filesystem are replaced with test doubles where appropriate, allowing the unit tests to run deterministically and without network or device access. As a result, the unit test suite can be run quickly and repeatedly during development and in CI, and it provides direct evidence that the main control and data-flow responsibilities of each module behave as specified in the MIS.
+
+The following figure captures the automatically generated result which summarize the results of the unit tests. 
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1.25\textwidth]{../imgs/unit_test_results.png}
+    \caption{Terminal report of unit test result by module test. The bottom line summarizes the number of tests passed.}
+    \label{fig:test-results}
+\end{figure}
 
 \section{Changes Due to Testing}
 
@@ -178,11 +547,52 @@ should be highlighted.}
 
 \section{Automated Testing}
 		
+Automated tests are executed locally via \texttt{pytest} and in continuous integration using GitHub Actions. The CI pipeline runs the full Python unit test suite on every push and pull request, including tests under \texttt{test/test\_app}, \texttt{test/test\_control}, and \texttt{test/test\_inputs}, and fails the build if any test fails or if the test run crashes due to missing dependencies. Where necessary, platform-specific tests (for example, those that depend on Windows event loop policies) are guarded with \texttt{skip} conditions so that the suite remains portable across Linux-based CI runners and local Windows development machines. In addition to unit tests, the pipeline runs static analysis and style tools (such as \texttt{ruff} and \texttt{eslint}/\texttt{prettier} in the frontend) to catch common errors and enforce consistency before code is merged.
+
+
 \section{Trace to Requirements}
 		
 \section{Trace to Modules}		
 
+Table~\ref{tab:unit-trace-modules} summarises how the implemented unit test suites map back to the MIS modules and, indirectly, to the functional requirements they support. This table is intentionally aligned with the Unit Test Description section of the V\&V Plan; in this report we only record modules for which unit tests were actually implemented.
+
+\begin{table}[H]
+\centering
+\caption{Traceability Between Unit Tests and MIS Modules}
+\label{tab:unit-trace-modules}
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{|p{2.5cm}|p{5.5cm}|p{6cm}|}
+\hline
+\textbf{MIS Module} & \textbf{Primary Responsibilities} & \textbf{Unit Test File(s)} \\
+\hline
+M4 Speech-to-Text Engine & Audio format validation, ASR model integration, transcription pipeline, personalization & \texttt{test/test\_app/}\newline\texttt{test\_stt.py} \\
+\hline
+M5 Command Orchestrator & LLM prompt construction, response parsing, clarification handling, safety guardrails & \texttt{test/test\_app/}\newline\texttt{test\_command\_orchestrator.py} \\
+\hline
+M7 Browser Orchestrator & Delegating textual tasks to browser automation agent & \texttt{test/test\_control/}\newline\texttt{test\_browser\_controller.py} \\
+\hline
+M8 Session Manager & Lifecycle of shared browser session (start/stop/get) & \texttt{test/test\_control/}\newline\texttt{test\_session\_manager.py} \\
+\hline
+M15 Audio Capture Module & Microphone capture, VAD-based speech detection, utterance segmentation, audio statistics & \texttt{test/test\_inputs/}\newline\texttt{test\_audio\_capture.py} \\
+\hline
+M20 Feedback Module & Persistent storage of structured command feedback records & \texttt{test/test\_data/}\newline\texttt{test\_feedback\_module.py} \\
+\hline
+\end{tabular}
+\end{table}
+
+Modules in the presentation layer and any auxiliary utilities that are not listed in Table~\ref{tab:unit-trace-modules} were not unit-tested during this iteration, either because they are thin UI shells around backend APIs or because they were judged lower priority for the current MVP. Their behaviour is instead validated through end-to-end system tests, manual exploratory testing, and usability evaluations described earlier in this document.
+
 \section{Code Coverage Metrics}
+
+Code coverage for the Python backend was measured using \texttt{pytest-cov}, which instruments the code during unit test runs and produces line- and branch-coverage reports. The following figures capture the final state of coverage at the end of the project. The primary goal was to achieve high coverage for the safety- and control-critical modules (M4--M5 and M7--M8) and reasonable coverage for supporting components such as M15, rather than maximising overall project-wide coverage.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1.25\textwidth]{../imgs/unit_test_coverage_report.png}
+    \caption{Terminal report of unit test coverage by module. Note that only modules deemed in scope, as mentioned in the VnV Plan are included}
+    \label{fig:coverage}
+\end{figure}
+
 
 \bibliographystyle{plainnat}
 \bibliography{../../refs/References}

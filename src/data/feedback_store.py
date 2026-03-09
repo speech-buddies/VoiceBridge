@@ -1,7 +1,7 @@
 import threading
 import uuid
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 class FeedbackStore:
@@ -33,7 +33,7 @@ class FeedbackStore:
             "type": feedback_type,
             "value": value,
             "source": source,
-            "timestamp": datetime.utcnow().isoformat() + "Z"
+            "timestamp": datetime.now(timezone.utc).isoformat()
         }
 
         try:
