@@ -21,3 +21,8 @@ peft>=0.18.1
 # Browser automation
 browser-use>=0.11.0
 python-dotenv>=1.0.0
+
+# Testing
+pytest
+pytest-asyncio
+

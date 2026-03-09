@@ -1,6 +1,0 @@
-numpy
-soundfile
-torch
-transformers
-peft
-librosa
