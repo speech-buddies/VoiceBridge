@@ -611,19 +611,22 @@ graduate attribute of Reflection.
 \input{../Reflection.tex}
 
 \begin{enumerate}
-  \item What went well while writing this deliverable? 
-  \item What pain points did you experience during this deliverable, and how
-    did you resolve them?
-  \item Which parts of this document stemmed from speaking to your client(s) or
-  a proxy (e.g. your peers)? Which ones were not, and why?
-  \item In what ways was the Verification and Validation (VnV) Plan different
-  from the activities that were actually conducted for VnV?  If there were
-  differences, what changes required the modification in the plan?  Why did
-  these changes occur?  Would you be able to anticipate these changes in future
-  projects?  If there weren't any differences, how was your team able to clearly
-  predict a feasible amount of effort and the right tasks needed to build the
-  evidence that demonstrates the required quality?  (It is expected that most
-  teams will have had to deviate from their original VnV Plan.)
-\end{enumerate}
+  \item What went well while writing this deliverable?
 
+  What went well was that we already had a strong base from our SRS and VnV Plan, which made it easier to trace completed tests back to requirements. It was also helpful that much of the evidence came from work we were already doing during development, so the report reflected the actual state of the system rather than only planned testing.
+
+  \item What pain points did you experience during this deliverable, and how did you resolve them?
+
+  A main pain point was that some tests in the original VnV Plan were more ambitious than what we could realistically complete within the project timeline. We resolved this by focusing the report on the tests we actually performed, clearly marking deferred tests, and presenting results in a consistent format. Another challenge was turning rough observations and timing data into polished evidence tables, which we addressed by organizing the results more systematically.
+
+  \item Which parts of this document stemmed from speaking to your client(s) or a proxy (e.g. your peers)? Which ones were not, and why?
+
+  The parts of this document that came most directly from speaking with testing participants and our supervisor, Pavel, were the usability-related updates. Based on their feedback, we changed the system message colour from yellow to blue to make it feel more neutral, added a clearer green yes/no confirmation UI and a cancellation message, introduced a prompt store for previous commands to reduce repeated clarification steps, and updated the feedback textbox so text wraps properly when the browser is resized. These changes were directly influenced by feedback on clarity, comfort, and ease of interaction.
+
+  The parts that did not come directly from clients or proxies were the more technical sections, such as the test structure, metrics, latency tables, and reporting format. These were mainly based on the course requirements, our VnV framework, and the implementation details of the system.
+
+  \item In what ways was the Verification and Validation (VnV) Plan different from the activities that were actually conducted for VnV? If there were differences, what changes required the modification in the plan? Why did these changes occur? Would you be able to anticipate these changes in future projects? If there weren't any differences, how was your team able to clearly predict a feasible amount of effort and the right tasks needed to build the evidence that demonstrates the required quality? (It is expected that most teams will have had to deviate from their original VnV Plan.)
+
+  The main difference was that the original VnV Plan was broader than what we were able to complete in practice. During development, we had to prioritize validating the core pipeline and main functionality first, so some stretch-goal tests, such as noise robustness, were deferred. These changes happened because implementation took more effort than expected and revealed which validations were most realistic and most important. In future projects, we could anticipate this better by separating core validation tasks from stretch-goal testing earlier in the planning stage.
+\end{enumerate}
 \end{document}
