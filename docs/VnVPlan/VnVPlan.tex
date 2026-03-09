@@ -1026,34 +1026,41 @@ test-CPL-2 & CPR-18.2 \\
 \end{center}
 
 \section{Unit Test Description}
-Not applicable for this deliverable. 
-% \wss{This section should not be filled in until after the MIS (detailed design
-%   document) has been completed.}
 
-% \wss{Reference your MIS (detailed design document) and explain your overall
-% philosophy for test case selection.}  
+The unit tests for \emph{VoiceBridge} are designed to exercise the core modules defined in the Module Interface Specification (MIS), with a focus on the control and data-flow responsibilities of each module. Our overall philosophy is:
+\begin{itemize}
+  \item treat each module as a black box at its public interface (access routines) while also covering important white-box behaviours such as error paths, boundary conditions, and internal state transitions;
+  \item isolate heavy or external dependencies (e.g., LLM clients, browser automation, sound hardware, ASR models) using test doubles so that unit tests remain deterministic and fast; and
+  \item organise tests into small, readable cases whose names document the behaviour under test (for example, \texttt{test\_transcribe\_returns\_transcript\_text} or \texttt{test\_start\_session\_already\_running\_returns\_message}).
+\end{itemize}
 
-% \wss{To save space and time, it may be an option to provide less detail in this section.  
-% For the unit tests you can potentially layout your testing strategy here.  That is, you 
-% can explain how tests will be selected for each module.  For instance, your test building 
-% approach could be test cases for each access program, including one test for normal behaviour 
-% and as many tests as needed for edge cases.  Rather than create the details of the input 
-% and output here, you could point to the unit testing code.  For this to work, you code 
-% needs to be well-documented, with meaningful names for all of the tests.}
+Concretely, the unit testing strategy follows this pattern for each module:
+\begin{enumerate}
+  \item At least one test for normal behaviour of each public access routine.
+  \item Additional tests for invalid inputs, misconfiguration, and exceptional conditions.
+  \item Tests that exercise important internal state transitions where applicable (for example, audio capture state or session lifecycle).
+  \item Integration-style unit tests that verify the full happy-path pipeline for the module with all collaborators mocked.
+\end{enumerate}
+%
+The detailed inputs and outputs for each case are documented directly in the Python test code under the \texttt{test/} directory. This section summarises the implemented tests and how they relate to the MIS modules.
 
-% \subsection{Unit Testing Scope}
+\subsection{Unit Testing Scope}
 
-% \wss{What modules are outside of the scope.  If there are modules that are
-%   developed by someone else, then you would say here if you aren't planning on
-%   verifying them.  There may also be modules that are part of your software, but
-%   have a lower priority for verification than others.  If this is the case,
-%   explain your rationale for the ranking of module importance.}
+The core modules that have been implemented to satisfy the application's functional requirements will be the focus of unit testing. That includes the following modules:
+\begin{itemize}
+    \item (M4) Speech-to-Text Engine
+    \item (M5) Command Orchestrator
+    \item (M7) Browser Orchestrator
+    \item (M8) Session Manager
+    \item (M15) Audio Capture Module
+\end{itemize}
 
-% \subsection{Tests for Functional Requirements}
+Note that though the modules in the presentation layer are core to the application functionality, as they supply the user interface, they will be excluded. Given the simplicity of our UI, we have chosen to forgo unit tests in favor of end-to-end (E2E) and backend integration tests. With minimal frontend logic and no complex state management, unit tests would largely just verify that components render, offering little confidence in actual user outcomes. E2E tests give us far greater coverage per test by validating complete user flows, and backend integration tests ensure the data layer behaves correctly.
 
-% \wss{Most of the verification will be through automated unit testing.  If
-%   appropriate specific modules can be verified by a non-testing based
-%   technique.  That can also be documented in this section.}
+The remaining modules not mentioned in the above list are considered out of scope for the current MVP phase of the project; therefore, we will not populate unit test descriptions for them. 
+\subsection{Tests for Functional Requirements}
+
+Most of the verification of functional behaviour is performed through automated unit tests using \texttt{pytest}. For each module, we define a small number of representative test groups that collectively exercise the normal path, error handling, and edge conditions. Below we summarise the implemented tests and how they relate to the MIS modules and SRS functional requirements (FR1--FR5). For full details, including exact inputs and assertions, see the test code under \texttt{test/}.
 
 % \subsubsection{Module 1}
 
@@ -1101,6 +1108,231 @@ Not applicable for this deliverable.
 % \subsubsection{Module 2}
 
 % ...
+
+\subsubsection{Module M4: Speech-to-Text Engine}
+
+The Speech-to-Text Engine is implemented in \texttt{app.speech\_to\_text\_engine} and is verified by \texttt{test/test\_app/test\_stt.py}. The tests cover construction, audio format validation, model readiness, conversion of raw bytes to audio streams, the asynchronous transcription pipeline, buffering of streaming audio, and optional personalization.
+
+\begin{enumerate}
+\item{\texttt{TestInit} and \texttt{TestValidateModelReady}\\}
+Type: Automatic
+
+Initial State: A \texttt{SpeechToTextEngine} instance constructed with a fully mocked \texttt{WhisperLoraAsrModel}.
+
+Input: Different constructor arguments (with/without noise filter and personalization store) and model readiness configurations (valid, invalid, or missing model).
+
+Output: The engine stores configuration correctly, initialises an internal model when the checkpoint is valid, and raises \texttt{InitializationError} or \texttt{ModelValidationError} when initialisation or validation fails.
+
+Test Case Derivation: These cases directly enforce the MIS contracts for engine construction and readiness checks, ensuring that the ASR pipeline cannot be used when its dependencies are misconfigured.
+
+How test will be performed: Instantiate the engine under different conditions and assert internal attributes and raised exceptions using the tests in the \texttt{TestInit} and \texttt{TestValidateModelReady} classes.
+
+\item{\texttt{TestValidateAudioFormat} and \texttt{TestBytesToAudioStream}\\}
+Type: Automatic
+
+Initial State: A \texttt{SpeechToTextEngine} with default configuration.
+
+Input: \texttt{AudioStream} instances and raw PCM byte buffers at various sample rates and amplitudes.
+
+Output: \texttt{validateAudioFormat} correctly accepts 16~kHz audio and rejects unsupported rates; \texttt{\_bytes\_to\_audio\_stream} produces \texttt{AudioStream} objects with the expected length, sample rate, and normalised \texttt{float32} samples.
+
+Test Case Derivation: These tests validate the preconditions for FR2 (accurate transcription) by ensuring that only well-formed audio enters the ASR model and that conversion from bytes to internal representation is correct.
+
+How test will be performed: Call the relevant methods with synthetic audio produced in helpers such as \texttt{\_make\_audio\_bytes} and \texttt{\_make\_audio\_stream}, then assert boolean return values and array properties.
+
+\item{\texttt{TestTranscribe}, \texttt{TestApplyPersonalization}, and \texttt{TestTranscribeIntegration}\\}
+Type: Automatic
+
+Initial State: A mocked ASR model whose \texttt{extract\_features} and \texttt{decode} methods can succeed or raise errors; optional noise filter and personalization store.
+
+Input: Valid and invalid audio bytes, with toggled noise filtering and personalization behaviour, and injected failures in feature extraction, filtering, or decoding.
+
+Output: On valid input, \texttt{transcribe} returns the expected transcript string; on invalid audio or model failures, it raises a runtime error with a ``Failed to transcribe'' message; when personalization is configured, profile metadata is attached to transcripts via \texttt{\_apply\_personalization}.
+
+Test Case Derivation: These tests exercise the full unit-level ASR pipeline corresponding to FR2, including both happy path and failure modes.
+
+How test will be performed: Use asynchronous \texttt{pytest.mark.asyncio} tests to call \texttt{transcribe}, assert return values or exceptions, and verify that collaborators (noise filter, model, personalization store) are invoked in the correct order.
+\end{enumerate}
+
+\subsubsection{Module M5: Command Orchestrator}
+
+The Command Orchestrator is implemented in \texttt{command\_orchestrator} and verified by \texttt{test/test\_app/test\_command\_orchestrator.py}. The unit tests stub the external \texttt{google.genai} client and exercise dataclasses, custom exceptions, prompt construction, LLM interaction, response parsing, guardrails, and the high-level \texttt{process} method.
+
+\begin{enumerate}
+\item{\texttt{TestOrchestratorResponse} and \texttt{TestExceptions}\\}
+Type: Automatic
+
+Initial State: No external state; only the \texttt{OrchestratorResponse} dataclass and custom exception hierarchy.
+
+Input: Various combinations of constructor arguments and raised exceptions.
+
+Output: Fields such as \texttt{needs\_clarification}, \texttt{user\_prompt}, and \texttt{metadata} are stored as specified, and \texttt{InitializationError} and \texttt{InferenceError} behave as specialisations of \texttt{OrchestratorError}.
+
+Test Case Derivation: These tests enforce the basic contracts used by higher-level orchestration logic and ensure that error handling is traceable and type-safe.
+
+How test will be performed: Instantiate dataclasses and raise exceptions inside \texttt{pytest.raises} blocks, checking attributes and messages.
+
+\item{\texttt{TestCommandOrchestratorInit} and \texttt{TestGetDefaultSystemPrompt}\\}
+Type: Automatic
+
+Initial State: Environment variables may or may not define \texttt{GEMINI\_API\_KEY}; prompt files may or may not exist; \texttt{google.genai.Client} may succeed or fail.
+
+Input: Different combinations of explicit API keys, environment configuration, model IDs, and prompt file paths.
+
+Output: The orchestrator selects the correct API key source, stores the configured model ID, loads system prompts from file when available (or falls back to a default prompt containing all required keys), and propagates initialisation failures as \texttt{InitializationError}.
+
+Test Case Derivation: These tests ensure that the module is robust to missing configuration and that default behaviour matches the MIS design for orchestration initialisation.
+
+How test will be performed: Use \texttt{patch.dict} and \texttt{MagicMock} to control environment variables and the \texttt{Client} constructor, then assert internal attributes and exceptions.
+
+\item{\texttt{TestParseResponse}, \texttt{TestCallLlm}, \texttt{TestProcess}, \texttt{TestApplyGuardrails}, and \texttt{TestMultiTurnFlow}\\}
+Type: Automatic
+
+Initial State: A \texttt{CommandOrchestrator} instance with a mocked LLM client; optional conversation history.
+
+Input: Raw LLM responses that are valid JSON, code blocks wrapped in Markdown fences, completely invalid JSON, and payloads indicating clarification or direct commands; user inputs that should be allowed or blocked by guardrails; single-turn and multi-turn conversation contexts.
+
+Output: \texttt{\_parse\_response} returns \texttt{OrchestratorResponse} objects with correct clarification flags, prompts, commands, reasoning, and metadata; \texttt{\_call\_llm} forwards messages and system prompts with the right roles and model ID and raises \texttt{InferenceError} on API failures; \texttt{process} handles ambiguous commands via clarification, propagates conversation context, and wraps bad JSON gracefully; \texttt{apply\_guardrails} allows benign commands and blocks dangerous ones with an explanatory message.
+
+Test Case Derivation: These tests directly support FR4 and FR5 by ensuring that textual commands are clarified, normalised, and screened for safety before execution, and that the orchestrator behaves predictably even when the LLM returns malformed responses.
+
+How test will be performed: Use mocked \texttt{generate\_content} calls to inject specific raw response text, run asynchronous tests for \texttt{\_call\_llm} and \texttt{process}, and assert both returned objects and interactions with the LLM client.
+\end{enumerate}
+
+\subsubsection{Module M7: Browser Orchestrator}
+
+The Browser Orchestrator module (\texttt{browser\_orchestrator}) is responsible for delegating high-level textual commands to a browser automation agent. It is verified by \texttt{test/test\_control/test\_browser\_controller.py}, which stubs the external \texttt{browser\_use} package.
+
+\begin{enumerate}
+\item{\texttt{TestRunCommand}\\}
+Type: Automatic
+
+Initial State: A stubbed \texttt{browser\_use} environment; no active browser agent.
+
+Input: Various task strings (normal commands, empty strings) and a mocked Browser instance.
+
+Output: The asynchronous \texttt{run\_command} function constructs a \texttt{ChatBrowserUse} instance and an \texttt{Agent} with the correct task and browser arguments, awaits \texttt{agent.run()} exactly once, returns the resulting history object, and propagates exceptions raised by the agent.
+
+Test Case Derivation: These tests verify the MIS contract that the orchestrator translates textual tasks into browser operations without embedding browser logic itself, aligning with FR5 execution behaviour.
+
+How test will be performed: Use \texttt{patch} to mock \texttt{ChatBrowserUse} and \texttt{Agent}, run \texttt{run\_command} under \texttt{pytest.mark.asyncio}, and assert constructor arguments, awaited calls, and returned objects.
+
+\item{\texttt{TestEnvironmentSetup}\\}
+Type: Automatic
+
+Initial State: The module-level environment is reloaded with and without a \texttt{BROWSER\_USE\_API\_KEY}; the platform may be Windows.
+
+Input: Environment variable dictionaries and a module reload via \texttt{importlib.reload}.
+
+Output: The module computes \texttt{ENV\_PATH} pointing to a \texttt{.env} file two levels above, reads the API key from the environment, and (on Windows) configures the event loop policy as \texttt{WindowsProactorEventLoopPolicy}.
+
+Test Case Derivation: These tests ensure that browser orchestration can be configured reliably across environments and platforms.
+
+How test will be performed: Reload the module under controlled environment settings, then assert module-level constants and, on Windows, the configured event loop policy.
+\end{enumerate}
+
+\subsubsection{Module M8: Session Manager}
+
+The Session Manager (\texttt{session\_manager}) manages the lifecycle of a long-lived browser session. It is tested in \texttt{test/test\_control/test\_session\_manager.py}, which focuses on the behaviour of \texttt{start\_session}, \texttt{stop\_session}, and \texttt{get\_browser}.
+
+\begin{enumerate}
+\item{\texttt{TestStartSession} and \texttt{TestStopSession}\\}
+Type:  Automatic
+
+Initial State: A module-level browser reference that may be \texttt{None} or an active mocked Browser instance.
+
+Input: Calls to \texttt{start\_session()} and \texttt{stop\_session()} in different orders (first start, repeated start, stop without start, start after stop).
+
+Output: \texttt{start\_session} creates a Browser with \texttt{keep\_alive = True}, calls \texttt{browser.start()} exactly once, sets the global browser reference, and returns either ``Browser started'' or ``Browser already running''; \texttt{stop\_session} awaits \texttt{browser.stop()}, clears the global reference, and returns ``Browser stopped'' or ``Browser already stopped'' without raising when no browser exists.
+
+Test Case Derivation: These tests validate that the session lifecycle is robust and idempotent, matching the MIS design for shared browser resources and supporting FR5.
+
+How test will be performed: Use \texttt{patch} to replace \texttt{Browser} with an async-mocked instance, invoke the lifecycle functions under \texttt{pytest.mark.asyncio}, and check both messages and side effects on the global browser variable.
+
+\item{\texttt{TestGetBrowser} and \texttt{TestSessionLifecycle}\\}
+Type:  Automatic
+
+Initial State: Different configurations of the global browser reference before and after lifecycle calls.
+
+Input: Calls to \texttt{get\_browser()} in each state and sequences of \texttt{start\_session} and \texttt{stop\_session}.
+
+Output: \texttt{get\_browser} returns the current Browser object when running and \texttt{None} otherwise, without modifying state; a full start--stop--start cycle results in a fresh Browser instance and leaves the module in a consistent state.
+
+Test Case Derivation: These tests ensure that code which depends on the shared browser can safely query it and that repeated lifecycle operations do not leak or reuse invalid resources.
+
+How test will be performed: Manipulate the module-level browser reference directly in tests, call the public functions, and assert return values and instance identity.
+\end{enumerate}
+
+\subsubsection{Module M15: Real-time Audio Capture}
+
+The Real-time Audio Capture module (\texttt{audio\_capture}) implements microphone capture, VAD-based speech detection, and buffering before transcription. It is tested in \texttt{test/test\_inputs/test\_audio\_capture.py}, which stubs out hardware and VAD dependencies.
+
+\begin{enumerate}
+\item{\texttt{TestAudioConfig}, \texttt{TestAudioState}, and \texttt{TestRealtimeAudioCaptureInit}\\}
+Type:  Automatic
+
+Initial State: No external audio devices required; configuration and state classes only.
+
+Input: Different constructor arguments for \texttt{AudioConfig} (sample rate, chunk duration, pre-buffer and silence durations, device selection, energy thresholds) and for \texttt{RealtimeAudioCapture}.
+
+Output: Derived fields such as \texttt{chunk\_size}, \texttt{pre\_buffer\_chunks}, and \texttt{silence\_chunks} are computed correctly; invalid configurations raise \texttt{ValueError}; initial capture state is \texttt{IDLE} with empty statistics and correctly sized pre-buffer.
+
+Test Case Derivation: These tests confirm that configuration constraints for FR1 (audio capture) are enforced and that state machines start from a known baseline.
+
+How test will be performed: Instantiate configuration and capture objects with different parameters and assert field values and exceptions.
+
+\item{\texttt{TestIsSpeech}, \texttt{TestProcessAudioChunk}, \texttt{TestStartRecording}, and \texttt{TestEndRecording}\\}
+Type:  Automatic
+
+Initial State: A \texttt{RealtimeAudioCapture} instance with a mocked VAD and (optionally) an \texttt{on\_audio\_ready} callback.
+
+Input: Synthetic audio chunks representing silence and speech, with varying energy levels, delivered while the capture state machine is in \texttt{LISTENING}, \texttt{SPEECH\_DETECTED}, or \texttt{RECORDING}.
+
+Output: \texttt{\_is\_speech} combines VAD output and energy thresholds to classify chunks and increments error counters on VAD failures; \texttt{\_process\_audio\_chunk} manages state transitions, pre-buffering, recording buffers, silence counters, and maximum duration enforcement; \texttt{\_start\_recording} copies pre-buffered audio and resets counters; \texttt{\_end\_recording} converts buffered chunks into a normalised \texttt{float32} array, computes metadata (duration, sample rate, timestamp), updates stats, invokes callbacks once per utterance, and returns to the listening state even when callbacks raise exceptions.
+
+Test Case Derivation: These tests correspond directly to FR1 by ensuring that the capture module correctly detects speech, segments utterances, and prepares audio for downstream processing under realistic noise and timing conditions.
+
+How test will be performed: Drive the private methods with synthetic chunks in different states, then assert state, buffer contents, error counters, statistics, and callback invocations.
+
+\item{\texttt{TestAudioCallback}, \texttt{TestStartStop}, \texttt{TestGetStats}, \texttt{TestListAudioDevices}, and \texttt{TestFullFlow}\\}
+Type: Automatic
+
+Initial State: A capture instance with its internal stream mocked via \texttt{sounddevice.InputStream}, and optional callbacks to capture utterances.
+
+Input: Calls to \texttt{start()}, \texttt{stop()}, and \texttt{\_audio\_callback} under different conditions (already running, stream errors, stopped state), as well as simulated full utterances of speech followed by sufficient silence to trigger recording end.
+
+Output: The capture object transitions between \texttt{IDLE}, \texttt{LISTENING}, \texttt{RECORDING}, and \texttt{STOPPED} as specified; stream errors are counted without crashing; stats dictionaries are returned as defensive copies; \texttt{list\_audio\_devices} filters only input-capable devices; and the full flow produces one callback per utterance with the expected audio data and metadata.
+
+Test Case Derivation: These tests ensure that the module behaves correctly when integrated with the OS audio stack and that repeated start/stop operations and error conditions do not leave it in an inconsistent state.
+
+How test will be performed: Use \texttt{patch} to replace \texttt{sounddevice.InputStream}, simulate callback invocations, and run integration-style flows that mimic real speech followed by silence while asserting resulting callbacks and stats.
+\end{enumerate}
+
+\subsection{Traceability Between Unit Tests and Modules}
+
+Table~\ref{tab:unit-traceability} summarises which test files cover each in-scope MIS module.
+
+\begin{table}[H]
+\centering
+\caption{Traceability Between Unit Tests and MIS Modules}
+\label{tab:unit-traceability}
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{|p{3.5cm}|p{5.5cm}|p{6cm}|}
+\hline
+\textbf{MIS Module} & \textbf{Primary Responsibilities} & \textbf{Unit Test File(s)} \\
+\hline
+M4 Speech-to-Text Engine & Audio format validation, ASR model integration, transcription pipeline, personalization & \texttt{test/test\_app/} \texttt{test\_stt.py} \\
+\hline
+M5 Command Orchestrator & LLM prompt construction, response parsing, clarification handling, safety guardrails & \texttt{test/test\_app/} \texttt{test\_command\_orchestrator.py} \\
+\hline
+M7 Browser Orchestrator & Delegating textual tasks to browser automation agent & \texttt{test/test\_control/} \texttt{test\_browser\_controller.py} \\
+\hline
+M8 Session Manager & Lifecycle of shared browser session (start/stop/get) & \texttt{test/test\_control/} \texttt{test\_session\_manager.py} \\
+\hline
+M15 Audio Capture Module & Microphone capture, VAD-based speech detection, utterance segmentation, audio statistics & \texttt{test/test\_inputs/} \texttt{test\_audio\_capture.py} \\
+\hline
+\end{tabular}
+\end{table}
 
 % \subsection{Tests for Nonfunctional Requirements}
 
