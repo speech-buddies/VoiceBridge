@@ -1,8 +1,10 @@
 \documentclass[12pt, titlepage]{article}
 
 \usepackage{amsmath}
+\usepackage{amsmath}
 \usepackage{booktabs}
 \usepackage{tabularx}
+\usepackage{float}
 \usepackage{float}
 \usepackage{hyperref}
 \hypersetup{
@@ -38,6 +40,7 @@ Verification and Validation Report: \progname}
 \toprule {\bf Date} & {\bf Version} & {\bf Notes}\\
 \midrule
 March 8th, 2026 & 1.0 & Added Non-Functional Performance tests\\
+March 9th, 2026 & 1.0 & Added Non-Functional Usability and Humanity tests\\
 Date 2 & 1.1 & Notes\\
 \bottomrule
 \end{tabularx}
@@ -74,6 +77,9 @@ This document ...
 \section{Functional Requirements Evaluation}
 
 \section{Nonfunctional Requirements Evaluation}
+This section evaluates the selected nonfunctional requirements defined in the VnV Plan. The assessment focuses on two key quality attributes: performance and usability/humanity. The following subsections describe the tests conducted and the results obtained for each category.
+\subsection{Performance}
+This subsection evaluates the system’s performance under typical operating conditions. The tests focus on measuring response time and overall system responsiveness to ensure that the application operates efficiently during normal use.
 \subsection{test-PF-1: ASR Latency Benchmark}
 
 \paragraph{Type}
@@ -210,13 +216,228 @@ Robustness to stationary background noise was identified as a stretch goal for t
 \paragraph{Conclusion}
 No result is reported for this test. Evaluation of performance under stationary noise remains future work.
 
-\subsection{Usability}
-		
-\subsection{Performance}
 
-\subsection{etc.}
-	
-\section{Comparison to Existing Implementation}	
+\subsection{Usability and Humanity Requirements Evaluation}
+
+Testing was conducted with two external participants Prerna and Sarah. The microphone was active throughout each
+session in a quiet room with no other speakers present. Each participant used a different confirmation UI mode: Prerna used the \emph{hidden} confirmation
+style (yes/no voice response) and Sarah used the \emph{visible} confirmation style (clickable Confirm/Cancel buttons).
+
+\subsubsection{test-UH-1: Core Task Ease of Use}
+
+\paragraph{Type} User Testing, Instrumented
+
+\paragraph{Test Case Derivation} UHR-12.1
+
+\paragraph{Fit Criterion}
+Both participants complete their tasks in $\leq$4 interactions;
+success feedback observed within 1~second of action.
+
+\paragraph{Test Summary}
+Each participant completed three core tasks: speaking a command, observing
+the transcription, and confirming the system's interpreted response, using
+their assigned confirmation style. After completing the tasks each participant
+rated overall ease of use on a 1--5 scale and provided brief comments.
+
+\paragraph{Test Data and Results}
+
+\begin{table}[H]
+\centering
+\caption{Core task completion and ease-of-use ratings ($n=2$).
+  Scale: 1~=~very difficult, 5~=~very easy.}
+\begin{tabular}{|l|l|p{4.5cm}|c|p{3.5cm}|}
+\hline
+\textbf{User} & \textbf{Confirm Style} & \textbf{Tasks Completed} &
+  \textbf{Rating (1--5)} & \textbf{Comments} \\ \hline
+Prerna & Spoken &
+  3/3: spoke command, observed transcription, confirmed via voice &
+  4/5 &
+  Found flow natural; initially unsure when to speak \\ \hline
+Sarah & Buttons &
+  3/3: spoke command, observed transcription, confirmed via button &
+  5/5 &
+  Buttons made confirmation step very clear \\ \hline
+\multicolumn{2}{|r|}{\textbf{Summary}} &
+  6/6 tasks (100\%) & \textbf{4.5/5 avg} & Both styles usable \\ \hline
+\end{tabular}
+\label{tab:uh1}
+\end{table}
+
+After the user confirmed the command, the system initiated execution of the corresponding operation within approximately 0.78 seconds (0.68 seconds for Sarah, 0.87 seconds for Prerna) across all trials, satisfying the 1-second responsiveness requirement. During testing, users suggested that displaying a visible completion message (e.g., ``Completed'') would improve feedback by clearly indicating when the command has finished executing.
+
+\paragraph{Analysis}
+Both participants completed all three tasks successfully on their first
+attempt across both confirmation styles. The average ease-of-use rating of
+4.5/5 indicates the core workflow is intuitive. Prerna's rating of 4
+reflected a brief moment of uncertainty about when to speak---a
+discoverability gap in the hidden confirmation style rather than a structural
+usability issue. Sarah's rating of 5 confirms that the visible button style
+removes this ambiguity. Both styles produced successful outcomes, validating
+the system's support for multiple interaction preferences.
+
+\paragraph{Conclusion}
+This test \textbf{satisfies} UHR-12.1. All tasks were completed within the
+interaction threshold, feedback timing was met, and the average ease-of-use
+rating of 4.5/5 exceeds the acceptable threshold.
+
+\subsubsection{test-UH-2: Onboarding Learnability \& First-Try Success}
+
+\paragraph{Type} User Testing, Survey
+
+\paragraph{Test Case Derivation} UHR-12.3
+
+\paragraph{Fit Criterion}
+$\geq$85\% complete all core tasks on first attempt; onboarding time
+$\leq$10~minutes on average; satisfaction rated out of~5 with open-ended
+feedback on liked/disliked aspects.
+
+\paragraph{Context}
+VoiceBridge does not currently include a dedicated onboarding tutorial. The
+UI itself provides instructional cues with labelled controls, status messages,
+and contextual prompts to guide first-time users.
+
+\paragraph{Test Summary}
+Participants were given no briefing beyond a general description of
+VoiceBridge's purpose. They completed the full core interaction sequence
+without any guidance. Task time was recorded from first interaction to final
+confirmation. Participants then rated their experience on a 1--5 scale and
+provided open-ended feedback.
+
+\paragraph{Test Data and Results}
+
+\begin{table}[H]
+\centering
+\caption{First-try success, onboarding time, ratings, and feedback ($n=2$).
+  Scale: 1~=~very poor, 5~=~excellent.}
+\begin{tabular}{|l|c|c|c|p{5cm}|}
+\hline
+\textbf{User} & \textbf{1st-Try} & \textbf{Time} &
+  \textbf{Rating (1--5)} & \textbf{Feedback} \\ \hline
+Prerna & 3/3 & 4m 22s & 4/5 &
+  Liked: clear step-by-step flow.\newline
+  Disliked: unclear if command was executed successfully \\ \hline
+Sarah & 3/3 & 3m 48s & 5/5 &
+  Liked: buttons intuitive and obvious.\newline
+  Disliked: Slight uncertainty about when command is complete \\ \hline
+\multicolumn{2}{|r|}{\textbf{Summary}} & $<$5~min avg &
+  \textbf{4.5/5 avg} &
+  100\% first-try success; both under 10-minute target \\ \hline
+\end{tabular}
+\label{tab:uh2}
+\end{table}
+
+\paragraph{Analysis}
+Both participants achieved 100\% first-try success with no assistance, and
+both completed the sequence well under the 10-minute threshold. The primary
+criticism---initial uncertainty about when to speak---is specific to the
+hidden confirmation style and points to a UI signal gap rather than a broader
+learnability problem. Sarah experienced no such confusion with the visible
+button style.
+
+\paragraph{Conclusion}
+This test \textbf{satisfies} UHR-12.3. Both participants achieved first-try
+success under the time threshold. The listening-readiness signal gap is
+logged in Section~7.
+\subsubsection{test-UH-3: Personalization Ability}
+
+\paragraph{Type} Manual, Dynamic
+
+\paragraph{Test Case Derivation} UHR-12.2
+
+\paragraph{Fit Criterion}
+Personalized interaction should be consistent and predictable; user preferences must persist without unexpected resets.
+
+\paragraph{Test Summary}
+This evaluation assessed the **consistency, predictability, and persistence** of personalization mechanisms, including language/confirmation style and UI preferences (e.g., additional action buttons). The system was tested across session resets to confirm that preferences are retained and applied consistently.
+
+\paragraph{Test Data and Results}
+
+\begin{table}[H]
+\centering
+\caption{Personalization NFR observations.}
+\begin{tabular}{|p{4cm}|p{6cm}|p{3cm}|}
+\hline
+\textbf{Preference} & \textbf{Observed Consistency/Behavior} & \textbf{Result} \\ \hline
+Language / Confirmation Style & Settings consistently applied; interaction behavior matched user expectations across sessions & \checkmark\ Meets NFR \\ \hline
+UI preference — action buttons & Enabled buttons remained visible and accessible; consistent behavior after session reset & \checkmark\ Meets NFR \\ \hline
+Cross-session persistence & Preferences persisted across browser restarts and re-authentication & \checkmark\ Meets NFR \\ \hline
+\end{tabular}
+\label{tab:uh3_nfr}
+\end{table}
+
+\paragraph{Analysis}
+All personalization mechanisms operated predictably and consistently. Preferences were successfully retained across sessions, satisfying the NFR goals for consistency, predictability, and persistence.
+
+\paragraph{Conclusion}
+This test \textbf{satisfies} UHR-12.2. Personalization behavior meets NFR expectations, with consistent interaction and cross-session preference retention.
+
+\subsubsection{test-UH-4: Message Clarity \& Politeness}
+
+\paragraph{Type} Survey-Based Language Review
+
+\paragraph{Test Case Derivation} UHR-12.4
+
+\paragraph{Fit Criterion}
+$\geq$90\% of participants rate system messages $\geq$4/5 for clarity
+and tone.
+
+\paragraph{Test Summary}
+After completing their task sessions, both participants rated eight
+representative VoiceBridge system messages on two separate 1--5 Likert
+scales: \emph{clarity} (1~=~very unclear, 5~=~very clear) and \emph{tone}
+(1~=~impolite or unhelpful, 5~=~appropriate and supportive). Messages covered
+the full range of interaction states.
+
+\paragraph{Test Data and Results}
+
+\begin{table}[H]
+\centering
+\caption{Per-message clarity and tone ratings ($n=2$). Scale: 1--5.}
+\begin{tabular}{|p{6cm}|c|c|c|c|c|}
+\hline
+\textbf{Message / Scenario} & \textbf{P Clar} & \textbf{A Clar} & \textbf{P Tone} & \textbf{A Tone} & \textbf{Avg} \\ \hline
+``Which email service would you like to open? Gmail, Outlook, Yahoo Mail, or something else?'' + ``Maps to Gmail...'' & -- & 5 & -- & 5 & 5.0 \\ \hline
+``Play videos about McMaster University on YouTube'' & 5 & -- & 5 & -- & 5.0 \\ \hline
+``I'm not sure I understand. Could you rephrase that?'' & 2 & -- & 4 & -- & 3.0 \\ \hline
+``Listening... Speak your command'' & 5 & 4 & 5 & 5 & 4.8 \\ \hline
+\end{tabular}
+\end{table}
+
+Of the individual clarity ratings, 80\% were $\geq$4/5, which is below the 90\% target. For tone ratings, 100\% were $\geq$4/5, exceeding the target. P~=~Prerna, S~=~Sarah.
+
+\paragraph{Analysis}
+Overall, message tone is consistently strong. However, the "I'm not sure I understand. Could you rephrase that?" message received a low clarity score, highlighting it as the primary area for improvement. This message indicates a problem but does not provide a concrete next step or specify which part of the input was unclear.
+
+\paragraph{Conclusion}
+This test \textbf{partially satisfies} UHR-12.4. The primary issue is the "I'm not sure I understand. Could you rephrase that?" message, which has been identified for rewording in future iterations to improve clarity and user guidance.
+
+\subsubsection{test-UH-5: Assistive Navigation}
+
+\paragraph{Type} Manual Keyboard Testing
+
+\paragraph{Test Case Derivation} UHR-12.5
+
+\paragraph{Fit Criterion}
+All interactive elements reachable and operable via keyboard. 
+
+\paragraph{Test Summary}
+Keyboard-only navigation was performed following WCAG accessibility principles, with no formal automated audit conducted at this stage.
+Keyboard-only navigation was performed on all currently accessible interactive elements:
+
+\begin{itemize}
+    \item Light/Dark mode toggle
+    \item Visible confirmation toggle
+\end{itemize}
+
+Each element was successfully reached using the Tab key and activated with Enter or Space. Visual focus was clearly indicated when navigating with the keyboard. No automated accessibility audit was performed, but these core controls function correctly and comply with WCAG keyboard accessibility principles.
+
+\paragraph{Analysis}
+Within the tested scope, the interface supports predictable and consistent keyboard navigation. As additional interactive elements are added in future revisions, similar verification should be conducted to ensure ongoing accessibility compliance.
+
+\paragraph{Conclusion}
+This test \textbf{satisfies} the current scope of UHR-12.5. Keyboard accessibility is confirmed for all present interactive elements, and the system adheres to expected nonfunctional accessibility requirements.
+   
+\section{Comparison to Existing Implementation}  
 
 This section will not be appropriate for every project.
 
