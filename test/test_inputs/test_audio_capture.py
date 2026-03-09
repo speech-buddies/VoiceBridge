@@ -199,17 +199,18 @@ class TestStateTransitions:
         assert cap._get_state() == AudioState.LISTENING
 
     def test_same_state_transition_no_log(self):
+        """Transitioning to the same state must not call logger.debug."""
         cap = _make_capture()
-        # Reset any prior debug calls from __init__ / _make_capture
-        _stub_logger.debug.reset_mock()
-        cap._set_state(AudioState.IDLE)   # already IDLE – no-op
-        _stub_logger.debug.assert_not_called()
+        with patch("audio_capture.logger") as mock_log:
+            cap._set_state(AudioState.IDLE)   # already IDLE – no-op
+            mock_log.debug.assert_not_called()
 
     def test_different_state_triggers_debug_log(self):
+        """Transitioning to a new state must call logger.debug exactly once."""
         cap = _make_capture()
-        _stub_logger.debug.reset_mock()
-        cap._set_state(AudioState.LISTENING)
-        _stub_logger.debug.assert_called_once()
+        with patch("audio_capture.logger") as mock_log:
+            cap._set_state(AudioState.LISTENING)
+            mock_log.debug.assert_called_once()
 
 
 # ===========================================================================
