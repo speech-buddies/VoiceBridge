@@ -1053,6 +1053,7 @@ The core modules that have been implemented to satisfy the application's functio
     \item (M7) Browser Orchestrator
     \item (M8) Session Manager
     \item (M15) Audio Capture Module
+    \item (M20) Feedback Module
 \end{itemize}
 
 Note that though the modules in the presentation layer are core to the application functionality, as they supply the user interface, they will be excluded. Given the simplicity of our UI, we have chosen to forgo unit tests in favor of end-to-end (E2E) and backend integration tests. With minimal frontend logic and no complex state management, unit tests would largely just verify that components render, offering little confidence in actual user outcomes. E2E tests give us far greater coverage per test by validating complete user flows, and backend integration tests ensure the data layer behaves correctly.
@@ -1307,6 +1308,92 @@ Test Case Derivation: These tests ensure that the module behaves correctly when 
 
 How test will be performed: Use \texttt{patch} to replace \texttt{sounddevice.InputStream}, simulate callback invocations, and run integration-style flows that mimic real speech followed by silence while asserting resulting callbacks and stats.
 \end{enumerate}
+
+\subsubsection{Module M20: Feedback Module}
+
+The Feedback Module is implemented in \texttt{feedback\_store} and is verified by \texttt{test/test\_data/test\_feedback\_module.py}. These tests focus on reliable, structured recording of user feedback about executed commands (for example, ratings and satisfaction signals) and on robustness under concurrent writes and I/O errors.
+
+\begin{enumerate}
+\item{\texttt{TestInit}\\}
+Type:  Automatic
+
+Initial State: No prior feedback log; optional explicit or default log path.
+
+Input: Different constructor arguments for \texttt{FeedbackStore}, including explicit \texttt{log\_path} values (as strings and \texttt{Path} objects) and the no-argument default.
+
+Output: The store always normalises \texttt{log\_path} to a \texttt{Path} object, chooses a default \texttt{feedback\_log.jsonl} file in the module directory when no path is provided, and initialises a re-entrant lock for thread-safe writes.
+
+Test Case Derivation: These tests ensure that initialisation is predictable across environments and that the module is safe to use concurrently from different parts of the system.
+
+How test will be performed: Instantiate \texttt{FeedbackStore} with various arguments and assert properties of \texttt{log\_path} and \texttt{\_lock}.
+
+\item{\texttt{TestRecordStructure} and \texttt{TestSourceAutoDetection}\\}
+Type:  Automatic
+
+Initial State: A store whose log file is backed by a temporary directory.
+
+Input: Calls to \texttt{log\_feedback} with different command IDs, feedback types, values, optional command text, and optional explicit sources.
+
+Output: Each written JSON record contains all required keys (\texttt{uuid}, \texttt{command\_id}, \texttt{command\_text}, \texttt{type}, \texttt{value}, \texttt{source}, \texttt{timestamp}); UUIDs are valid version~4 strings and unique per record; timestamps are valid ISO-8601 values ending in \texttt{Z}; sources are automatically classified as \texttt{verbal}, \texttt{ui}, or \texttt{unknown} based on the value, unless an explicit source is provided (which is preserved as-is).
+
+Test Case Derivation: These tests enforce the data schema used for offline analysis of user feedback and ensure that automatic source classification behaves as intended.
+
+How test will be performed: Log feedback events, read back lines from the JSONL log, and assert field presence, formats, and classification logic.
+
+\item{\texttt{TestFileWriting} and \texttt{TestErrorHandling}\\}
+Type:  Automatic
+
+Initial State: A store with an existing or non-existing log file path.
+
+Input: Single and repeated calls to \texttt{log\_feedback}, with and without simulated I/O failures (for example, by patching \texttt{Path.open} to raise \texttt{IOError}).
+
+Output: Each call appends a single valid JSON object on its own line without overwriting previous records; log files are created on demand if missing; transient write errors are swallowed so that callers are not interrupted, and such errors are reported via the module logger; subsequent calls after an error still succeed and produce valid records.
+
+Test Case Derivation: These tests provide confidence that feedback collection is resilient to partial disk failures and that logging cannot crash the main application.
+
+How test will be performed: Inspect the contents of the log file after different sequences of writes and use \texttt{patch} to inject controlled I/O failures while asserting logger calls.
+
+\item{\texttt{TestThreadSafety}\\}
+Type:  Automatic
+
+Initial State: A store with an empty log file.
+
+Input: Concurrent calls to \texttt{log\_feedback} from multiple threads.
+
+Output: All attempted writes succeed without raising exceptions; the resulting log file contains exactly one record per attempted write, each with a unique UUID.
+
+Test Case Derivation: These tests validate that the internal locking strategy of the Feedback Module is sufficient to prevent lost updates or corrupted records under concurrent usage.
+
+How test will be performed: Spawn multiple threads that call \texttt{log\_feedback} in parallel, then read back all records and assert count equality and UUID uniqueness.
+\end{enumerate}
+
+\subsection{Traceability Between Unit Tests and Modules}
+
+Table~\ref{tab:unit-traceability} summarises which test files cover each in-scope MIS module.
+
+\begin{table}[H]
+\centering
+\caption{Traceability Between Unit Tests and MIS Modules}
+\label{tab:unit-traceability}
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{|p{3.5cm}|p{5.5cm}|p{6cm}|}
+\hline
+\textbf{MIS Module} & \textbf{Primary Responsibilities} & \textbf{Unit Test File(s)} \\
+\hline
+M4 Speech-to-Text Engine & Audio format validation, ASR model integration, transcription pipeline, personalization & \texttt{test/test\_app/} \texttt{test\_stt.py} \\
+\hline
+M5 Command Orchestrator & LLM prompt construction, response parsing, clarification handling, safety guardrails & \texttt{test/test\_app/} \texttt{test\_command\_orchestrator.py} \\
+\hline
+M7 Browser Orchestrator & Delegating textual tasks to browser automation agent & \texttt{test/test\_control/} \texttt{test\_browser\_controller.py} \\
+\hline
+M8 Session Manager & Lifecycle of shared browser session (start/stop/get) & \texttt{test/test\_control/} \texttt{test\_session\_manager.py} \\
+\hline
+M15 Audio Capture Module & Microphone capture, VAD-based speech detection, utterance segmentation, audio statistics & \texttt{test/test\_inputs/} \texttt{test\_audio\_capture.py} \\
+\hline
+M20 Feedback Module & Persistent storage of structured command feedback records & \texttt{test/test\_data/} \texttt{test\_feedback\_module.py} \\
+\hline
+\end{tabular}
+\end{table}
 
 \subsection{Traceability Between Unit Tests and Modules}
 

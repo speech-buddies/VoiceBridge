@@ -3,6 +3,8 @@ import sys, os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src", "input"))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src", "app"))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src", "control"))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src", "data"))
+
 
 
 import pytest

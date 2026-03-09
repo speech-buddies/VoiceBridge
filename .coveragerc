@@ -1,0 +1,11 @@
+[run]
+omit =
+    **/__init__.py 
+    src\app\whisper_tuned_model.py
+    src\control\chrome_use.py 
+    src\server.py 
+    src\state_manager.py 
+    src\utils\exceptions.py
+    src\utils\logger.py
+    src\models\audio_data.py   
+    src\app\command_cache.py 
