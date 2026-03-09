@@ -222,6 +222,10 @@ This section will not be appropriate for every project.
 
 \section{Unit Testing}
 
+Unit testing for \emph{VoiceBridge} focused on the core backend modules defined in the MIS and prioritised in the V\&V Plan: the Speech-to-Text Engine (M4), Command Orchestrator (M5), Browser Orchestrator (M7), Session Manager (M8), and Real-time Audio Capture (M15). For each of these modules we implemented automated tests using \texttt{pytest} that cover normal behaviour for all public access routines, representative edge cases, and key error paths (for example, invalid configuration, unavailable external services, and malformed inputs). Heavy external dependencies such as cloud LLM APIs, browser automation libraries, audio hardware, and ASR model checkpoints were replaced with test doubles, allowing the unit tests to run deterministically and without network or device access. As a result, the unit test suite can be run quickly and repeatedly during development and in CI, and it provides direct evidence that the main control and data-flow responsibilities of each module behave as specified in the MIS.
+
+The tests validate stateful behaviour where relevant. For M15, we verify audio state-machine transitions (IDLE $\rightarrow$ LISTENING $\rightarrow$ RECORDING), VAD error accounting, and correct invocation of the \texttt{on\_audio\_ready} callback with normalised audio buffers and metadata. For M4, we validate audio format checks, conversion from PCM bytes to internal \texttt{AudioStream} structures, invocation of the ASR model, and handling of noise filtering and personalization. For M5, M7, and M8, we test prompt/response handling, guardrails for unsafe commands, orchestration of browser agents, and the lifecycle of a shared browser session. Presentation-layer components are intentionally excluded from unit testing (as documented in the Plan) and are instead exercised through system-level and manual usability tests.
+
 \section{Changes Due to Testing}
 
 \wss{This section should highlight how feedback from the users and from 
@@ -231,11 +235,45 @@ should be highlighted.}
 
 \section{Automated Testing}
 		
+Automated tests are executed locally via \texttt{pytest} and in continuous integration using GitHub Actions. The CI pipeline runs the full Python unit test suite on every push and pull request, including tests under \texttt{test/test\_app}, \texttt{test/test\_control}, and \texttt{test/test\_inputs}, and fails the build if any test fails or if the test run crashes due to missing dependencies. Where necessary, platform-specific tests (for example, those that depend on Windows event loop policies) are guarded with \texttt{skip} conditions so that the suite remains portable across Linux-based CI runners and local Windows development machines. In addition to unit tests, the pipeline runs static analysis and style tools (such as \texttt{ruff} and \texttt{eslint}/\texttt{prettier} in the frontend) to catch common errors and enforce consistency before code is merged.
+
+For performance-related automated tests (such as test-PF-1 and test-PF-2), we implemented small driver scripts and fixtures that replay pre-recorded audio samples through the ASR and command pipeline, capture timing data, and export results in tabular form for inclusion in this report. Although these scripts are not run on every CI build (because they depend on heavier models and longer runtimes), they are deterministic and can be re-run to reproduce the latency measurements summarised in Section~2.2. The same infrastructure can be extended in future work to include robustness or noise tests that were planned but not executed during this iteration.
+
 \section{Trace to Requirements}
 		
 \section{Trace to Modules}		
 
+Table~\ref{tab:unit-trace-modules} summarises how the implemented unit test suites map back to the MIS modules and, indirectly, to the functional requirements they support. This table is intentionally aligned with the Unit Test Description section of the V\&V Plan; in this report we only record modules for which unit tests were actually implemented.
+
+\begin{table}[H]
+\centering
+\caption{Traceability Between Unit Tests and MIS Modules}
+\label{tab:unit-trace-modules}
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{|p{3cm}|p{6cm}|p{5cm}|}
+\hline
+\textbf{MIS Module} & \textbf{Primary Responsibilities} & \textbf{Unit Test File(s)} \\
+\hline
+M4 Speech-to-Text Engine & Audio format validation, ASR model integration, transcription pipeline, personalization & \texttt{test/test\_app/test\_stt.py} \\
+\hline
+M5 Command Orchestrator & LLM prompt construction, response parsing, clarification handling, safety guardrails & \texttt{test/test\_app/test\_command\_orchestrator.py} \\
+\hline
+M7 Browser Orchestrator & Delegating textual tasks to browser automation agent & \texttt{test/test\_control/test\_browser\_controller.py} \\
+\hline
+M8 Session Manager & Lifecycle of shared browser session (start/stop/get) & \texttt{test/test\_control/test\_session\_manager.py} \\
+\hline
+M15 Audio Capture Module & Microphone capture, VAD-based speech detection, utterance segmentation, audio statistics & \texttt{test/test\_inputs/test\_audio\_capture.py} \\
+\hline
+\end{tabular}
+\end{table}
+
+Modules in the presentation layer and any auxiliary utilities that are not listed in Table~\ref{tab:unit-trace-modules} were not unit-tested during this iteration, either because they are thin UI shells around backend APIs or because they were judged lower priority for the current MVP. Their behaviour is instead validated through end-to-end system tests, manual exploratory testing, and usability evaluations described earlier in this document.
+
 \section{Code Coverage Metrics}
+
+Code coverage for the Python backend was measured using \texttt{pytest-cov}, which instruments the code during unit test runs and produces line- and branch-coverage reports. For day-to-day development we rely on the summary shown in the terminal and on per-file annotations in the IDE; for this report, detailed coverage tables and figures (to be added by the team) capture the final state of coverage at the end of the project. The primary goal was to achieve high coverage for the safety- and control-critical modules (M4--M5 and M7--M8) and reasonable coverage for supporting components such as M15, rather than maximising overall project-wide coverage.
+
+Coverage results are interpreted in context: files with lower coverage either correspond to glue code that is heavily exercised by system tests (for example, CLI entry points or thin wrappers) or to modules that were explicitly scoped out of unit testing in the V\&V Plan. Where coverage highlighted untested branches in core modules, we either added additional unit tests (for example, for error handling paths in the orchestrators and audio capture) or consciously documented the residual risk when the effort to automate those scenarios was disproportionate to their impact. The coverage artefacts included with this report can be regenerated at any time by re-running the test suite with the same \texttt{pytest-cov} configuration.
 
 \bibliographystyle{plainnat}
 \bibliography{../../refs/References}
