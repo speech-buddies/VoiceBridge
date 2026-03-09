@@ -41,7 +41,7 @@ Verification and Validation Report: \progname}
 \midrule
 March 8th, 2026 & 1.0 & Added Non-Functional Performance tests\\
 March 9th, 2026 & 1.0 & Added Non-Functional Usability and Humanity tests\\
-Date 2 & 1.1 & Notes\\
+March 9th, 2026 & 1.0 & Added all remaining tests and completed document\\
 \bottomrule
 \end{tabularx}
 
@@ -58,7 +58,6 @@ Date 2 & 1.1 & Notes\\
   \bottomrule
 \end{tabular}\\
 
-\wss{symbols, abbreviations or acronyms -- you can reference the SRS tables if needed}
 
 \newpage
 
@@ -72,7 +71,7 @@ Date 2 & 1.1 & Notes\\
 
 \pagenumbering{arabic}
 
-This document ...
+This document is the Verification and Validation (V\&V) Report for the VoiceBridge project. It presents the results of all verification and validation activities conducted to assess whether the system meets its specified requirements and quality goals. It details the testing procedures, outcomes, and traceability to requirements, and documents any changes made as a result of feedback from users and the supervisor. Its purpose is to provide clear evidence that VoiceBridge fulfills its intended functionality, performance, and usability objectives, and to support ongoing improvement through reflection on the V\&V process.
 
 \section{Functional Requirements Evaluation}
 
@@ -432,7 +431,7 @@ logged in Section~7.
 Personalized interaction should be consistent and predictable; user preferences must persist without unexpected resets.
 
 \paragraph{Test Summary}
-This evaluation assessed the **consistency, predictability, and persistence** of personalization mechanisms, including language/confirmation style and UI preferences (e.g., additional action buttons). The system was tested across session resets to confirm that preferences are retained and applied consistently.
+This evaluation assessed the consistency, predictability, and persistence of personalization mechanisms, including language/confirmation style and UI preferences (e.g., additional action buttons). The system was tested across session resets to confirm that preferences are retained and applied consistently.
 
 \paragraph{Test Data and Results}
 
@@ -442,9 +441,9 @@ This evaluation assessed the **consistency, predictability, and persistence** of
 \begin{tabular}{|p{4cm}|p{6cm}|p{3cm}|}
 \hline
 \textbf{Preference} & \textbf{Observed Consistency/Behavior} & \textbf{Result} \\ \hline
-Language / Confirmation Style & Settings consistently applied; interaction behavior matched user expectations across sessions & \checkmark\ Meets NFR \\ \hline
-UI preference — action buttons & Enabled buttons remained visible and accessible; consistent behavior after session reset & \checkmark\ Meets NFR \\ \hline
-Cross-session persistence & Preferences persisted across browser restarts and re-authentication & \checkmark\ Meets NFR \\ \hline
+Language / Confirmation Style & Settings consistently applied; interaction behavior matched user expectations across sessions & Meets NFR \\ \hline
+UI preference — action buttons & Enabled buttons remained visible and accessible; consistent behavior after session reset & Meets NFR \\ \hline
+Cross-session persistence & Preferences persisted across browser restarts and re-authentication & Meets NFR \\ \hline
 \end{tabular}
 \label{tab:uh3_nfr}
 \end{table}
@@ -540,10 +539,16 @@ The following figure captures the automatically generated result which summarize
 
 \section{Changes Due to Testing}
 
-\wss{This section should highlight how feedback from the users and from 
-the supervisor (when one exists) shaped the final product.  In particular 
-the feedback from the Rev 0 demo to the supervisor (or to potential users) 
-should be highlighted.}
+Feedback from testing participants and our supervisor, Pavel, led to several updates in the user interface and interaction flow:
+
+\begin{itemize}
+  \item \textbf{System Message Colour:} Changed from yellow to blue to reduce user concern and maintain a neutral tone.
+  \item \textbf{Confirmation UI:} Added a green yes/no confirmation prompt and a message when a command is cancelled, making the confirmation step clearer.
+  \item \textbf{Prompt Store for Previous Commands:} Reduces the number of clarification steps the system asks before executing a past command. It allows users to proceed more quickly and smoothly, minimizing repeated confirmations and speeding up interactions.
+  \item \textbf{Feedback Textbox:} Now wraps text when the browser window is resized, keeping content visible and accessible at different sizes.
+\end{itemize}
+
+These updates were implemented in response to feedback from testing sessions and were prioritized to improve usability and clarity based on participant input.
 
 \section{Automated Testing}
 		
