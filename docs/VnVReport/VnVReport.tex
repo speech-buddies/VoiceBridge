@@ -556,6 +556,67 @@ Automated tests are executed locally via \texttt{pytest} and in continuous integ
 
 
 \section{Trace to Requirements}
+
+This section provides bidirectional traceability between test cases and SRS requirements, separated by functional (FR1-FR6, SRS section 10) and nonfunctional requirements (selected NFRs from SRS sections 12-13 per V\&V Plan). All FRs achieved high test coverage. NFRs show selective testing with clear Pass/Partial/Fail status and future work items.
+
+\subsection{Functional Requirements Traceability}
+This section covers the functional requirements (FRs) that were selected for testing based on the V\&V Plan. 
+\begin{table}[H]
+\centering
+\caption{Traceability: Functional Requirements (SRS Section 10)}
+\label{tab:trace-fr}
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{|p{3cm}|p{4cm}|p{2cm}|p{4.5cm}|}
+\hline
+\textbf{SRS Requirement} & \textbf{Test Cases} & \textbf{Result} & \textbf{Coverage Notes} \\
+\hline
+FR1 (Microphone Audio, SRS 10.2) & test-FR1-MIC-1,2,3 & Pass & Full: Permissions, platforms (iOS/Android/Windows), fallback on disconnect. Meets 16kHz rate. \\
+\hline
+FR2 (ASR $\geq$80\% Accuracy, SRS 10.3) & test-FR2-ASR-1,2 & Pass & Full: $>$80\% WER reduction vs baseline; $>$80\% on 50+ common intents. \\
+\hline
+FR3 (Display Transcription $<$2s, SRS 10.4) & test-FR3-UI-1,2 & Partial & Latency partial (some $<$2s); streaming/finalization pending implementation. \\
+\hline
+FR4 (Map Text to Commands, SRS 10.5) & test-FR4-MAP-1,2,3,4 & Pass & Full: Canonical (50 cmds), paraphrase/synonyms, ambiguity prompts, OOD feedback. \\
+\hline
+FR5 (Execute Commands, SRS 10.6) & test-FR5-EXEC-1,2,3 & Pass/Partial & Latency/reliability (90\%, 5--10s) pass; API fallback partial; safety confirmations pass. \\
+\hline
+FR6 (Security Interference, SRS 10.7) & Integrated in FR5 & Pass & Scenario-based: Feedback on blocks via FR5 executions. No dedicated cases per V\&V Plan. \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsection{Nonfunctional Requirements Traceability}
+This section covers the NFRs that were selected for testing based on the V\&V Plan.
+
+\begin{table}[H]
+\centering
+\caption{Traceability: Nonfunctional Requirements (SRS Sections 12-13)}
+\label{tab:trace-nfr}
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{|p{3.5cm}|p{3.5cm}|p{2cm}|p{4.5cm}|}
+\hline
+\textbf{SRS Requirement} & \textbf{Test Cases} & \textbf{Result} & \textbf{Coverage Notes} \\
+\hline
+PRF-13.1 (ASR Latency $\leq$5s, SRS 13.1) & test-PF-1 & Fail & Avg 5.66s $>$5s (Table~\ref{tab:asr-latency-benchmark}). Optimization needed. \\
+\hline
+PRF-13.2 (Pipeline $\leq$15s, SRS 13.1) & test-PF-2 & Pass & Avg 12.52s $<$15s (Table~\ref{tab:command-pipeline-latency}). \\
+\hline
+PRF-13.3 (Noise Accuracy, SRS 13.3) & test-PF-3 & N/A & Deferred (stretch); future work for 5--20dB SNR. \\
+\hline
+UHR-12.1 (Ease of Use, SRS 12.1) & test-UH-1 & Pass & 100\% tasks in $\leq$4 interactions; 4.5/5 rating (Table~\ref{tab:uh1}); feedback $<$1s. \\
+\hline
+UHR-12.3 (Learnability $\leq$10min, SRS 12.3) & test-UH-2 & Pass & 100\% first-try; avg $<$5min (Table~\ref{tab:uh2}). \\
+\hline
+UHR-12.2 (Personalization, SRS 12.2) & test-UH-3 & Pass & Consistent across sessions (Table~\ref{tab:uh3_nfr}). \\
+\hline
+UHR-12.4 (Clarity $\geq$90\%, SRS 12.4) & test-UH-4 & Partial & 80\% clarity $\geq$4/5, 100\% tone; reword ``not sure'' message. \\
+\hline
+UHR-12.5 (Keyboard Access, SRS 12.5) & test-UH-5 & Pass & All elements (toggle buttons) Tab/Enter reachable per WCAG. \\
+\hline
+\end{tabular}
+\end{table}
+
+100\% of functional requirements (FRs) are covered by tests. Nonfunctional requirements (NFRs) were selectively tested as prioritized in the V\&V Plan. Partial or failed results are addressed in Section 7 (Changes Due to Testing). Deferred NFRs, such as noise robustness, are marked as future work.
 		
 \section{Trace to Modules}		
 
