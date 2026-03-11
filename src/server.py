@@ -33,6 +33,7 @@ from control.session_manager import get_browser, start_session, stop_session
 
 from app.command_orchestrator import CommandOrchestrator, OrchestratorError
 from app.speech_to_text_engine import SpeechToTextEngine
+from app.user_profile_manager import UserProfileManager, DEFAULT_PROFILE_ID, ProfileNotFoundError
 from data.feedback_store import FeedbackStore
 
 # Windows compatibility
@@ -82,6 +83,16 @@ class FeedbackRequest(BaseModel):
     value: str
     source: str
     command_text: str = None
+
+class PreferencesUpdate(BaseModel):
+    guardrails_enabled:       Optional[bool] = None
+    custom_training_enabled:  Optional[bool] = None
+    custom_shortcuts_enabled: Optional[bool] = None
+
+class ShortcutCreate(BaseModel):
+    phrase:  str
+    command: str
+
 # ============================================================================
 # WebSocket Connection Manager
 # ============================================================================
@@ -190,6 +201,10 @@ class VoiceBridgeServer:
         self._last_action: Optional[str] = None  # "confirmed" | "cancelled" | None
 
         self.feedback_store = FeedbackStore()
+
+        # Voice customisation
+        self.profile_manager = UserProfileManager()
+        self._shortcuts: dict = {}   # phrase -> command
     
     def _broadcast_state_change(self, state_data, old_state):
         """Broadcast state changes to WebSocket clients"""
@@ -955,6 +970,150 @@ async def cache_clear_all():
         raise HTTPException(status_code=503, detail="Server not initialized")
     count = server.command_orchestrator.clear_cache()
     return {"cleared": True, "entries_removed": count}
+
+
+
+# Voice Customisation Endpoints
+
+def _prefs_response(prefs: dict) -> dict:
+    """Return the subset of preference fields exposed to the client."""
+    return {
+        "guardrails_enabled":        prefs.get("guardrails_enabled",        True),
+        "custom_training_enabled":   prefs.get("custom_training_enabled",   False),
+        "custom_shortcuts_enabled":  prefs.get("custom_shortcuts_enabled",  False),
+        "training_in_progress":      prefs.get("training_in_progress",      False),
+        "training_completed":        prefs.get("training_completed",        False),
+    }
+
+
+@app.get("/preferences")
+async def get_preferences():
+    """Get user preferences."""
+    if not server:
+        raise HTTPException(status_code=503, detail="Server not initialized")
+    try:
+        prefs = server.profile_manager.load_preferences(DEFAULT_PROFILE_ID)
+        return _prefs_response(prefs)
+    except ProfileNotFoundError:
+        raise HTTPException(status_code=404, detail="Profile not found")
+
+
+@app.post("/preferences")
+async def update_preferences(body: PreferencesUpdate):
+    """
+    Update user-settable preferences.
+
+    When custom_training_enabled changes, a consent event is recorded
+    automatically so the audit log stays consistent without requiring a
+    separate client call.
+    """
+    if not server:
+        raise HTTPException(status_code=503, detail="Server not initialized")
+
+    updates = body.model_dump(exclude_none=True)
+    if not updates:
+        raise HTTPException(status_code=422, detail="No valid fields provided")
+
+    try:
+        # Record consent change whenever training toggle changes.
+        if "custom_training_enabled" in updates:
+            server.profile_manager.save_consent(
+                DEFAULT_PROFILE_ID,
+                consent_flag=updates["custom_training_enabled"],
+            )
+
+        prefs = server.profile_manager.update_preferences(updates, DEFAULT_PROFILE_ID)
+        return _prefs_response(prefs)
+    except ProfileNotFoundError:
+        raise HTTPException(status_code=404, detail="Profile not found")
+
+
+@app.get("/training/status")
+async def get_training_status():
+    """Return current training state and data-collection progress."""
+    if not server:
+        raise HTTPException(status_code=503, detail="Server not initialized")
+    try:
+        prefs = server.profile_manager.load_preferences(DEFAULT_PROFILE_ID)
+        return {
+            "training_in_progress":      prefs.get("training_in_progress",      False),
+            "training_completed":        prefs.get("training_completed",        False),
+            "accumulated_audio_seconds": prefs.get("accumulated_audio_seconds", 0),
+        }
+    except ProfileNotFoundError:
+        raise HTTPException(status_code=404, detail="Profile not found")
+
+
+@app.post("/training/start")
+async def start_training():
+    """
+    Launch a background voice-model training job.
+
+    400 — training not enabled (custom_training_enabled is False)
+    409 — a job is already running or has completed
+    """
+    if not server:
+        raise HTTPException(status_code=503, detail="Server not initialized")
+
+    try:
+        prefs = server.profile_manager.load_preferences(DEFAULT_PROFILE_ID)
+    except ProfileNotFoundError:
+        raise HTTPException(status_code=404, detail="Profile not found")
+
+    if not prefs.get("custom_training_enabled", False):
+        raise HTTPException(
+            status_code=400,
+            detail="Training is not enabled. Turn on 'Collect Training Data' first.",
+        )
+    if prefs.get("training_in_progress", False):
+        raise HTTPException(status_code=409, detail="A training job is already running.")
+    if prefs.get("training_completed", False):
+        raise HTTPException(status_code=409, detail="Training has already completed.")
+
+    # Mark job as started.
+    # TODO: set_training_state() as it progresses.
+    server.profile_manager.set_training_state(
+        training_in_progress=True,
+        profile_id=DEFAULT_PROFILE_ID,
+    )
+    logger.info("Voice model training job started.")
+    return {"started": True}
+
+
+@app.get("/shortcuts")
+async def get_shortcuts():
+    """Get all custom shortcuts."""
+    if not server:
+        raise HTTPException(status_code=503, detail="Server not initialized")
+    try:
+        prefs = server.profile_manager.load_preferences(DEFAULT_PROFILE_ID)
+        return {
+            "shortcuts":               server._shortcuts,
+            "custom_shortcuts_enabled": prefs.get("custom_shortcuts_enabled", False),
+        }
+    except ProfileNotFoundError:
+        raise HTTPException(status_code=404, detail="Profile not found")
+
+
+@app.post("/shortcuts")
+async def create_shortcut(body: ShortcutCreate):
+    """Add or update a shortcut."""
+    if not server:
+        raise HTTPException(status_code=503, detail="Server not initialized")
+    if not body.phrase.strip() or not body.command.strip():
+        raise HTTPException(status_code=422, detail="phrase and command must not be empty")
+    server._shortcuts[body.phrase.strip()] = body.command.strip()
+    return {"phrase": body.phrase.strip(), "command": body.command.strip()}
+
+
+@app.delete("/shortcuts/{phrase}")
+async def delete_shortcut(phrase: str):
+    """Delete a shortcut by phrase."""
+    if not server:
+        raise HTTPException(status_code=503, detail="Server not initialized")
+    deleted = server._shortcuts.pop(phrase, None) is not None
+    return {"phrase": phrase, "deleted": deleted}
+
 
 # ============================================================================
 # Run Server

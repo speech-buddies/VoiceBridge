@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import './App.css';
 import SpeechInput from './components/SpeechInput';
 import StatusIndicator from './components/StatusIndicator';
@@ -9,6 +9,286 @@ import AuditLogger from './utils/auditLogger';
 import AccessibilityLayer from './utils/accessibilityLayer';
 
 const AUDIO_BACKEND_BASE = 'http://localhost:8000';
+const TRAINING_THRESHOLD_SEC = 1800; // 30 minutes
+
+function usePreferences(addToast) {
+  const [prefs, setPrefs] = useState(null);
+
+  const load = useCallback(async () => {
+    try {
+      const r = await fetch(`${AUDIO_BACKEND_BASE}/preferences`);
+      if (r.ok) setPrefs(await r.json());
+    } catch { /* silent */ }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const save = useCallback(async (updates) => {
+    setPrefs(prev => ({ ...prev, ...updates }));
+    try {
+      const r = await fetch(`${AUDIO_BACKEND_BASE}/preferences`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates),
+      });
+      if (!r.ok) throw new Error(`${r.status}`);
+      setPrefs(await r.json());
+    } catch (err) {
+      load();
+      addToast(err.message === '503'
+        ? 'Server unavailable — preference not saved.'
+        : 'Could not save preference. Please try again.');
+    }
+  }, [load, addToast]);
+
+  return { prefs, save };
+}
+
+function useTrainingStatus(onProfileTab, trainingRunning) {
+  const [data, setData] = useState(null);
+  const [failures, setFailures] = useState(0);
+  const timerRef = useRef(null);
+
+  const poll = useCallback(async () => {
+    try {
+      const r = await fetch(`${AUDIO_BACKEND_BASE}/training/status`);
+      if (!r.ok) throw new Error();
+      setData(await r.json());
+      setFailures(0);
+    } catch {
+      setFailures(n => n + 1);
+    }
+  }, []);
+
+  useEffect(() => {
+    clearInterval(timerRef.current);
+    const interval = onProfileTab
+      ? (trainingRunning ? 10_000 : 30_000)
+      : trainingRunning ? 15_000
+      : null;
+    if (!interval) return;
+    poll();
+    timerRef.current = setInterval(poll, interval);
+    return () => clearInterval(timerRef.current);
+  }, [onProfileTab, trainingRunning, poll]);
+
+  useEffect(() => {
+    const fn = () => { if (document.visibilityState === 'visible') poll(); };
+    document.addEventListener('visibilitychange', fn);
+    return () => document.removeEventListener('visibilitychange', fn);
+  }, [poll]);
+
+  return { data, failures };
+}
+
+function PillToggle({ id, checked, onChange, disabled = false }) {
+  return (
+    <button
+      id={id}
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      disabled={disabled}
+      className={`pill${checked ? ' pill--on' : ''}${disabled ? ' pill--disabled' : ''}`}
+      onClick={() => !disabled && onChange(!checked)}
+    >
+      <span className="pill__thumb" aria-hidden="true" />
+      <span className="sr-only">{checked ? 'On' : 'Off'}</span>
+    </button>
+  );
+}
+
+function PrefRow({ label, hint, id, checked, onChange, disabled }) {
+  return (
+    <div className="pref-row">
+      <label className="pref-row__label" htmlFor={id}>
+        <span className="pref-row__name">{label}</span>
+        {hint && <span className="pref-row__hint">{hint}</span>}
+      </label>
+      <PillToggle id={id} checked={checked} onChange={onChange} disabled={disabled} />
+    </div>
+  );
+}
+
+function ConfirmModal({ title, body, confirmLabel = 'Confirm', onConfirm, onCancel }) {
+  const firstBtnRef = useRef(null);
+
+  useEffect(() => {
+    firstBtnRef.current?.focus();
+    const onKey = (e) => { if (e.key === 'Escape') onCancel(); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [onCancel]);
+
+  return (
+    <div className="modal-veil" onClick={onCancel}>
+      <div
+        className="modal-box"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="modal-title"
+        onClick={e => e.stopPropagation()}
+      >
+        <h2 id="modal-title" className="modal-box__title">{title}</h2>
+        <p className="modal-box__body">{body}</p>
+        <div className="modal-box__actions">
+          <button
+            ref={firstBtnRef}
+            type="button"
+            className="modal-box__btn modal-box__btn--confirm"
+            onClick={onConfirm}
+          >
+            {confirmLabel}
+          </button>
+          <button
+            type="button"
+            className="modal-box__btn modal-box__btn--cancel"
+            onClick={onCancel}
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+function ProfileTab({ prefs, savePrefs, trainingStatus, pollFailures, addToast }) {
+  const [showLaunchModal, setShowLaunchModal] = useState(false);
+  const [launching, setLaunching] = useState(false);
+
+  if (!prefs) {
+    return <div className="profile-tab"><p className="profile-tab__loading">Loading…</p></div>;
+  }
+
+  const accSec     = trainingStatus?.accumulated_audio_seconds ?? 0;
+  const pct        = Math.min(100, Math.round((accSec / TRAINING_THRESHOLD_SEC) * 100));
+  const inProgress = trainingStatus?.training_in_progress ?? false;
+  const completed  = trainingStatus?.training_completed   ?? false;
+  const canLaunch  = accSec >= TRAINING_THRESHOLD_SEC && !inProgress && !completed;
+  const mins       = Math.floor(accSec / 60);
+  const stale      = pollFailures >= 3;
+
+  const handleLaunch = async () => {
+    setLaunching(true);
+    setShowLaunchModal(false);
+    try {
+      const r = await fetch(`${AUDIO_BACKEND_BASE}/training/start`, { method: 'POST' });
+      if (!r.ok) {
+        const err = await r.json().catch(() => ({}));
+        addToast(err.detail ?? 'Could not start training. Please try again.');
+      }
+    } catch {
+      addToast('Server unavailable — could not start training.');
+    } finally {
+      setLaunching(false);
+    }
+  };
+
+  return (
+    <div className="profile-tab">
+
+      <section className="pt-section">
+        <h2 className="pt-section__title">Preferences</h2>
+        <div className="pref-card">
+          <PrefRow
+            id="pref-guardrails"
+            label="Guardrails"
+            hint="Block potentially harmful commands"
+            checked={prefs.guardrails_enabled ?? true}
+            onChange={v => savePrefs({ guardrails_enabled: v })}
+          />
+          <PrefRow
+            id="pref-training"
+            label="Collect Training Data"
+            hint="Record audio to personalise your model"
+            checked={prefs.custom_training_enabled ?? false}
+            onChange={v => savePrefs({ custom_training_enabled: v })}
+          />
+          <PrefRow
+            id="pref-shortcuts"
+            label="Custom Shortcuts"
+            hint="Use your saved phrase→command mappings"
+            checked={prefs.custom_shortcuts_enabled ?? false}
+            onChange={v => savePrefs({ custom_shortcuts_enabled: v })}
+          />
+        </div>
+      </section>
+
+      <section className="pt-section">
+        <h2 className="pt-section__title">Voice Model Training</h2>
+        <div className="collect-card">
+
+          <div className="status-card">
+            <span className="status-card__label">Audio collected</span>
+            <span className="status-card__value">{mins} / {TRAINING_THRESHOLD_SEC / 60} min</span>
+          </div>
+
+          <div
+            className="progress-track"
+            role="progressbar"
+            aria-valuenow={pct}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-label={`Training data: ${pct}% complete`}
+          >
+            <div
+              className={`progress-track__fill${completed ? ' progress-track__fill--done' : ''}`}
+              style={{ width: `${pct}%` }}
+            />
+          </div>
+
+          {stale && (
+            <p className="stale-warning" role="alert">
+              ⚠ Status may be out of date — server not responding.
+            </p>
+          )}
+
+          <div className="launch-block">
+            {completed ? (
+              <p className="launch-block__done">
+                ✓ Training complete. Restart the server to activate your model.
+              </p>
+            ) : inProgress ? (
+              <p className="launch-block__running" aria-live="polite">
+                <span className="launch-block__pulse" aria-hidden="true" />
+                Training in progress…
+              </p>
+            ) : (
+              <button
+                type="button"
+                className="launch-block__btn"
+                disabled={!canLaunch || launching}
+                aria-disabled={!canLaunch || launching}
+                onClick={() => setShowLaunchModal(true)}
+              >
+                {launching ? 'Starting…' : 'Launch Customisation'}
+              </button>
+            )}
+            {!canLaunch && !inProgress && !completed && (
+              <p className="launch-block__hint">
+                Collect {TRAINING_THRESHOLD_SEC / 60} minutes of audio to unlock.
+              </p>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {showLaunchModal && (
+        <ConfirmModal
+          title="Start voice model training?"
+          body="Training runs in the background. Please keep the app open until the training job completes"
+          confirmLabel="Start Training"
+          onConfirm={handleLaunch}
+          onCancel={() => setShowLaunchModal(false)}
+        />
+      )}
+    </div>
+  );
+}
+
+
 
 function App() {
   // Confirmation state
@@ -34,12 +314,38 @@ function App() {
   // Toggle thumbs button visibility
   const [showThumbs, setShowThumbs] = useState(true);
 
+  // Customisation state
+  const [activeTab, setActiveTab] = useState('MAIN');
+  const [toasts, setToasts] = useState([]);
+  const [bannerDismissed, setBannerDismissed] = useState(false);
+  const prevTrainingRunningRef = useRef(false);
+
   const prevAwaitingRef = useRef(false);
   const prevPendingRef = useRef(null);
   const confirmedRef = useRef(false);
   const cancelledTranscriptRef = useRef(null);
   const cancelledRef = useRef(false);
   useEffect(() => { cancelledRef.current = cancelled; }, [cancelled]);
+
+  const addToast = useCallback((message) => {
+    setToasts(prev => [...prev, { id: Date.now() + Math.random(), message }]);
+  }, []);
+
+  const { prefs, save: savePrefs } = usePreferences(addToast);
+
+  const { data: trainingStatus, failures: pollFailures } = useTrainingStatus(
+    activeTab === 'PROFILE',
+    prefs?.training_in_progress ?? false,
+  );
+
+  // "model ready"  on training completion
+  useEffect(() => {
+    if (prevTrainingRunningRef.current && trainingStatus?.training_completed) {
+      addToast('Your voice model is ready. Restart the server to activate it.');
+      setBannerDismissed(false);
+    }
+    prevTrainingRunningRef.current = trainingStatus?.training_in_progress ?? false;
+  }, [trainingStatus?.training_in_progress, trainingStatus?.training_completed, addToast]);
 
   useEffect(() => {
     const tick = () => {
@@ -330,6 +636,10 @@ function App() {
     if (root) root.style.display = 'none';
   };
 
+  const isTrainingInProgress = trainingStatus?.training_in_progress ?? false;
+  const isTrainingCompleted  = trainingStatus?.training_completed   ?? false;
+  const showBanner = (isTrainingInProgress || isTrainingCompleted) && !bannerDismissed;
+
   return (
     <div
       className={`App extension-overlay ${isLightMode ? 'light-mode' : 'dark-mode'}`}
@@ -364,65 +674,137 @@ function App() {
               </button>
             </div>
           </div>
+
+          <nav className="tab-nav" aria-label="Dashboard sections">
+            <button
+              type="button"
+              className={`tab-nav__btn${activeTab === 'MAIN' ? ' tab-nav__btn--active' : ''}`}
+              onClick={() => setActiveTab('MAIN')}
+              aria-current={activeTab === 'MAIN' ? 'page' : undefined}
+            >
+              VoiceBridge
+            </button>
+            <button
+              type="button"
+              className={`tab-nav__btn${activeTab === 'PROFILE' ? ' tab-nav__btn--active' : ''}`}
+              onClick={() => setActiveTab('PROFILE')}
+              aria-current={activeTab === 'PROFILE' ? 'page' : undefined}
+            >
+              Profile &amp; Training
+              {isTrainingCompleted && (
+                <span className="tab-nav__badge" aria-label="Restart required">↻</span>
+              )}
+            </button>
+          </nav>
         </header>
 
         <main className="App-main">
+          {activeTab === 'MAIN' && showBanner && (
+            <div
+              className={`train-banner${isTrainingCompleted ? ' train-banner--done' : ''}`}
+              role="status"
+              aria-live="polite"
+            >
+              <span
+                className={`train-banner__indicator${isTrainingCompleted ? ' train-banner__indicator--done' : ' train-banner__indicator--pulse'}`}
+                aria-hidden="true"
+              />
+              <span className="train-banner__text">
+                {isTrainingCompleted
+                  ? 'Voice model ready — restart the server to activate.'
+                  : 'Training in progress…'}
+              </span>
+              {!isTrainingCompleted && (
+                <button
+                  type="button"
+                  className="train-banner__dismiss"
+                  onClick={() => setBannerDismissed(true)}
+                  aria-label="Dismiss training banner"
+                >✕</button>
+              )}
+            </div>
+          )}
+
           <div className="main-container">
-            <div className="left-panel">
-              <StatusIndicator status={status} error={error} isLightMode={isLightMode} />
-              {(status === 'listening' || awaitingConfirmation) && (
-                <SpeechInput
-                  isListening={isListening}
-                  status={status}
-                  onAudioData={handleAudioData}
-                  onError={handleError}
-                  isLightMode={isLightMode}
-                  backendBase={AUDIO_BACKEND_BASE}
-                />
-              )}
-              {renderConfirmationUI()}
-            </div>
-            <div className="right-panel">
-              {/* System message — show only during genuine clarification or awaiting confirmation */}
-              {userPrompt && !cancelled && (awaitingConfirmation || !pendingCommand) && (
-                <div
-                  className={`system-message-alert${awaitingConfirmation ? ' confirmation-ready' : ''}`}
-                  style={{marginBottom: 20, maxWidth: '100%'}}
-                >
-                  <div className="system-message-icon">
-                    {awaitingConfirmation ? '✅' : 'ℹ️'}
-                  </div>
-                  <div className="system-message-content">
-                    <strong>{awaitingConfirmation ? 'Ready to Execute:' : 'System Message:'}</strong>
-                    <p>{userPrompt}</p>
-                  </div>
+            {activeTab === 'PROFILE' ? (
+              <ProfileTab
+                prefs={prefs}
+                savePrefs={savePrefs}
+                trainingStatus={trainingStatus}
+                pollFailures={pollFailures}
+                addToast={addToast}
+              />
+            ) : (
+              <>
+                <div className="left-panel">
+                  <StatusIndicator status={status} error={error} isLightMode={isLightMode} />
+                  {(status === 'listening' || awaitingConfirmation) && (
+                    <SpeechInput
+                      isListening={isListening}
+                      status={status}
+                      onAudioData={handleAudioData}
+                      onError={handleError}
+                      isLightMode={isLightMode}
+                      backendBase={AUDIO_BACKEND_BASE}
+                    />
+                  )}
+                  {renderConfirmationUI()}
                 </div>
-              )}
-              <section className="llm-response-panel" aria-label="User Transcript">
-                <h2 className="llm-response-heading">Executing</h2>
-                <div className="llm-response-content" style={{maxHeight: 'none', overflow: 'visible'}}>
-                  <div className="transcript-text">
-                    {cancelled
-                      ? '❌ Cancelled'
-                      : userTranscript && userTranscript.trim() !== ''
-                        ? userTranscript
-                        : userPrompt
-                          ? '—'
-                          : 'Say a command to proceed.'}
-                  </div>
+                <div className="right-panel">
+                  {userPrompt && !cancelled && (awaitingConfirmation || !pendingCommand) && (
+                    <div
+                      className={`system-message-alert${awaitingConfirmation ? ' confirmation-ready' : ''}`}
+                      style={{marginBottom: 20, maxWidth: '100%'}}
+                    >
+                      <div className="system-message-icon">
+                        {awaitingConfirmation ? '✅' : 'ℹ️'}
+                      </div>
+                      <div className="system-message-content">
+                        <strong>{awaitingConfirmation ? 'Ready to Execute:' : 'System Message:'}</strong>
+                        <p>{userPrompt}</p>
+                      </div>
+                    </div>
+                  )}
+                  <section className="llm-response-panel" aria-label="User Transcript">
+                    <h2 className="llm-response-heading">Executing</h2>
+                    <div className="llm-response-content" style={{maxHeight: 'none', overflow: 'visible'}}>
+                      <div className="transcript-text">
+                        {cancelled
+                          ? '❌ Cancelled'
+                          : userTranscript && userTranscript.trim() !== ''
+                            ? userTranscript
+                            : userPrompt
+                              ? '—'
+                              : 'Say a command to proceed.'}
+                      </div>
+                    </div>
+                  </section>
                 </div>
-              </section>
-            </div>
+              </>
+            )}
           </div>
         </main>
-        
-        {/* ErrorFeedback display */}
+
         <FeedbackDisplay
           feedbackItems={feedbackItems}
           onDismiss={handleDismissFeedback}
           onRecoverySelect={handleRecoverySelect}
           isLightMode={isLightMode}
         />
+      </div>
+
+      {/* Toast stack */}
+      <div className="toast-stack" aria-live="assertive" aria-atomic="false">
+        {toasts.map(t => (
+          <div key={t.id} className="toast" role="alert">
+            <span className="toast__msg">{t.message}</span>
+            <button
+              className="toast__x"
+              onClick={() => setToasts(prev => prev.filter(x => x.id !== t.id))}
+              aria-label="Dismiss notification"
+            >✕</button>
+          </div>
+        ))}
       </div>
     </div>
   );
