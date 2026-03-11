@@ -23,7 +23,7 @@ function App() {
   const [isLightMode, setIsLightMode] = useState(false);
   const [feedbackItems, setFeedbackItems] = useState([]);
   const [userPrompt, setUserPrompt] = useState(null); // System message
-  const [userTranscript, setUserTranscript] = useState(null); // User's spoken transcript
+  const [userTranscript, setUserTranscript] = useState(null); // User transcript
 
   // Initialize ErrorFeedback system
   const errorFeedbackRef = useRef(null);
@@ -38,6 +38,8 @@ function App() {
   const prevPendingRef = useRef(null);
   const confirmedRef = useRef(false);
   const cancelledTranscriptRef = useRef(null);
+  const cancelledRef = useRef(false);
+  useEffect(() => { cancelledRef.current = cancelled; }, [cancelled]);
 
   useEffect(() => {
     const tick = () => {
@@ -47,14 +49,14 @@ function App() {
           const newAwaiting = data.awaiting_confirmation ?? false;
           const newPending = data.pending_command ?? null;
           const newTranscript = data.user_transcript ?? null;
+          const lastAction = data.last_action ?? null; // "confirmed" | "cancelled" | null
 
-          // Detect verbal "No": awaiting flipped false, pendingCommand cleared, not a confirm
-          if (prevAwaitingRef.current && !newAwaiting && prevPendingRef.current && !newPending) {
-            if (!confirmedRef.current) {
-              setCancelled(true);
-              cancelledTranscriptRef.current = newTranscript; // remember what was active
-            }
-            confirmedRef.current = false;
+          if (lastAction === 'cancelled') {
+            setCancelled(true);
+            cancelledTranscriptRef.current = newTranscript;
+          } else if (lastAction === 'confirmed') {
+            confirmedRef.current = true;
+            setCancelled(false);
           }
 
           prevAwaitingRef.current = newAwaiting;
@@ -64,8 +66,7 @@ function App() {
           setPendingCommand(newPending);
           setLastCommandId(data.last_command ?? null);
 
-          // Only update visible transcript / prompt when not in cancelled state
-          // (prevents old command data from reappearing after cancel)
+          // Update transcript and prompt if not cancelled
           const CANCEL_WORDS = new Set(['no', 'no.', 'cancel', 'nope', 'nope.', 'cancel that']);
           const isNewRealTranscript =
             newTranscript &&
@@ -74,17 +75,18 @@ function App() {
             !CANCEL_WORDS.has(newTranscript.trim().toLowerCase());
 
           if (isNewRealTranscript) {
-            // New command spoken — clear cancelled and show fresh data
+            // New command spoken
             setCancelled(false);
+            confirmedRef.current = false;
             cancelledTranscriptRef.current = null;
             setUserPrompt(data.user_prompt ?? null);
             setUserTranscript(newTranscript);
-          } else if (!cancelled) {
-            // Normal update — not in cancelled state, just refresh
+          } else if (!cancelledRef.current) {
+            // Normal update
             setUserPrompt(data.user_prompt ?? null);
             setUserTranscript(newTranscript);
           }
-          // If cancelled and no new real transcript: do nothing — keep showing ❌ Cancelled
+          // Keep cancelled state if no new transcript
         })
         .catch(() => {});
     };
@@ -93,7 +95,7 @@ function App() {
     return () => clearInterval(interval);
   }, []);
 
-  // Send UI feedback (thumbs) — also triggers execute/cancel on backend
+  // Send UI feedback (thumbs)
   const sendThumbsFeedback = (value) => {
     fetch(`${AUDIO_BACKEND_BASE}/feedback`, {
       method: 'POST',
@@ -110,9 +112,11 @@ function App() {
       setPendingCommand(null);
       if (value === 'thumbs_down') {
         setCancelled(true);
-        cancelledTranscriptRef.current = userTranscript; // remember so poll doesn't clear it
+        cancelledTranscriptRef.current = userTranscript;
       } else {
-        confirmedRef.current = true; // mark as confirmed so poll doesn't set cancelled
+        // Clear cancelled state on confirm
+        setCancelled(false);
+        confirmedRef.current = true;
       }
     }).catch(() => {});
   };
@@ -126,7 +130,7 @@ function App() {
         aria-label="Awaiting verbal confirmation"
         aria-live="polite"
       >
-        {/* Verbal instruction — these are spoken, not clicked */}
+        {/* Verbal instructions */}
         <div className="confirmation-verbal-cues">
           <span className="confirmation-cue confirmation-cue--yes" aria-label="Say Yes to confirm">
             🎙 Say <strong>"Yes"</strong> to confirm
