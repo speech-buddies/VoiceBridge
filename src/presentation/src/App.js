@@ -278,7 +278,7 @@ function ProfileTab({ prefs, savePrefs, trainingStatus, pollFailures, addToast }
       {showLaunchModal && (
         <ConfirmModal
           title="Start voice model training?"
-          body="Training runs in the background. Please keep the app open until the training job completes"
+          body="Training runs in the background. Please keep the app open until the training job completes."
           confirmLabel="Start Training"
           onConfirm={handleLaunch}
           onCancel={() => setShowLaunchModal(false)}
