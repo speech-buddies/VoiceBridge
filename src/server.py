@@ -12,6 +12,7 @@ Key improvements:
 1. Cleaner parse_and_execute_command function
 2. Better state management for conversation flow
 3. Clear separation: Orchestrator for clarification, Browser controller for execution
+4. WebSocket-based status push (replaces client polling)
 """
 
 import asyncio
@@ -207,25 +208,74 @@ class VoiceBridgeServer:
         # Voice customisation
         self.profile_manager = UserProfileManager()
         self._shortcuts: dict = {}   # phrase -> command
-    
-    def _broadcast_state_change(self, state_data, old_state):
-        """Broadcast state changes to WebSocket clients"""
-        message = {
-            'type': 'state_change',
-            'old_state': old_state.value,
-            'new_state': state_data.state.value,
-            'timestamp': state_data.timestamp.isoformat(),
-            'has_transcript': state_data.transcript is not None,
-            'transcript': state_data.transcript,
-            'error': state_data.error,
-            'user_prompt': self._current_user_prompt
+
+    # ========================================================================
+    # WebSocket Push Helpers
+    # ========================================================================
+
+    def _build_status_payload(self, msg_type: str = "status_update") -> dict:
+        """
+        Build the full status dict that replaces what the frontend used to poll.
+        Sent over the WebSocket so clients don't need to poll /status anymore.
+        """
+        state_info = self.state_manager.get_state_info()
+        return {
+            "type": msg_type,
+            # Core state
+            "state": state_info.get("state"),
+            "timestamp": state_info.get("timestamp"),
+            "has_audio": state_info.get("has_audio", False),
+            "has_transcript": state_info.get("has_transcript", False),
+            "error": state_info.get("error"),
+            # Transcript / command fields the frontend polls for
+            "transcript": self._last_transcript or state_info.get("transcript"),
+            "user_transcript": self._user_transcript,
+            "clarified_command": self._clarified_command,
+            "last_command": self._last_command,
+            "user_prompt": self._current_user_prompt,
+            # Confirmation gate
+            "awaiting_confirmation": self._awaiting_confirmation,
+            "pending_command": self._pending_command,
+            "last_action": self._last_action,
+            # Audio capture state (replaces /audio/capture/status polling)
+            "capture_state": self._get_capture_state(),
+            # Cache
+            "cache_stats": (
+                self.command_orchestrator.get_cache_stats()
+                if self.command_orchestrator else None
+            ),
         }
-        
+
+    def _get_capture_state(self) -> Optional[str]:
+        """Return current audio capture state string, or None if not capturing."""
+        with _capture_lock:
+            if _capture_instance is None:
+                return None
+            try:
+                return _capture_instance.state
+            except Exception:
+                return None
+
+    async def _push_status(self, msg_type: str = "status_update"):
+        """Push current full status to all WebSocket clients."""
+        payload = self._build_status_payload(msg_type)
+        await self.connection_manager.broadcast(payload)
+
+    def _schedule_push(self, msg_type: str = "status_update"):
+        """Schedule a status push from a synchronous context."""
+        asyncio.create_task(self._push_status(msg_type))
+
+    # ========================================================================
+    # State Change Callbacks
+    # ========================================================================
+
+    def _broadcast_state_change(self, state_data, old_state):
+        """Broadcast enriched status payload on every state transition."""
         logger.info(f"State: {old_state.value} -> {state_data.state.value}")
         if self._current_user_prompt:
             logger.info(f"User prompt: {self._current_user_prompt}")
-        
-        asyncio.create_task(self.connection_manager.broadcast(message))
+        # Push full status so clients receive everything in one message
+        self._schedule_push("state_change")
     
     def _on_state_change(self, state_data, old_state):
         """Handle state changes"""
@@ -284,7 +334,9 @@ class VoiceBridgeServer:
         logger.info(f"parse_and_execute_command: '{transcript}'")
         
         if not transcript.strip():
-            raise HTTPException(status_code=400, detail="Empty transcript")
+            # Should be caught before this point, but guard defensively.
+            logger.warning("parse_and_execute_command called with empty transcript — ignoring")
+            return {"needs_input": False, "success": False, "details": "empty transcript"}
         
         # Check if orchestrator is available
         if not self.command_orchestrator:
@@ -353,6 +405,9 @@ class VoiceBridgeServer:
             _display = _display.rstrip(".,; ")
             self._current_user_prompt = f'"{_display}" — say yes to confirm or no to cancel.'
             self._last_command = clarified_command
+
+            # Push updated confirmation state to all WS clients
+            await self._push_status("confirmation_ready")
 
             return {
                 "needs_input": True,
@@ -468,10 +523,21 @@ class VoiceBridgeServer:
         try:
             # Transcribe
             transcript = await self.transcribe_audio(audio_data)
+
+            # Empty transcript (silence, noise, or STT returned nothing) — stay in
+            # LISTENING without broadcasting any error or updating state.
+            if not transcript or not transcript.strip():
+                logger.info("Empty transcript after STT — returning to LISTENING silently")
+                self.state_manager.transition_to(AppState.LISTENING)
+                return
+
             self._last_transcript = transcript
             self._user_transcript = transcript  # Store latest user input
             self._pending_audio = audio_data    # stash for training sample on confirmation
             self._pending_transcript = transcript
+
+            # Push transcript update immediately so UI reflects it without waiting
+            await self._push_status("transcript_update")
 
             # Capture initial intent before appending — empty context means first turn
             if not self._conversation_context:
@@ -539,6 +605,9 @@ class VoiceBridgeServer:
             self._pending_command = None
             self._initial_intent = None
             
+            # Push error state
+            await self._push_status("error")
+
             # Return to listening/idle
             await asyncio.sleep(2)
             if self.is_voice_mode_active:
@@ -559,6 +628,10 @@ class VoiceBridgeServer:
         try:
             transcript = await self.transcribe_audio(audio_data)
             self._user_transcript = transcript
+
+            # Push transcript so UI updates immediately
+            await self._push_status("transcript_update")
+
             word = transcript.strip().lower().rstrip(".,!?")
 
             if word in ("yes", "yeah", "yep"):
@@ -617,6 +690,9 @@ class VoiceBridgeServer:
         self._last_action = "confirmed"  
         self._reset_confirmation_gate()
 
+        # Push confirmed state before execution begins
+        await self._push_status("confirmed")
+
         # Cache confirmed command
         if self.command_orchestrator and initial_intent and pending:
             self.command_orchestrator.cache.set(initial_intent, pending)
@@ -660,18 +736,17 @@ class VoiceBridgeServer:
         self.state_manager.transition_to(target)
         logger.info(f"[CONFIRMATION] Command executed, state reset to {target}")
 
-        if hasattr(self, 'manager') and self.manager:
-            await self.manager.broadcast({"state": self.state_manager.get_state_info()})
-            
     async def _cancel_confirmed_command(self):
         self._last_action = "cancelled"  
         self._reset_confirmation_gate()
+
+        # Push cancelled state
+        await self._push_status("cancelled")
+
         await asyncio.sleep(0.1)
         target = AppState.LISTENING if self.is_voice_mode_active else AppState.IDLE
         self.state_manager.transition_to(target)
         logger.info(f"[CONFIRMATION] Command cancelled, state reset to {target}")
-        if hasattr(self, 'manager') and self.manager:
-            await self.manager.broadcast({"state": self.state_manager.get_state_info()})
 
     # ========================================================================
     # Audio Capture Management
@@ -698,6 +773,7 @@ class VoiceBridgeServer:
             _capture_instance.start()
         
         logger.info("Audio capture started")
+        await self._push_status("capture_started")
     
     async def stop_audio_capture(self):
         """Stop audio capture."""
@@ -713,6 +789,7 @@ class VoiceBridgeServer:
                 _capture_instance = None
         
         logger.info("Audio capture stopped")
+        await self._push_status("capture_stopped")
     
     # ========================================================================
     # Public API Methods
@@ -756,6 +833,7 @@ class VoiceBridgeServer:
         status['awaiting_confirmation'] = self._awaiting_confirmation
         status['pending_command'] = self._pending_command
         status['last_action'] = self._last_action
+        status['capture_state'] = self._get_capture_state()
         if self.command_orchestrator:
             status['cache_stats'] = self.command_orchestrator.get_cache_stats()
         return status
@@ -775,6 +853,7 @@ class VoiceBridgeServer:
                 self.command_orchestrator.cache.size,
             )
         self.state_manager.reset()
+        self._schedule_push("reset")
         return {"success": True, "state": "idle"}
 
 
@@ -835,7 +914,7 @@ async def root():
 
 @app.get("/status")
 async def get_status():
-    """Get current status"""
+    """Get current status — kept for REST compatibility / initial hydration."""
     if not server:
         raise HTTPException(status_code=503, detail="Server not initialized")
     
@@ -844,7 +923,7 @@ async def get_status():
 
 @app.get("/audio/capture/status")
 async def audio_capture_status():
-    """Get status of backend audio capture."""
+    """Get status of backend audio capture — kept for REST compatibility."""
     with _capture_lock:
         if _capture_instance is None:
             return {"capturing": False, "state": "idle"}
@@ -942,7 +1021,16 @@ async def health_check():
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
-    """WebSocket for real-time updates"""
+    """
+    WebSocket for real-time status push.
+
+    On connect the client receives a full 'connected' snapshot so it can
+    hydrate immediately without a separate REST call.  Subsequent messages
+    are pushed whenever server state changes — no client polling required.
+
+    The client may optionally send a JSON ping `{"type": "ping"}` to keep
+    the connection alive; the server replies with `{"type": "pong"}`.
+    """
     if not server:
         await websocket.close(code=1011, reason="Server not initialized")
         return
@@ -950,17 +1038,24 @@ async def websocket_endpoint(websocket: WebSocket):
     await server.connection_manager.connect(websocket)
     
     try:
-        # Send initial state
-        await websocket.send_json({
-            'type': 'connected',
-            'state': server.state_manager.current_state.value,
-            'voice_mode_active': server.is_voice_mode_active,
-            'data': server.get_status()
-        })
+        # Send full initial snapshot so the client can hydrate immediately
+        initial_payload = server._build_status_payload("connected")
+        initial_payload["voice_mode_active"] = server.is_voice_mode_active
+        await websocket.send_json(initial_payload)
         
-        # Keep connection alive
+        # Keep connection alive; handle optional ping frames from the client
         while True:
-            await websocket.receive_text()
+            try:
+                raw = await asyncio.wait_for(websocket.receive_text(), timeout=30)
+                import json as _json
+                msg = _json.loads(raw)
+                if msg.get("type") == "ping":
+                    await websocket.send_json({"type": "pong"})
+            except asyncio.TimeoutError:
+                # Send a server-side keepalive ping
+                await websocket.send_json({"type": "ping"})
+            except Exception:
+                break
     
     except WebSocketDisconnect:
         server.connection_manager.disconnect(websocket)
