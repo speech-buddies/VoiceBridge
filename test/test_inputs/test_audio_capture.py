@@ -223,7 +223,8 @@ class TestIsSpeech:
         cap = _make_capture()
         cap.vad.is_speech.return_value = False
         chunk = np.zeros(480, dtype=np.int16).tobytes()
-        assert cap._is_speech(chunk) is False
+        assert not cap._is_speech(chunk)
+
 
     def test_vad_true(self):
         cap = _make_capture()
