@@ -404,3 +404,10 @@ src/models/hf_cache/
 
 # Feedback logs
 src/data/feedback_log.jsonl
+
+# VoiceBridge data (user-specific)
+data/preferences.json
+data/training/audio/
+data/training/samples.jsonl
+command_cache.json
+data/consent_log.jsonl
