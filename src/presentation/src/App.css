@@ -944,6 +944,7 @@
   font-weight: 600;
   color: var(--text-primary);
   margin: 0;
+  text-align: center;
 }
 
 .modal-box__body {
@@ -951,12 +952,14 @@
   color: var(--text-secondary);
   margin: 0;
   line-height: 1.5;
+  text-align: center;
 }
 
 .modal-box__actions {
   display: flex;
   gap: 8px;
   margin-top: 4px;
+  justify-content: center;
 }
 
 .modal-box__btn {
