@@ -5,7 +5,9 @@ from peft import LoraConfig, get_peft_model
 from typing import Optional
 
 from models.audio_data import AudioStream, Transcript
+from utils.logger import get_logger
 
+logger = get_logger("WHISPER_TUNED_MODEL")
 
 class WhisperLoraAsrModel:
     """
@@ -120,21 +122,30 @@ class WhisperLoraAsrModel:
         )
         return inputs.input_features.to(self.device)
 
-    def decode(self, features) -> Transcript:
+    def decode(self, features, no_speech_threshold: float = 0.6, confidence_threshold: float = 0.2) -> Optional[Transcript]:
         forced_decoder_ids = self.processor.get_decoder_prompt_ids(language="en", task="transcribe")
+        
         with torch.no_grad():
-            predicted_ids = self.model.generate(
+            outputs = self.model.generate(
                 input_features=features,
-                forced_decoder_ids=forced_decoder_ids
+                forced_decoder_ids=forced_decoder_ids,
+                return_dict_in_generate=True,
+                output_scores=True,
             )
 
-        text = self.processor.batch_decode(
-            predicted_ids,
-            skip_special_tokens=True,
-            language="en"
-        )[0]
+        # Use top-1 probability of first token as confidence
+        first_token_probs = torch.softmax(outputs.scores[0], dim=-1)
+        top_prob = first_token_probs[0].max().item()
+        
+        logger.debug(f"First token confidence: {top_prob:.4f}")
 
-        return Transcript(
-            text=text.strip(),
-            metadata={"model": "whisper-small-lora"},
-        )
+        if top_prob < confidence_threshold:
+            logger.info(f"Low confidence ({top_prob:.4f}), discarding as noise")
+            return Transcript(text="",metadata={"confidence": top_prob})
+
+        text = self.processor.batch_decode(
+            outputs.sequences,
+            skip_special_tokens=True,
+        )[0].strip()
+
+        return Transcript(text=text, metadata={"confidence": top_prob})
