@@ -26,7 +26,7 @@ class AudioConfig:
         pre_buffer_duration_ms: int = 300,
         silence_duration_ms: int = 1500,
         max_recording_duration_s: int = 30,
-        energy_threshold: Optional[float] = None,
+        energy_threshold: Optional[float] = 800,
         device: Optional[int] = None
     ):
         self.sample_rate = sample_rate
