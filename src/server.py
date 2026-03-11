@@ -73,6 +73,7 @@ class StatusResponse(BaseModel):
     user_prompt: Optional[str] = None       # Message shown to user (clarification OR confirmation summary)
     awaiting_confirmation: bool = False     # True only when a complete command awaits yes/no
     pending_command: Optional[str] = None   # The command text held until confirmed
+    last_action: Optional[str] = None       # "confirmed" | "cancelled" | None — explicit outcome signal
     cache_stats: Optional[dict] = None
 
 class FeedbackRequest(BaseModel):
@@ -185,6 +186,9 @@ class VoiceBridgeServer:
         # _pending_command holds the clarified command text until confirmed
         self._awaiting_confirmation: bool = False
         self._pending_command: Optional[str] = None
+
+        self._last_action: Optional[str] = None  # "confirmed" | "cancelled" | None
+
         self.feedback_store = FeedbackStore()
     
     def _broadcast_state_change(self, state_data, old_state):
@@ -439,6 +443,7 @@ class VoiceBridgeServer:
         # Clear clarified command (new conversation starting)
         # But keep user_transcript - it will be updated with new input
         self._clarified_command = None
+        self._last_action = None  
 
         # Transition to processing
         self.state_manager.transition_to(AppState.PROCESSING, audio_data=audio_data)
@@ -586,6 +591,7 @@ class VoiceBridgeServer:
         pending = self._pending_command
         initial_intent = self._initial_intent  # capture before reset clears it
         logger.info(f"[CONFIRMATION] Executing confirmed command: {pending}")
+        self._last_action = "confirmed"  
         self._reset_confirmation_gate()
 
         # Persist mapping after user confirmation.
@@ -614,6 +620,7 @@ class VoiceBridgeServer:
             await self.manager.broadcast({"state": self.state_manager.get_state_info()})
 
     async def _cancel_confirmed_command(self):
+        self._last_action = "cancelled"  
         self._reset_confirmation_gate()
         await asyncio.sleep(0.1)
         target = AppState.LISTENING if self.is_voice_mode_active else AppState.IDLE
@@ -704,6 +711,7 @@ class VoiceBridgeServer:
         status['has_conversation_context'] = len(self._conversation_context) > 0
         status['awaiting_confirmation'] = self._awaiting_confirmation
         status['pending_command'] = self._pending_command
+        status['last_action'] = self._last_action
         if self.command_orchestrator:
             status['cache_stats'] = self.command_orchestrator.get_cache_stats()
         return status

@@ -47,14 +47,14 @@ function App() {
           const newAwaiting = data.awaiting_confirmation ?? false;
           const newPending = data.pending_command ?? null;
           const newTranscript = data.user_transcript ?? null;
+          const lastAction = data.last_action ?? null; // "confirmed" | "cancelled" | null
 
-          // Detect verbal "No": awaiting flipped false, pendingCommand cleared, not a confirm
-          if (prevAwaitingRef.current && !newAwaiting && prevPendingRef.current && !newPending) {
-            if (!confirmedRef.current) {
-              setCancelled(true);
-              cancelledTranscriptRef.current = newTranscript; // remember what was active
-            }
-            confirmedRef.current = false;
+          if (lastAction === 'cancelled') {
+            setCancelled(true);
+            cancelledTranscriptRef.current = newTranscript;
+          } else if (lastAction === 'confirmed') {
+            confirmedRef.current = true;
+            setCancelled(false);
           }
 
           prevAwaitingRef.current = newAwaiting;
@@ -76,6 +76,7 @@ function App() {
           if (isNewRealTranscript) {
             // New command spoken — clear cancelled and show fresh data
             setCancelled(false);
+            confirmedRef.current = false;
             cancelledTranscriptRef.current = null;
             setUserPrompt(data.user_prompt ?? null);
             setUserTranscript(newTranscript);
@@ -110,9 +111,11 @@ function App() {
       setPendingCommand(null);
       if (value === 'thumbs_down') {
         setCancelled(true);
-        cancelledTranscriptRef.current = userTranscript; // remember so poll doesn't clear it
+        cancelledTranscriptRef.current = userTranscript;
       } else {
-        confirmedRef.current = true; // mark as confirmed so poll doesn't set cancelled
+        // UI confirm — clear any prior cancelled state immediately.
+        setCancelled(false);
+        confirmedRef.current = true;
       }
     }).catch(() => {});
   };
