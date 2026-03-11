@@ -522,8 +522,7 @@ This test \textbf{satisfies} the current scope of UHR-12.5. Keyboard accessibili
    
 \section{Comparison to Existing Implementation}  
 
-This section will not be appropriate for every project.
-
+VoiceBridge was designed in response to the limitations of existing voice-based browser tools and dictation systems for users with impaired speech. Unlike Speech Recognition Anywhere extensions that target clear speech only and fail on dysarthria, VoiceBridge uses LoRA-tuned Whisper for robust impaired speech recognition. While Google Assistant and Siri handle clear commands but lack browser context control, VoiceBridge accepts free-form natural language commands with visual confirmation before execution.
 \section{Unit Testing}
 
 Unit testing for \emph{VoiceBridge} focused on the core backend modules defined in the MIS and prioritised in the V\&V Plan: the Speech-to-Text Engine (M4), Command Orchestrator (M5), Browser Orchestrator (M7), Session Manager (M8), Real-time Audio Capture (M15), and the Feedback Module (M20). For each of these modules we implemented automated tests using \texttt{pytest} that cover normal behaviour for all public access routines, representative edge cases, and key error paths (for example, invalid configuration, unavailable external services, malformed inputs, and I/O failures). Heavy external dependencies such as cloud LLM APIs, browser automation libraries, audio hardware, ASR model checkpoints, and the filesystem are replaced with test doubles where appropriate, allowing the unit tests to run deterministically and without network or device access. As a result, the unit test suite can be run quickly and repeatedly during development and in CI, and it provides direct evidence that the main control and data-flow responsibilities of each module behave as specified in the MIS.
