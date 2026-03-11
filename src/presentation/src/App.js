@@ -699,29 +699,19 @@ function App() {
         </header>
 
         <main className="App-main">
-          {activeTab === 'MAIN' && showBanner && (
+          {activeTab === 'MAIN' && showBanner && isTrainingCompleted && (
             <div
-              className={`train-banner${isTrainingCompleted ? ' train-banner--done' : ''}`}
+              className={`train-banner train-banner--done`}
               role="status"
               aria-live="polite"
             >
               <span
-                className={`train-banner__indicator${isTrainingCompleted ? ' train-banner__indicator--done' : ' train-banner__indicator--pulse'}`}
+                className={`train-banner__indicator train-banner__indicator--done`}
                 aria-hidden="true"
               />
               <span className="train-banner__text">
-                {isTrainingCompleted
-                  ? 'Voice model ready — restart the server to activate.'
-                  : 'Training in progress…'}
+                Voice model ready — restart the server to activate.
               </span>
-              {!isTrainingCompleted && (
-                <button
-                  type="button"
-                  className="train-banner__dismiss"
-                  onClick={() => setBannerDismissed(true)}
-                  aria-label="Dismiss training banner"
-                >✕</button>
-              )}
             </div>
           )}
 
