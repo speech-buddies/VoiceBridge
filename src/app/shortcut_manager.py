@@ -18,22 +18,32 @@ class ShortcutManager:
 
     def start_recording(self) -> bool:
         with self._lock:
+            logger.info("Shortcut start requested. Current recording=%s", self._recording)
             if self._recording:
                 return False
             self._recording = True
             self._buffer = []
+            logger.info("Shortcut recording started.")
             return True
 
     def add_recorded_command(self, clarified_command: str) -> None:
         with self._lock:
             if not self._recording:
+                logger.info("Ignored shortcut command append because recording is off: %s", clarified_command)
                 return
             self._buffer.append(clarified_command)
+            logger.info("Shortcut buffer append: %s", clarified_command)
 
     def stop_recording(self) -> dict:
         with self._lock:
+            logger.info("Shortcut stop requested. Current recording=%s buffer_len=%d", self._recording, len(self._buffer))
             if not self._recording:
-                raise ValueError("No active shortcut recording")
+                raise ValueError("There is no active shortcut recording.")
+
+            if not self._buffer:
+                self._recording = False
+                self._buffer = []
+                raise ValueError("No commands were recorded for this shortcut.")
 
             shortcut_id = str(self._next_id())
             shortcut = {
@@ -46,6 +56,7 @@ class ShortcutManager:
             self._recording = False
             self._buffer = []
             self._flush()
+            logger.info("Shortcut saved successfully: %s", shortcut)
             return shortcut
 
     def cancel_recording(self) -> None:

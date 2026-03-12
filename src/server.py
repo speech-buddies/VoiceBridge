@@ -164,7 +164,11 @@ class VoiceBridgeServer:
         self.is_voice_mode_active = False
         self._browser_session_started = False
         self._session_lock = asyncio.Lock()
+        self.shortcut_manager = ShortcutManager()
+
+        self._command_processing_lock = asyncio.Lock()
         
+    
         # Initialize modules
         self.speech_to_text = SpeechToTextEngine()
         
@@ -450,10 +454,11 @@ class VoiceBridgeServer:
         if current_state != AppState.LISTENING:
             logger.warning(f"Received audio in unexpected state: {current_state.value}")
             return None
-        elif self._awaiting_confirmation:
-            await self._process_confirmation(audio_data)
-        else:
-            await self._process_new_command(audio_data)
+        async with self._command_processing_lock:
+            if self._awaiting_confirmation:
+                await self._process_confirmation(audio_data)
+            else:
+                await self._process_new_command(audio_data)
 
 
     async def _process_new_command(self, audio_data: bytes):
@@ -462,6 +467,7 @@ class VoiceBridgeServer:
         # But keep user_transcript - it will be updated with new input
         self._clarified_command = None
         self._last_action = None  
+        self._current_user_prompt = None
 
         # Transition to processing
         self.state_manager.transition_to(AppState.PROCESSING, audio_data=audio_data)
@@ -477,10 +483,19 @@ class VoiceBridgeServer:
             self._pending_audio_turns.append(audio_data)
             self._pending_transcript_turns.append(transcript)
 
+            if not transcript or not transcript.strip():
+                self._current_user_prompt = "I didn't catch that."
+                self.state_manager.transition_to(
+                    AppState.LISTENING,
+                    transcript="",
+                    metadata={"user_prompt": self._current_user_prompt}
+                )
+                return
+
             # ------------------------------------------------------------
             # Shortcut control commands — intercept before orchestration
             # ------------------------------------------------------------
-            normalized = transcript.strip().lower()
+            normalized = transcript.strip().lower().rstrip(".,!?;:")
 
             if normalized == "start shortcut":
                 started = self.shortcut_manager.start_recording()
@@ -500,8 +515,9 @@ class VoiceBridgeServer:
                 try:
                     shortcut = self.shortcut_manager.stop_recording()
                     self._current_user_prompt = f'Shortcut "{shortcut["name"]}" saved.'
-                except ValueError:
-                    self._current_user_prompt = "There is no active shortcut recording."
+                except ValueError as e:
+                    self._current_user_prompt = str(e)
+                    logger.warning("Shortcut stop failed: %s", e)
 
                 self.state_manager.transition_to(
                     AppState.LISTENING,
@@ -1155,7 +1171,19 @@ async def start_training():
     logger.info("Voice model training job started.")
     return {"started": True}
 
-
+# Shortcuts Endpoints and Functions
+def create_shortcut(self, name: str, commands: list[str]) -> dict: #manually create a shortcut outside of the recording flow
+    with self._lock:
+        shortcut_id = str(self._next_id())
+        shortcut = {
+            "id": shortcut_id,
+            "name": name.strip(),
+            "commands": commands,
+        }
+        self._shortcuts[shortcut_id] = shortcut
+        self._flush()
+        return shortcut
+    
 @app.get("/shortcuts")
 async def get_shortcuts():
     """Get all custom shortcuts."""
@@ -1164,8 +1192,9 @@ async def get_shortcuts():
     try:
         prefs = server.profile_manager.load_preferences(DEFAULT_PROFILE_ID)
         return {
-            "shortcuts":               server._shortcuts,
+            "shortcuts": server.shortcut_manager.list_shortcuts(),
             "custom_shortcuts_enabled": prefs.get("custom_shortcuts_enabled", False),
+            "recording": server.shortcut_manager.is_recording(),
         }
     except ProfileNotFoundError:
         raise HTTPException(status_code=404, detail="Profile not found")
@@ -1173,22 +1202,26 @@ async def get_shortcuts():
 
 @app.post("/shortcuts")
 async def create_shortcut(body: ShortcutCreate):
-    """Add or update a shortcut."""
+    """Add a shortcut manually."""
     if not server:
         raise HTTPException(status_code=503, detail="Server not initialized")
     if not body.phrase.strip() or not body.command.strip():
         raise HTTPException(status_code=422, detail="phrase and command must not be empty")
-    server._shortcuts[body.phrase.strip()] = body.command.strip()
-    return {"phrase": body.phrase.strip(), "command": body.command.strip()}
+
+    shortcut = server.shortcut_manager.create_shortcut(
+        name=body.phrase.strip(),
+        commands=[body.command.strip()],
+    )
+    return shortcut
 
 
-@app.delete("/shortcuts/{phrase}")
-async def delete_shortcut(phrase: str):
-    """Delete a shortcut by phrase."""
+@app.delete("/shortcuts/{shortcut_id}")
+async def delete_shortcut(shortcut_id: str):
+    """Delete a shortcut by id."""
     if not server:
         raise HTTPException(status_code=503, detail="Server not initialized")
-    deleted = server._shortcuts.pop(phrase, None) is not None
-    return {"phrase": phrase, "deleted": deleted}
+    deleted = server.shortcut_manager.delete_shortcut(shortcut_id)
+    return {"id": shortcut_id, "deleted": deleted}
 
 
 # ============================================================================
