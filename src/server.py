@@ -493,21 +493,10 @@ class VoiceBridgeServer:
                 )
                 return
 
-            if normalized.startswith("end shortcut"):
-                phrase = normalized.replace("end shortcut", "", 1).strip()
-
-                if not phrase:
-                    self._current_user_prompt = "What would you like to call this shortcut?"
-                    self.state_manager.transition_to(
-                        AppState.LISTENING,
-                        transcript=transcript,
-                        metadata={"user_prompt": self._current_user_prompt}
-                    )
-                    return
-
+            if normalized == "end shortcut":
                 try:
-                    shortcut = self.shortcut_manager.stop_recording(phrase)
-                    self._current_user_prompt = f'Shortcut "{shortcut["phrase"]}" saved.'
+                    shortcut = self.shortcut_manager.stop_recording()
+                    self._current_user_prompt = f'Shortcut "{shortcut["name"]}" saved.'
                 except ValueError:
                     self._current_user_prompt = "There is no active shortcut recording."
 
@@ -671,11 +660,9 @@ class VoiceBridgeServer:
                 initial_intent, pending,
             )
 
-        if initial_intent and pending and self.shortcut_manager.is_recording():
-            self.shortcut_manager.add_recorded_command(
-                transcript=initial_intent,
-                clarified_command=pending,
-            )
+        if self.shortcut_manager.is_recording() and pending:
+            self.shortcut_manager.add_recorded_command(pending)
+            logger.info("Shortcut buffer append: '%s'", pending)
 
         self.state_manager.transition_to(AppState.EXECUTING, transcript=pending)
         try:

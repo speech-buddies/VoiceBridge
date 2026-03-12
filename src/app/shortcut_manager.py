@@ -24,16 +24,13 @@ class ShortcutManager:
             self._buffer = []
             return True
 
-    def add_recorded_command(self, transcript: str, clarified_command: str) -> None:
+    def add_recorded_command(self, clarified_command: str) -> None:
         with self._lock:
             if not self._recording:
                 return
-            self._buffer.append({
-                "transcript": transcript,
-                "clarified_command": clarified_command
-            })
+            self._buffer.append(clarified_command)
 
-    def stop_recording(self, phrase: str) -> dict:
+    def stop_recording(self) -> dict:
         with self._lock:
             if not self._recording:
                 raise ValueError("No active shortcut recording")
@@ -41,9 +38,8 @@ class ShortcutManager:
             shortcut_id = str(self._next_id())
             shortcut = {
                 "id": shortcut_id,
-                "phrase": phrase.strip(),
-                "commands": [item["clarified_command"] for item in self._buffer],
-                "source_transcripts": [item["transcript"] for item in self._buffer],
+                "name": f"shortcut_{shortcut_id}",
+                "commands": list(self._buffer),
             }
 
             self._shortcuts[shortcut_id] = shortcut
@@ -61,16 +57,9 @@ class ShortcutManager:
         with self._lock:
             return self._recording
 
-    def list_shortcuts(self) -> list:
+    def list_shortcuts(self) -> dict:
         with self._lock:
-            return list(self._shortcuts.values())
-
-    def get_phrase_map(self) -> dict:
-        with self._lock:
-            return {
-                shortcut["phrase"]: shortcut["commands"]
-                for shortcut in self._shortcuts.values()
-            }
+            return dict(self._shortcuts)
 
     def delete_shortcut(self, shortcut_id: str) -> bool:
         with self._lock:

@@ -411,3 +411,4 @@ data/training/audio/
 data/training/samples.jsonl
 command_cache.json
 data/consent_log.jsonl
+shortcuts.json
