@@ -199,8 +199,8 @@ class VoiceBridgeServer:
         # _pending_command holds the clarified command text until confirmed
         self._awaiting_confirmation: bool = False
         self._pending_command: Optional[str] = None
-        self._pending_audio: Optional[bytes] = None  # audio for the pending command
-        self._pending_transcript: Optional[bytes] = None
+        self._pending_audio_turns: list[bytes] = []
+        self._pending_transcript_turns: list[str] = []
         self._last_action: Optional[str] = None  # "confirmed" | "cancelled" | None
 
         self.feedback_store = FeedbackStore()
@@ -471,8 +471,11 @@ class VoiceBridgeServer:
             transcript = await self.transcribe_audio(audio_data)
             self._last_transcript = transcript
             self._user_transcript = transcript  # Store latest user input
-            self._pending_audio = audio_data    # stash for training sample on confirmation
-            self._pending_transcript = transcript
+            if not self._conversation_context:          # first turn — fresh session
+                self._pending_audio_turns = []
+                self._pending_transcript_turns = []
+            self._pending_audio_turns.append(audio_data)
+            self._pending_transcript_turns.append(transcript)
 
             # ------------------------------------------------------------
             # Shortcut control commands — intercept before orchestration
@@ -636,8 +639,8 @@ class VoiceBridgeServer:
         """Clear all confirmation state without triggering any transitions."""
         self._awaiting_confirmation = False
         self._pending_command = None
-        self._pending_audio = None
-        self._pending_transcript = None
+        self._pending_audio_turns = []
+        self._pending_transcript_turns = []
         self._current_user_prompt = None
         self._conversation_context = []
         self._initial_intent = None  # Reset session root transcript
@@ -645,11 +648,11 @@ class VoiceBridgeServer:
     async def _execute_confirmed_command(self):
         """Execute the pending command and return to LISTENING."""
         pending = self._pending_command
-        initial_intent = self._initial_intent          # capture before reset clears it
-        pending_audio = self._pending_audio            # capture before reset clears them
-        pending_transcript = self._pending_transcript
+        initial_intent = self._initial_intent
+        pending_audio_turns = list(self._pending_audio_turns)        # all turns
+        pending_transcript_turns = list(self._pending_transcript_turns)
         logger.info(f"[CONFIRMATION] Executing confirmed command: {pending}")
-        self._last_action = "confirmed"  
+        self._last_action = "confirmed"
         self._reset_confirmation_gate()
 
         # Cache confirmed command
@@ -671,25 +674,32 @@ class VoiceBridgeServer:
             logger.error(f"Execution error after confirmation: {e}")
             self.state_manager.handle_error(str(e))
 
-        # Save confirmed audio + transcript for training (only when toggle is on)
-        if pending_audio and pending_transcript:
+        # Save all confirmed audio turns for training (only when toggle is on)
+        if pending_audio_turns:
+            total_duration_s = 0.0
             try:
                 prefs = self.profile_manager.load_preferences(DEFAULT_PROFILE_ID)
                 if prefs.get("custom_training_enabled", False):
-                    duration_s = training_data_recorder.save_sample(
-                        pending_audio, pending_transcript
-                    )
-                    current = prefs.get("accumulated_audio_seconds", 0)
-                    self.profile_manager.set_training_state(
-                        accumulated_audio_seconds=current + int(duration_s),
-                        profile_id=DEFAULT_PROFILE_ID,
-                    )
-                    logger.info(
-                        "Training sample saved: %.2fs | total %.0fs | '%s'",
-                        duration_s,
-                        current + duration_s,
-                        pending_transcript[:60],
-                    )
+                    for audio, transcript in zip(pending_audio_turns, pending_transcript_turns):
+                        duration_s = training_data_recorder.save_sample(
+                            audio, transcript
+                        )
+                        total_duration_s += duration_s
+                        logger.info(
+                            "Training sample saved: %.2fs | '%s'",
+                            duration_s, transcript[:60],
+                        )
+
+                    if total_duration_s:
+                        current = prefs.get("accumulated_audio_seconds", 0)
+                        self.profile_manager.set_training_state(
+                            accumulated_audio_seconds=current + int(total_duration_s),
+                            profile_id=DEFAULT_PROFILE_ID,
+                        )
+                        logger.info(
+                            "Total training audio this session: %.2fs | running total: %.0fs",
+                            total_duration_s, current + total_duration_s,
+                        )
             except Exception as e:
                 logger.warning("Training sample save failed (non-fatal): %s", e)
 
@@ -701,7 +711,7 @@ class VoiceBridgeServer:
 
         if hasattr(self, 'manager') and self.manager:
             await self.manager.broadcast({"state": self.state_manager.get_state_info()})
-            
+
     async def _cancel_confirmed_command(self):
         self._last_action = "cancelled"  
         self._reset_confirmation_gate()
