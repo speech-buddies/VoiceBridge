@@ -50,31 +50,76 @@ class CommandCache:
         self._load()
 
     def get(self, transcript: str) -> Optional[str]:
-        """Return cached command or None. Lookup order: checks normalized key then verbatim fallback."""
+        """Return cached clarified command or None."""
         sk = self._clean_key(transcript)
         vk = transcript.lower().strip()
-        with self._lock:
-            result = self._store.get(sk) or (self._store.get(vk) if vk != sk else None)
-        if result:
-            logger.info("Cache HIT  '%s' -> '%s'", sk, result)
-        else:
-            logger.debug("Cache MISS '%s'", sk)
-        return result
 
-    def set(self, transcript: str, clarified_command: str) -> None:
+        with self._lock:
+            entry = self._store.get(sk) or (self._store.get(vk) if vk != sk else None)
+
+        if not entry:
+            logger.debug("Cache MISS '%s'", sk)
+            return None
+
+        if isinstance(entry, str):
+            result = entry
+        else:
+            result = entry.get("clarified_command")
+
+        logger.info("Cache HIT  '%s' -> '%s'", sk, result)
+        return result
+    
+    def get_entry(self, transcript: str) -> Optional[dict]:
+        """Return full cached entry including shortcut flags."""
+        sk = self._clean_key(transcript)
+        vk = transcript.lower().strip()
+
+        with self._lock:
+            entry = self._store.get(sk) or (self._store.get(vk) if vk != sk else None)
+
+        if not entry:
+            return None
+
+        if isinstance(entry, str):
+            return {
+                "clarified_command": entry,
+                "shortcut_start": False,
+                "shortcut_end": False,
+            }
+
+        return entry
+
+    def set(
+        self,
+        transcript: str,
+        clarified_command: str,
+        shortcut_start: bool = False,
+        shortcut_end: bool = False,
+    ) -> None:
         """
         Store clarified_command for transcript and flush to disk.
-        transcript should be pre-normalised (pass _root_transcript, not raw input).
-        Idempotent : no-op if the mapping already exists.
         """
         sk = self._clean_key(transcript)
         vk = transcript.lower().strip()
+
+        new_entry = {
+            "clarified_command": clarified_command,
+            "shortcut_start": shortcut_start,
+            "shortcut_end": shortcut_end,
+        }
 
         with self._lock:
             existing = self._store.get(sk)
-            if existing and existing != clarified_command:
+
+            existing_command = None
+            if isinstance(existing, str):
+                existing_command = existing
+            elif isinstance(existing, dict):
+                existing_command = existing.get("clarified_command")
+
+            if existing_command and existing_command != clarified_command:
                 if vk != sk:
-                    key = vk  # Store under verbatim key on normalization collision
+                    key = vk
                     logger.warning("Collision on '%s' — storing under verbatim key.", sk)
                 else:
                     logger.warning("Collision on '%s' — keeping existing mapping.", sk)
@@ -82,13 +127,15 @@ class CommandCache:
             else:
                 key = sk
 
-            if self._store.get(key) == clarified_command:
+            current = self._store.get(key)
+            if current == new_entry:
                 return
 
-            self._store[key] = clarified_command
+            self._store[key] = new_entry
             self._flush()
 
-        logger.info("Cache SET  '%s' -> '%s'", key, clarified_command)
+        logger.info("Cache SET '%s' -> '%s' [start=%s, end=%s]",
+                    key, clarified_command, shortcut_start, shortcut_end)
 
     def invalidate(self, transcript: str) -> bool:
         """Remove all cached entries for transcript.
@@ -164,7 +211,18 @@ class CommandCache:
             data = json.loads(self._path.read_text(encoding="utf-8"))
             if not isinstance(data, dict):
                 raise ValueError("Expected a JSON object")
-            self._store = {k: str(v) for k, v in data.items()}
+            normalized_store = {}
+            for k, v in data.items():
+                if isinstance(v, str):
+                    normalized_store[k] = v
+                elif isinstance(v, dict):
+                    normalized_store[k] = {
+                        "clarified_command": str(v.get("clarified_command", "")),
+                        "shortcut_start": bool(v.get("shortcut_start", False)),
+                        "shortcut_end": bool(v.get("shortcut_end", False)),
+                    }
+
+            self._store = normalized_store
             logger.info("Loaded %d entries from %s", len(self._store), self._path)
         except (json.JSONDecodeError, ValueError, OSError) as exc:
             logger.warning("Cache unreadable (%s); starting empty", exc)
