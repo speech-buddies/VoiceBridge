@@ -34,6 +34,7 @@ from control.session_manager import get_browser, start_session, stop_session
 from app.command_orchestrator import CommandOrchestrator, OrchestratorError
 from app.speech_to_text_engine import SpeechToTextEngine
 from app.user_profile_manager import UserProfileManager, DEFAULT_PROFILE_ID, ProfileNotFoundError
+from app.shortcut_manager import ShortcutManager
 from data import training_data_recorder
 from data.feedback_store import FeedbackStore
 
@@ -473,6 +474,51 @@ class VoiceBridgeServer:
             self._pending_audio = audio_data    # stash for training sample on confirmation
             self._pending_transcript = transcript
 
+            # ------------------------------------------------------------
+            # Shortcut control commands — intercept before orchestration
+            # ------------------------------------------------------------
+            normalized = transcript.strip().lower()
+
+            if normalized == "start shortcut":
+                started = self.shortcut_manager.start_recording()
+                self._current_user_prompt = (
+                    "Shortcut recording started."
+                    if started else
+                    "A shortcut is already being recorded."
+                )
+                self.state_manager.transition_to(
+                    AppState.LISTENING,
+                    transcript=transcript,
+                    metadata={"user_prompt": self._current_user_prompt}
+                )
+                return
+
+            if normalized.startswith("end shortcut"):
+                phrase = normalized.replace("end shortcut", "", 1).strip()
+
+                if not phrase:
+                    self._current_user_prompt = "What would you like to call this shortcut?"
+                    self.state_manager.transition_to(
+                        AppState.LISTENING,
+                        transcript=transcript,
+                        metadata={"user_prompt": self._current_user_prompt}
+                    )
+                    return
+
+                try:
+                    shortcut = self.shortcut_manager.stop_recording(phrase)
+                    self._current_user_prompt = f'Shortcut "{shortcut["phrase"]}" saved.'
+                except ValueError:
+                    self._current_user_prompt = "There is no active shortcut recording."
+
+                self.state_manager.transition_to(
+                    AppState.LISTENING,
+                    transcript=transcript,
+                    metadata={"user_prompt": self._current_user_prompt}
+                )
+                return
+            # ------------------------------------------------------------
+
             # Capture initial intent before appending — empty context means first turn
             if not self._conversation_context:
                 self._initial_intent = (
@@ -623,6 +669,12 @@ class VoiceBridgeServer:
             logger.info(
                 "Cache WRITE (post-confirmation): '%s' -> '%s'",
                 initial_intent, pending,
+            )
+
+        if initial_intent and pending and self.shortcut_manager.is_recording():
+            self.shortcut_manager.add_recorded_command(
+                transcript=initial_intent,
+                clarified_command=pending,
             )
 
         self.state_manager.transition_to(AppState.EXECUTING, transcript=pending)
