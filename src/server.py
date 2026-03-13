@@ -509,28 +509,22 @@ class VoiceBridgeServer:
         else:
             await self._process_new_command(audio_data)
 
-
     async def _process_new_command(self, audio_data: bytes):
         """Process a new voice command from the user."""
-        # Clear clarified command (new conversation starting)
-        # But keep user_transcript - it will be updated with new input
-        self._clarified_command = None
-        self._last_action = None  
-
-        # Transition to processing
-        self.state_manager.transition_to(AppState.PROCESSING, audio_data=audio_data)
-        print("**SWITCHED TO PROCESSING")
         try:
-            # Transcribe
+            # Transcribe BEFORE touching any state, so empty audio never
+            # clobbers the current UI state (e.g. an active confirmation prompt).
             transcript = await self.transcribe_audio(audio_data)
 
-            # Empty transcript (silence, noise, or STT returned nothing) — stay in
-            # LISTENING without broadcasting any error or updating state.
-            if not transcript or not transcript.strip():
-                logger.info("Empty transcript after STT — returning to LISTENING silently")
-                self.state_manager.transition_to(AppState.LISTENING)
+            # Empty transcript (noise, or STT returned nothing) — no state changes,
+            # no broadcasts. Leave confirmation prompts and UI exactly as-is.
+            if not transcript or not transcript.strip() or transcript == "":
+                logger.info("Empty transcript after STT — ignoring silently, no state change")
                 return
 
+            # Only clear state now that we have a real transcript to process
+            self._clarified_command = None
+            self._last_action = None
             self._last_transcript = transcript
             self._user_transcript = transcript  # Store latest user input
             self._pending_audio = audio_data    # stash for training sample on confirmation
@@ -614,7 +608,7 @@ class VoiceBridgeServer:
                 self.state_manager.transition_to(AppState.LISTENING)
             else:
                 self.state_manager.transition_to(AppState.IDLE)
-    
+        
     async def _process_confirmation(self, audio_data: bytes):
         """
         Handle a voice yes/no response while _awaiting_confirmation is True.
@@ -623,10 +617,16 @@ class VoiceBridgeServer:
         no / nope / cancel / etc. → log verbal feedback, discard, back to LISTENING
         anything else             → treat as a brand-new command
         """
-        self.state_manager.transition_to(AppState.PROCESSING, audio_data=audio_data)
-
         try:
+            # Transcribe BEFORE any state transition — if it's empty noise,
+            # we want to leave the confirmation prompt completely untouched.
             transcript = await self.transcribe_audio(audio_data)
+
+            if not transcript or not transcript.strip():
+                logger.info("Empty transcript during confirmation — ignoring, confirmation state preserved")
+                return
+
+            self.state_manager.transition_to(AppState.PROCESSING, audio_data=audio_data)
             self._user_transcript = transcript
 
             # Push transcript so UI updates immediately
