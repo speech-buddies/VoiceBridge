@@ -26,3 +26,8 @@ python-dotenv>=1.0.0
 pytest
 pytest-asyncio
 
+# Fine Tuning
+soundfile>=0.13
+torchaudio>=2.10
+peft==0.18.1
+torchaudio==2.10.0
