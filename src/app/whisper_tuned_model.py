@@ -76,6 +76,11 @@ class WhisperLoraAsrModel:
             )
             logger.info("Applied dynamic quantization for CPU inference.")
 
+        # Cache once — these are constant for every call.
+        self._forced_decoder_ids = self.processor.get_decoder_prompt_ids(
+            language="en", task="transcribe"
+        )
+
     def _load_processor(self) -> WhisperProcessor:
         """
         Load WhisperProcessor from local cache if available,
@@ -138,13 +143,12 @@ class WhisperLoraAsrModel:
         return features
 
     def decode(self, features, no_speech_threshold: float = 0.6, confidence_threshold: float = 0.2) -> Optional[Transcript]:
-        forced_decoder_ids = self.processor.get_decoder_prompt_ids(language="en", task="transcribe")
-        
+
         with Timer("model.generate") as t_gen:
             with torch.no_grad():
                 outputs = self.model.generate(
                     input_features=features,
-                    forced_decoder_ids=forced_decoder_ids,
+                    forced_decoder_ids=self._forced_decoder_ids,
                     return_dict_in_generate=True,
                     output_scores=True,
                 )
