@@ -62,8 +62,19 @@ class WhisperLoraAsrModel:
         self.model = get_peft_model(base_model, peft_config)
         self.model.load_state_dict(state_dict, strict=False)
 
+        # Merge LoRA weights into the base model to produce plain Linear layers for quantization.
+        self.model = self.model.merge_and_unload()
+
         self.model.to(self.device)
         self.model.eval()
+
+        if self.device == "cpu":
+            self.model = torch.quantization.quantize_dynamic(
+                self.model,
+                {torch.nn.Linear},
+                dtype=torch.qint8,
+            )
+            logger.info("Applied dynamic quantization for CPU inference.")
 
     def _load_processor(self) -> WhisperProcessor:
         """
