@@ -143,6 +143,95 @@
   outline-offset: 2px;
 }
 
+/* Clickable VoiceBridge title */
+.title-btn {
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  font-size: 2.5rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  font-family: inherit;
+  transition: opacity 0.2s ease;
+  line-height: 1;
+}
+.title-btn:hover { opacity: 0.75; }
+.title-btn:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 4px;
+  border-radius: 4px;
+}
+.dark-mode .title-btn {
+  background: linear-gradient(135deg, #ffffff 0%, #a0a0a0 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.light-mode .title-btn {
+  background: linear-gradient(135deg, #000000 0%, #404040 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Profile icon button */
+.profile-icon-btn {
+  position: relative;
+  background: transparent;
+  border: 2px solid;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  padding: 0;
+}
+.dark-mode .profile-icon-btn {
+  border-color: rgba(255,255,255,0.3);
+  color: #ffffff;
+}
+.dark-mode .profile-icon-btn:hover,
+.dark-mode .profile-icon-btn--active {
+  border-color: #4a9eff;
+  color: #4a9eff;
+  background: rgba(74,158,255,0.12);
+}
+.light-mode .profile-icon-btn {
+  border-color: rgba(0,0,0,0.3);
+  color: #000000;
+}
+.light-mode .profile-icon-btn:hover,
+.light-mode .profile-icon-btn--active {
+  border-color: #1a6fc4;
+  color: #1a6fc4;
+  background: rgba(26,111,196,0.08);
+}
+.profile-icon-btn:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+.profile-icon-btn__badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: #f59e0b;
+  color: #000;
+  border-radius: 50%;
+  width: 16px;
+  height: 16px;
+  font-size: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  line-height: 1;
+}
+
 .App-header h1 {
   font-size: 2.5rem;
   margin-bottom: 0.5rem;
@@ -151,19 +240,6 @@
   transition: background 0.3s ease;
 }
 
-.dark-mode .App-header h1 {
-  background: linear-gradient(135deg, #ffffff 0%, #a0a0a0 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.light-mode .App-header h1 {
-  background: linear-gradient(135deg, #000000 0%, #404040 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
 
 .subtitle {
   font-size: 1.1rem;
