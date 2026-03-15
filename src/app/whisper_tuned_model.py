@@ -6,6 +6,7 @@ from typing import Optional
 
 from models.audio_data import AudioStream, Transcript
 from utils.logger import get_logger
+from utils.timing import Timer
 
 logger = get_logger("WHISPER_TUNED_MODEL")
 
@@ -115,23 +116,28 @@ class WhisperLoraAsrModel:
         pass
 
     def extract_features(self, audio: AudioStream):
-        inputs = self.processor(
-            audio.samples,
-            sampling_rate=audio.sample_rate,
-            return_tensors="pt",
-        )
-        return inputs.input_features.to(self.device)
+        with Timer("extract_features") as t_feat:
+            inputs = self.processor(
+                audio.samples,
+                sampling_rate=audio.sample_rate,
+                return_tensors="pt",
+            )
+            features = inputs.input_features.to(self.device)
+        logger.debug(f"extract_features took {t_feat.elapsed_ms:.1f} ms")
+        return features
 
     def decode(self, features, no_speech_threshold: float = 0.6, confidence_threshold: float = 0.2) -> Optional[Transcript]:
         forced_decoder_ids = self.processor.get_decoder_prompt_ids(language="en", task="transcribe")
         
-        with torch.no_grad():
-            outputs = self.model.generate(
-                input_features=features,
-                forced_decoder_ids=forced_decoder_ids,
-                return_dict_in_generate=True,
-                output_scores=True,
-            )
+        with Timer("model.generate") as t_gen:
+            with torch.no_grad():
+                outputs = self.model.generate(
+                    input_features=features,
+                    forced_decoder_ids=forced_decoder_ids,
+                    return_dict_in_generate=True,
+                    output_scores=True,
+                )
+        logger.debug(f"model.generate took {t_gen.elapsed_ms:.1f} ms")
 
         # Use top-1 probability of first token as confidence
         first_token_probs = torch.softmax(outputs.scores[0], dim=-1)
@@ -143,9 +149,18 @@ class WhisperLoraAsrModel:
             logger.info(f"Low confidence ({top_prob:.4f}), discarding as noise")
             return Transcript(text="",metadata={"confidence": top_prob})
 
-        text = self.processor.batch_decode(
-            outputs.sequences,
-            skip_special_tokens=True,
-        )[0].strip()
+        with Timer("batch_decode") as t_dec:
+            text = self.processor.batch_decode(
+                outputs.sequences,
+                skip_special_tokens=True,
+            )[0].strip()
+        logger.debug(f"batch_decode took {t_dec.elapsed_ms:.1f} ms")
+
+        logger.info(
+            f"Inference breakdown — "
+            f"generate: {t_gen.elapsed_ms:.1f} ms | "
+            f"batch_decode: {t_dec.elapsed_ms:.1f} ms | "
+            f"total: {t_gen.elapsed_ms + t_dec.elapsed_ms:.1f} ms"
+        )
 
         return Transcript(text=text, metadata={"confidence": top_prob})
