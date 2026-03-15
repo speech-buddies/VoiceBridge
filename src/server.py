@@ -12,6 +12,7 @@ Key improvements:
 1. Cleaner parse_and_execute_command function
 2. Better state management for conversation flow
 3. Clear separation: Orchestrator for clarification, Browser controller for execution
+4. WebSocket-based status push (replaces client polling)
 """
 
 import asyncio
@@ -21,6 +22,7 @@ import sys
 import threading
 from typing import Optional, List
 from contextlib import asynccontextmanager
+from concurrent.futures import ThreadPoolExecutor
 
 import numpy as np
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Request, Query
@@ -37,6 +39,7 @@ from app.user_profile_manager import UserProfileManager, DEFAULT_PROFILE_ID, Pro
 from app.shortcut_manager import ShortcutManager
 from data import training_data_recorder
 from data.feedback_store import FeedbackStore
+from personalization.whisper_lora_trainer import WhisperLoRATrainer
 
 # Windows compatibility
 if sys.platform.startswith("win"):
@@ -209,28 +212,85 @@ class VoiceBridgeServer:
 
         self.feedback_store = FeedbackStore()
 
+        # Training job tracking
+        self._training_task: Optional[asyncio.Task] = None
+        self._training_error: Optional[str] = None
+        
+        # Thread pool for CPU-intensive training jobs
+        # Using max_workers=1 ensures only one training job runs at a time
+        self._training_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="training")
+
         # Voice customisation
         self.profile_manager = UserProfileManager()
         self._shortcuts: dict = {}   # phrase -> command
-    
-    def _broadcast_state_change(self, state_data, old_state):
-        """Broadcast state changes to WebSocket clients"""
-        message = {
-            'type': 'state_change',
-            'old_state': old_state.value,
-            'new_state': state_data.state.value,
-            'timestamp': state_data.timestamp.isoformat(),
-            'has_transcript': state_data.transcript is not None,
-            'transcript': state_data.transcript,
-            'error': state_data.error,
-            'user_prompt': self._current_user_prompt
+
+    # ========================================================================
+    # WebSocket Push Helpers
+    # ========================================================================
+
+    def _build_status_payload(self, msg_type: str = "status_update") -> dict:
+        """
+        Build the full status dict that replaces what the frontend used to poll.
+        Sent over the WebSocket so clients don't need to poll /status anymore.
+        """
+        state_info = self.state_manager.get_state_info()
+        return {
+            "type": msg_type,
+            # Core state
+            "state": state_info.get("state"),
+            "timestamp": state_info.get("timestamp"),
+            "has_audio": state_info.get("has_audio", False),
+            "has_transcript": state_info.get("has_transcript", False),
+            "error": state_info.get("error"),
+            # Transcript / command fields the frontend polls for
+            "transcript": self._last_transcript or state_info.get("transcript"),
+            "user_transcript": self._user_transcript,
+            "clarified_command": self._clarified_command,
+            "last_command": self._last_command,
+            "user_prompt": self._current_user_prompt,
+            # Confirmation gate
+            "awaiting_confirmation": self._awaiting_confirmation,
+            "pending_command": self._pending_command,
+            "last_action": self._last_action,
+            # Audio capture state (replaces /audio/capture/status polling)
+            "capture_state": self._get_capture_state(),
+            # Cache
+            "cache_stats": (
+                self.command_orchestrator.get_cache_stats()
+                if self.command_orchestrator else None
+            ),
         }
-        
+
+    def _get_capture_state(self) -> Optional[str]:
+        """Return current audio capture state string, or None if not capturing."""
+        with _capture_lock:
+            if _capture_instance is None:
+                return None
+            try:
+                return _capture_instance.state
+            except Exception:
+                return None
+
+    async def _push_status(self, msg_type: str = "status_update"):
+        """Push current full status to all WebSocket clients."""
+        payload = self._build_status_payload(msg_type)
+        await self.connection_manager.broadcast(payload)
+
+    def _schedule_push(self, msg_type: str = "status_update"):
+        """Schedule a status push from a synchronous context."""
+        asyncio.create_task(self._push_status(msg_type))
+
+    # ========================================================================
+    # State Change Callbacks
+    # ========================================================================
+
+    def _broadcast_state_change(self, state_data, old_state):
+        """Broadcast enriched status payload on every state transition."""
         logger.info(f"State: {old_state.value} -> {state_data.state.value}")
         if self._current_user_prompt:
             logger.info(f"User prompt: {self._current_user_prompt}")
-        
-        asyncio.create_task(self.connection_manager.broadcast(message))
+        # Push full status so clients receive everything in one message
+        self._schedule_push("state_change")
     
     def _on_state_change(self, state_data, old_state):
         """Handle state changes"""
@@ -289,7 +349,9 @@ class VoiceBridgeServer:
         logger.info(f"parse_and_execute_command: '{transcript}'")
         
         if not transcript.strip():
-            raise HTTPException(status_code=400, detail="Empty transcript")
+            # Should be caught before this point, but guard defensively.
+            logger.warning("parse_and_execute_command called with empty transcript — ignoring")
+            return {"needs_input": False, "success": False, "details": "empty transcript"}
         
         # Check if orchestrator is available
         if not self.command_orchestrator:
@@ -358,6 +420,9 @@ class VoiceBridgeServer:
             _display = _display.rstrip(".,; ")
             self._current_user_prompt = f'"{_display}" — say yes to confirm or no to cancel.'
             self._last_command = clarified_command
+
+            # Push updated confirmation state to all WS clients
+            await self._push_status("confirmation_ready")
 
             return {
                 "needs_input": True,
@@ -476,7 +541,6 @@ class VoiceBridgeServer:
             else:
                 await self._process_new_command(audio_data)
 
-
     async def _process_new_command(self, audio_data: bytes):
         """Process a new voice command from the user."""
         # Clear clarified command (new conversation starting)
@@ -489,8 +553,19 @@ class VoiceBridgeServer:
         self.state_manager.transition_to(AppState.PROCESSING, audio_data=audio_data)
         print("**SWITCHED TO PROCESSING")
         try:
-            # Transcribe
+            # Transcribe BEFORE touching any state, so empty audio never
+            # clobbers the current UI state (e.g. an active confirmation prompt).
             transcript = await self.transcribe_audio(audio_data)
+
+            # Empty transcript (noise, or STT returned nothing) — no state changes,
+            # no broadcasts. Leave confirmation prompts and UI exactly as-is.
+            if not transcript or not transcript.strip() or transcript == "":
+                logger.info("Empty transcript after STT — ignoring silently, no state change")
+                return
+
+            # Only clear state now that we have a real transcript to process
+            self._clarified_command = None
+            self._last_action = None
             self._last_transcript = transcript
             self._user_transcript = transcript  # Store latest user input
             if not self._conversation_context:          # first turn — fresh session
@@ -564,6 +639,8 @@ class VoiceBridgeServer:
                 )
                 return
             # ------------------------------------------------------------
+            # Push transcript update immediately so UI reflects it without waiting
+            await self._push_status("transcript_update")
 
             # Capture initial intent before appending — empty context means first turn
             if not self._conversation_context:
@@ -631,13 +708,16 @@ class VoiceBridgeServer:
             self._pending_command = None
             self._initial_intent = None
             
+            # Push error state
+            await self._push_status("error")
+
             # Return to listening/idle
             await asyncio.sleep(2)
             if self.is_voice_mode_active:
                 self.state_manager.transition_to(AppState.LISTENING)
             else:
                 self.state_manager.transition_to(AppState.IDLE)
-    
+        
     async def _process_confirmation(self, audio_data: bytes):
         """
         Handle a voice yes/no response while _awaiting_confirmation is True.
@@ -646,11 +726,21 @@ class VoiceBridgeServer:
         no / nope / cancel / etc. → log verbal feedback, discard, back to LISTENING
         anything else             → treat as a brand-new command
         """
-        self.state_manager.transition_to(AppState.PROCESSING, audio_data=audio_data)
-
         try:
+            # Transcribe BEFORE any state transition — if it's empty noise,
+            # we want to leave the confirmation prompt completely untouched.
             transcript = await self.transcribe_audio(audio_data)
+
+            if not transcript or not transcript.strip():
+                logger.info("Empty transcript during confirmation — ignoring, confirmation state preserved")
+                return
+
+            self.state_manager.transition_to(AppState.PROCESSING, audio_data=audio_data)
             self._user_transcript = transcript
+
+            # Push transcript so UI updates immediately
+            await self._push_status("transcript_update")
+
             word = transcript.strip().lower().rstrip(".,!?")
 
             if word in ("yes", "yeah", "yep"):
@@ -709,6 +799,9 @@ class VoiceBridgeServer:
         self._last_action = "confirmed"
         self._reset_confirmation_gate()
 
+        # Push confirmed state before execution begins
+        await self._push_status("confirmed")
+
         # Cache confirmed command
         if self.command_orchestrator and initial_intent and pending:
             self.command_orchestrator.cache.set(initial_intent, pending)
@@ -763,18 +856,17 @@ class VoiceBridgeServer:
         self.state_manager.transition_to(target)
         logger.info(f"[CONFIRMATION] Command executed, state reset to {target}")
 
-        if hasattr(self, 'manager') and self.manager:
-            await self.manager.broadcast({"state": self.state_manager.get_state_info()})
-
     async def _cancel_confirmed_command(self):
         self._last_action = "cancelled"  
         self._reset_confirmation_gate()
+
+        # Push cancelled state
+        await self._push_status("cancelled")
+
         await asyncio.sleep(0.1)
         target = AppState.LISTENING if self.is_voice_mode_active else AppState.IDLE
         self.state_manager.transition_to(target)
         logger.info(f"[CONFIRMATION] Command cancelled, state reset to {target}")
-        if hasattr(self, 'manager') and self.manager:
-            await self.manager.broadcast({"state": self.state_manager.get_state_info()})
 
     # ========================================================================
     # Audio Capture Management
@@ -801,6 +893,7 @@ class VoiceBridgeServer:
             _capture_instance.start()
         
         logger.info("Audio capture started")
+        await self._push_status("capture_started")
     
     async def stop_audio_capture(self):
         """Stop audio capture."""
@@ -816,6 +909,7 @@ class VoiceBridgeServer:
                 _capture_instance = None
         
         logger.info("Audio capture stopped")
+        await self._push_status("capture_stopped")
     
     # ========================================================================
     # Public API Methods
@@ -859,6 +953,7 @@ class VoiceBridgeServer:
         status['awaiting_confirmation'] = self._awaiting_confirmation
         status['pending_command'] = self._pending_command
         status['last_action'] = self._last_action
+        status['capture_state'] = self._get_capture_state()
         if self.command_orchestrator:
             status['cache_stats'] = self.command_orchestrator.get_cache_stats()
         return status
@@ -878,7 +973,176 @@ class VoiceBridgeServer:
                 self.command_orchestrator.cache.size,
             )
         self.state_manager.reset()
+        self._schedule_push("reset")
         return {"success": True, "state": "idle"}
+    
+    def _run_training_job_sync(self, profile_id: str = DEFAULT_PROFILE_ID, event_loop=None):
+        """
+        Synchronous training job that runs in a separate thread.
+        
+        This is the actual CPU-intensive work that should NOT block the event loop.
+        
+        Args:
+            profile_id: User profile ID
+            event_loop: Reference to the main event loop for callbacks
+        """
+        try:
+            logger.info("Starting Whisper LoRA training job in background thread...")
+            
+            # Get profile preferences to access data paths
+            prefs = self.profile_manager.load_preferences(profile_id)
+            
+            # Configure paths based on profile or defaults
+            data_dir = prefs.get("training_data_dir", "../data/training/audio")
+            meta_file = prefs.get("training_meta_file", "../data/training/samples.jsonl")
+            output_dir = prefs.get("training_output_dir", "../data/training/checkpoints")
+            
+            # Initialize trainer with callbacks for progress updates
+            def on_epoch_end(epoch: int, avg_loss: float):
+                logger.info(f"[Training Thread] Epoch {epoch} completed with avg loss: {avg_loss:.4f}")
+                # Schedule a websocket broadcast from the event loop
+                if event_loop:
+                    asyncio.run_coroutine_threadsafe(
+                        self.connection_manager.broadcast({
+                            "type": "training_progress",
+                            "epoch": epoch,
+                            "avg_loss": avg_loss,
+                        }),
+                        event_loop
+                    )
+            
+            def on_batch_end(epoch: int, batch_idx: int, step: int, loss: float):
+                # Optionally broadcast batch-level progress
+                # For now, just log to avoid spamming websocket
+                if batch_idx % 10 == 0:
+                    logger.debug(f"[Training Thread] Epoch {epoch}, Batch {batch_idx}, Loss: {loss:.4f}")
+            
+            trainer = WhisperLoRATrainer(
+                data_dir=data_dir,
+                meta_file=meta_file,
+                output_dir=output_dir,
+                on_epoch_end=on_epoch_end,
+                on_batch_end=on_batch_end,
+                epochs=prefs.get("training_epochs", 3),
+                batch_size=prefs.get("training_batch_size", 2),
+                lr=prefs.get("training_lr", 1e-4),
+            )
+            
+            # Setup trainer (loads data and model)
+            logger.info("[Training Thread] Setting up trainer...")
+            trainer.setup()
+            
+            if not trainer.has_new_data:
+                logger.info("[Training Thread] No new training data available")
+                self.profile_manager.set_training_state(
+                    training_in_progress=False,
+                    profile_id=profile_id,
+                )
+                self._training_error = "No new training data available"
+                return {
+                    "success": False,
+                    "error": "No new training data available"
+                }
+            
+            # Run training
+            logger.info("[Training Thread] Starting training...")
+            losses = trainer.train()
+            logger.info(f"[Training Thread] Training completed. Per-epoch losses: {[round(l, 4) for l in losses]}")
+            
+            # Evaluate
+            logger.info("[Training Thread] Evaluating model...")
+            eval_loss = trainer.evaluate()
+            logger.info(f"[Training Thread] Evaluation loss: {eval_loss:.4f}")
+            
+            # Save adapter
+            logger.info("[Training Thread] Saving adapter...")
+            saved_to = trainer.save()
+            logger.info(f"[Training Thread] Adapter saved to: {saved_to}")
+            
+            # Update preferences to mark training as completed
+            self.profile_manager.set_training_state(
+                training_in_progress=False,
+                training_completed=True,
+                profile_id=profile_id,
+            )
+            
+            logger.info("[Training Thread] Training job completed successfully")
+            
+            return {
+                "success": True,
+                "eval_loss": eval_loss,
+                "saved_to": saved_to,
+            }
+            
+        except FileNotFoundError as e:
+            error_msg = f"Training data not found: {str(e)}"
+            logger.error(f"[Training Thread] {error_msg}")
+            self._training_error = error_msg
+            self.profile_manager.set_training_state(
+                training_in_progress=False,
+                profile_id=profile_id,
+            )
+            return {
+                "success": False,
+                "error": error_msg,
+            }
+            
+        except Exception as e:
+            error_msg = f"Training failed: {str(e)}"
+            logger.error(f"[Training Thread] {error_msg}", exc_info=True)
+            self._training_error = error_msg
+            self.profile_manager.set_training_state(
+                training_in_progress=False,
+                profile_id=profile_id,
+            )
+            return {
+                "success": False,
+                "error": error_msg,
+            }
+    
+    async def run_training_job(self, profile_id: str = DEFAULT_PROFILE_ID):
+        """
+        Async wrapper that runs the training job in a background thread.
+        
+        This allows the event loop to remain responsive while training runs.
+        """
+        loop = asyncio.get_event_loop()
+        
+        try:
+            # Run the sync training function in a thread pool
+            # Pass the event loop so callbacks can communicate back
+            result = await loop.run_in_executor(
+                self._training_executor,
+                lambda: self._run_training_job_sync(profile_id, event_loop=loop)
+            )
+            
+            # Broadcast result via websocket
+            if result["success"]:
+                await self.connection_manager.broadcast({
+                    "type": "training_complete",
+                    "eval_loss": result["eval_loss"],
+                    "saved_to": result["saved_to"],
+                })
+            else:
+                await self.connection_manager.broadcast({
+                    "type": "training_error",
+                    "error": result.get("error", "Unknown error"),
+                })
+                
+        except Exception as e:
+            error_msg = f"Training job wrapper failed: {str(e)}"
+            logger.error(error_msg, exc_info=True)
+            self._training_error = error_msg
+            self.profile_manager.set_training_state(
+                training_in_progress=False,
+                profile_id=profile_id,
+            )
+            await self.connection_manager.broadcast({
+                "type": "training_error",
+                "error": error_msg,
+            })
+        finally:
+            self._training_task = None
 
 
 # ============================================================================
@@ -899,6 +1163,19 @@ async def lifespan(app: FastAPI):
     
     # Shutdown
     if server:
+        # Cancel any running training jobs
+        if server._training_task and not server._training_task.done():
+            logger.info("Cancelling running training job...")
+            server._training_task.cancel()
+            try:
+                await server._training_task
+            except asyncio.CancelledError:
+                pass
+        
+        # Shutdown thread pool executor
+        logger.info("Shutting down training executor...")
+        server._training_executor.shutdown(wait=True, cancel_futures=True)
+        
         await server.stop_voice_mode()
     logger.info("VoiceBridge Server shutdown")
 
@@ -938,7 +1215,7 @@ async def root():
 
 @app.get("/status")
 async def get_status():
-    """Get current status"""
+    """Get current status — kept for REST compatibility / initial hydration."""
     if not server:
         raise HTTPException(status_code=503, detail="Server not initialized")
     
@@ -947,7 +1224,7 @@ async def get_status():
 
 @app.get("/audio/capture/status")
 async def audio_capture_status():
-    """Get status of backend audio capture."""
+    """Get status of backend audio capture — kept for REST compatibility."""
     with _capture_lock:
         if _capture_instance is None:
             return {"capturing": False, "state": "idle"}
@@ -1045,7 +1322,16 @@ async def health_check():
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
-    """WebSocket for real-time updates"""
+    """
+    WebSocket for real-time status push.
+
+    On connect the client receives a full 'connected' snapshot so it can
+    hydrate immediately without a separate REST call.  Subsequent messages
+    are pushed whenever server state changes — no client polling required.
+
+    The client may optionally send a JSON ping `{"type": "ping"}` to keep
+    the connection alive; the server replies with `{"type": "pong"}`.
+    """
     if not server:
         await websocket.close(code=1011, reason="Server not initialized")
         return
@@ -1053,17 +1339,24 @@ async def websocket_endpoint(websocket: WebSocket):
     await server.connection_manager.connect(websocket)
     
     try:
-        # Send initial state
-        await websocket.send_json({
-            'type': 'connected',
-            'state': server.state_manager.current_state.value,
-            'voice_mode_active': server.is_voice_mode_active,
-            'data': server.get_status()
-        })
+        # Send full initial snapshot so the client can hydrate immediately
+        initial_payload = server._build_status_payload("connected")
+        initial_payload["voice_mode_active"] = server.is_voice_mode_active
+        await websocket.send_json(initial_payload)
         
-        # Keep connection alive
+        # Keep connection alive; handle optional ping frames from the client
         while True:
-            await websocket.receive_text()
+            try:
+                raw = await asyncio.wait_for(websocket.receive_text(), timeout=30)
+                import json as _json
+                msg = _json.loads(raw)
+                if msg.get("type") == "ping":
+                    await websocket.send_json({"type": "pong"})
+            except asyncio.TimeoutError:
+                # Send a server-side keepalive ping
+                await websocket.send_json({"type": "ping"})
+            except Exception:
+                break
     
     except WebSocketDisconnect:
         server.connection_manager.disconnect(websocket)
@@ -1169,6 +1462,7 @@ async def get_training_status():
             "training_in_progress":      prefs.get("training_in_progress",      False),
             "training_completed":        prefs.get("training_completed",        False),
             "accumulated_audio_seconds": prefs.get("accumulated_audio_seconds", 0),
+            "training_error":            server._training_error,
         }
     except ProfileNotFoundError:
         raise HTTPException(status_code=404, detail="Profile not found")
@@ -1200,12 +1494,20 @@ async def start_training():
     if prefs.get("training_completed", False):
         raise HTTPException(status_code=409, detail="Training has already completed.")
 
-    # Mark job as started.
-    # TODO: set_training_state() as it progresses.
+    # Mark job as started
     server.profile_manager.set_training_state(
         training_in_progress=True,
         profile_id=DEFAULT_PROFILE_ID,
     )
+    
+    # Clear any previous training error
+    server._training_error = None
+    
+    # Launch training job as background task
+    server._training_task = asyncio.create_task(
+        server.run_training_job(DEFAULT_PROFILE_ID)
+    )
+    
     logger.info("Voice model training job started.")
     return {"started": True}
 
@@ -1222,6 +1524,36 @@ def create_shortcut(self, name: str, commands: list[str]) -> dict: #manually cre
         self._flush()
         return shortcut
     
+
+@app.post("/training/cancel")
+async def cancel_training():
+    """
+    Cancel a running training job.
+    
+    404 — no training job is currently running
+    """
+    if not server:
+        raise HTTPException(status_code=503, detail="Server not initialized")
+    
+    if not server._training_task or server._training_task.done():
+        raise HTTPException(status_code=404, detail="No training job is currently running")
+    
+    # Cancel the task
+    server._training_task.cancel()
+    
+    # Update state
+    try:
+        server.profile_manager.set_training_state(
+            training_in_progress=False,
+            profile_id=DEFAULT_PROFILE_ID,
+        )
+    except ProfileNotFoundError:
+        raise HTTPException(status_code=404, detail="Profile not found")
+    
+    logger.info("Training job cancelled")
+    return {"cancelled": True}
+
+
 @app.get("/shortcuts")
 async def get_shortcuts():
     """Get all custom shortcuts."""

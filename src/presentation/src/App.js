@@ -9,8 +9,74 @@ import AuditLogger from './utils/auditLogger';
 import AccessibilityLayer from './utils/accessibilityLayer';
 
 const AUDIO_BACKEND_BASE = 'http://localhost:8000';
+const WS_URL = 'ws://localhost:8000/ws';
 const TRAINING_THRESHOLD_SEC = 1800; // 30 minutes
 
+// ---------------------------------------------------------------------------
+// WebSocket hook — single persistent connection with exponential backoff
+// reconnection. Replaces all setInterval polling.
+// ---------------------------------------------------------------------------
+function useServerSocket(onMessage) {
+  const wsRef = useRef(null);
+  const reconnectTimerRef = useRef(null);
+  const attemptsRef = useRef(0);
+  const mountedRef = useRef(true);
+  const onMessageRef = useRef(onMessage);
+  onMessageRef.current = onMessage;
+
+  const connect = useCallback(() => {
+    if (!mountedRef.current) return;
+
+    const ws = new WebSocket(WS_URL);
+    wsRef.current = ws;
+
+    ws.onopen = () => {
+      attemptsRef.current = 0;
+      // Send a ping every 20 s to keep the connection alive through proxies
+      ws._pingInterval = setInterval(() => {
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({ type: 'ping' }));
+        }
+      }, 20_000);
+    };
+
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.type === 'pong') return; // ignore keepalive replies
+        onMessageRef.current(data);
+      } catch { /* malformed frame — ignore */ }
+    };
+
+    ws.onclose = () => {
+      clearInterval(ws._pingInterval);
+      if (!mountedRef.current) return;
+      // Exponential backoff: 500 ms, 1 s, 2 s, 4 s … capped at 16 s
+      const delay = Math.min(500 * 2 ** attemptsRef.current, 16_000);
+      attemptsRef.current += 1;
+      reconnectTimerRef.current = setTimeout(connect, delay);
+    };
+
+    ws.onerror = () => {
+      ws.close(); // triggers onclose → reconnect
+    };
+  }, []);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    connect();
+    return () => {
+      mountedRef.current = false;
+      clearTimeout(reconnectTimerRef.current);
+      clearInterval(wsRef.current?._pingInterval);
+      wsRef.current?.close();
+    };
+  }, [connect]);
+}
+
+// ---------------------------------------------------------------------------
+// Preferences hook — still uses REST (write path); no polling needed here
+// ---------------------------------------------------------------------------
 function usePreferences(addToast) {
   const [prefs, setPrefs] = useState(null);
 
@@ -44,6 +110,9 @@ function usePreferences(addToast) {
   return { prefs, save };
 }
 
+// ---------------------------------------------------------------------------
+// Training-status hook — reduced polling; WS pushes cover most updates
+// ---------------------------------------------------------------------------
 function useTrainingStatus(onProfileTab, trainingRunning) {
   const [data, setData] = useState(null);
   const [failures, setFailures] = useState(0);
@@ -62,6 +131,8 @@ function useTrainingStatus(onProfileTab, trainingRunning) {
 
   useEffect(() => {
     clearInterval(timerRef.current);
+    // Only poll when the Profile tab is open or training is actively running.
+    // Much less aggressive than the main-status polling was.
     const interval = onProfileTab
       ? (trainingRunning ? 10_000 : 30_000)
       : trainingRunning ? 15_000
@@ -115,6 +186,9 @@ function useShortcuts(activeTab, userPrompt) {
   return { shortcuts: data?.shortcuts ?? {}, refetch };
 }
 
+// ---------------------------------------------------------------------------
+// Small shared components
+// ---------------------------------------------------------------------------
 function PillToggle({ id, checked, onChange, disabled = false }) {
   return (
     <button
@@ -187,7 +261,9 @@ function ConfirmModal({ title, body, confirmLabel = 'Confirm', onConfirm, onCanc
   );
 }
 
-
+// ---------------------------------------------------------------------------
+// Profile tab
+// ---------------------------------------------------------------------------
 function ProfileTab({ prefs, savePrefs, trainingStatus, pollFailures, addToast }) {
   const [showLaunchModal, setShowLaunchModal] = useState(false);
   const [launching, setLaunching] = useState(false);
@@ -222,7 +298,6 @@ function ProfileTab({ prefs, savePrefs, trainingStatus, pollFailures, addToast }
 
   return (
     <div className="profile-tab">
-
       <section className="pt-section">
         <h2 className="pt-section__title">Preferences</h2>
         <div className="pref-card">
@@ -253,7 +328,6 @@ function ProfileTab({ prefs, savePrefs, trainingStatus, pollFailures, addToast }
       <section className="pt-section">
         <h2 className="pt-section__title">Voice Model Training</h2>
         <div className="collect-card">
-
           <div className="status-card">
             <span className="status-card__label">Audio collected</span>
             <span className="status-card__value">{mins} / {TRAINING_THRESHOLD_SEC / 60} min</span>
@@ -322,8 +396,9 @@ function ProfileTab({ prefs, savePrefs, trainingStatus, pollFailures, addToast }
   );
 }
 
-
-
+// ---------------------------------------------------------------------------
+// App
+// ---------------------------------------------------------------------------
 function App() {
   // Confirmation state
   const [awaitingConfirmation, setAwaitingConfirmation] = useState(false);
@@ -332,33 +407,30 @@ function App() {
   const [cancelled, setCancelled] = useState(false);
 
   const [isListening, setIsListening] = useState(true);
-  const [status, setStatus] = useState('listening'); // idle, listening
+  const [status, setStatus] = useState('listening');
   const [error, setError] = useState(null);
   const [isLightMode, setIsLightMode] = useState(false);
   const [feedbackItems, setFeedbackItems] = useState([]);
-  const [userPrompt, setUserPrompt] = useState(null); // System message
-  const [userTranscript, setUserTranscript] = useState(null); // User transcript
+  const [userPrompt, setUserPrompt] = useState(null);
+  const [userTranscript, setUserTranscript] = useState(null);
 
-  // Initialize ErrorFeedback system
   const errorFeedbackRef = useRef(null);
   const uiClientRef = useRef(null);
   const auditLoggerRef = useRef(null);
   const accessibilityLayerRef = useRef(null);
 
-  // Toggle thumbs button visibility
   const [showThumbs, setShowThumbs] = useState(true);
 
-  // Customisation state
   const [activeTab, setActiveTab] = useState('MAIN');
   const [toasts, setToasts] = useState([]);
   const [bannerDismissed, setBannerDismissed] = useState(false);
   const prevTrainingRunningRef = useRef(false);
 
-  const prevAwaitingRef = useRef(false);
-  const prevPendingRef = useRef(null);
-  const confirmedRef = useRef(false);
-  const cancelledTranscriptRef = useRef(null);
+  // Refs used inside the WS message handler (stale-closure-safe)
   const cancelledRef = useRef(false);
+  const cancelledTranscriptRef = useRef(null);
+  const confirmedRef = useRef(false);
+
   useEffect(() => { cancelledRef.current = cancelled; }, [cancelled]);
 
   const addToast = useCallback((message) => {
@@ -375,6 +447,7 @@ function App() {
   const { shortcuts, refetch: refetchShortcuts } = useShortcuts(activeTab, userPrompt);
 
   // "model ready"  on training completion
+  // "model ready" toast on training completion
   useEffect(() => {
     if (prevTrainingRunningRef.current && trainingStatus?.training_completed) {
       addToast('Your voice model is ready. Restart the server to activate it.');
@@ -383,61 +456,99 @@ function App() {
     prevTrainingRunningRef.current = trainingStatus?.training_in_progress ?? false;
   }, [trainingStatus?.training_in_progress, trainingStatus?.training_completed, addToast]);
 
+  // -------------------------------------------------------------------------
+  // Central WebSocket message handler — replaces the 400 ms setInterval loop
+  // -------------------------------------------------------------------------
+  const CANCEL_WORDS = new Set(['no', 'no.', 'cancel', 'nope', 'nope.', 'cancel that']);
+
+  const handleServerMessage = useCallback((data) => {
+    // Ignore keepalive frames
+    if (data.type === 'ping' || data.type === 'pong') return;
+
+    const newAwaiting    = data.awaiting_confirmation ?? false;
+    const newPending     = data.pending_command ?? null;
+    const newTranscript  = data.user_transcript ?? null;
+    const lastAction     = data.last_action ?? null;
+    const captureState   = data.capture_state ?? null;
+
+    // --- last_action handling ---
+    if (lastAction === 'cancelled') {
+      setCancelled(true);
+      cancelledRef.current = true;
+      cancelledTranscriptRef.current = newTranscript;
+    } else if (lastAction === 'confirmed') {
+      confirmedRef.current = true;
+      setCancelled(false);
+      cancelledRef.current = false;
+    }
+
+    setAwaitingConfirmation(newAwaiting);
+    setPendingCommand(newPending);
+    setLastCommandId(data.last_command ?? null);
+
+    // --- transcript / prompt update ---
+    const isNewRealTranscript =
+      newTranscript &&
+      newTranscript.trim() !== '' &&
+      newTranscript !== cancelledTranscriptRef.current &&
+      !CANCEL_WORDS.has(newTranscript.trim().toLowerCase());
+
+    if (isNewRealTranscript) {
+      setCancelled(false);
+      cancelledRef.current = false;
+      confirmedRef.current = false;
+      cancelledTranscriptRef.current = null;
+      setUserPrompt(data.user_prompt ?? null);
+      setUserTranscript(newTranscript);
+    } else if (!cancelledRef.current) {
+      setUserPrompt(data.user_prompt ?? null);
+      setUserTranscript(newTranscript);
+    }
+
+    // --- audio capture state → UI status ---
+    if (captureState) {
+      if (captureState === 'speech_detected' || captureState === 'recording') {
+        setStatus('recording');
+      } else if (captureState === 'processing') {
+        setStatus('processing');
+      } else {
+        setStatus('listening');
+      }
+    }
+
+    // --- top-level state ---
+    if (data.state) {
+      if (data.state === 'idle') setStatus('idle');
+      else if (data.state === 'processing') setStatus('processing');
+      else if (data.state === 'executing') setStatus('processing');
+      else if (data.state === 'listening' && !captureState) setStatus('listening');
+    }
+
+    // --- errors ---
+    if (data.error) setError(data.error);
+    else if (data.type !== 'error') setError(null);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useServerSocket(handleServerMessage);
+
+  // -------------------------------------------------------------------------
+  // Voice mode start/stop — still uses REST (fire-and-forget)
+  // -------------------------------------------------------------------------
   useEffect(() => {
-    const tick = () => {
-      fetch(`${AUDIO_BACKEND_BASE}/status`)
-        .then((r) => r.json())
-        .then((data) => {
-          const newAwaiting = data.awaiting_confirmation ?? false;
-          const newPending = data.pending_command ?? null;
-          const newTranscript = data.user_transcript ?? null;
-          const lastAction = data.last_action ?? null; // "confirmed" | "cancelled" | null
+    const base = AUDIO_BACKEND_BASE;
+    if (isListening) {
+      fetch(`${base}/audio/capture/start`, { method: 'POST' })
+        .then(r => r.json())
+        .then(data => { if (!data.ok) console.warn('Backend capture start:', data.message); })
+        .catch(err => console.warn('Failed to start backend capture:', err));
+    } else {
+      fetch(`${base}/audio/capture/stop`, { method: 'POST' }).catch(() => {});
+    }
+  }, [isListening]);
 
-          if (lastAction === 'cancelled') {
-            setCancelled(true);
-            cancelledTranscriptRef.current = newTranscript;
-          } else if (lastAction === 'confirmed') {
-            confirmedRef.current = true;
-            setCancelled(false);
-          }
-
-          prevAwaitingRef.current = newAwaiting;
-          prevPendingRef.current = newPending;
-
-          setAwaitingConfirmation(newAwaiting);
-          setPendingCommand(newPending);
-          setLastCommandId(data.last_command ?? null);
-
-          // Update transcript and prompt if not cancelled
-          const CANCEL_WORDS = new Set(['no', 'no.', 'cancel', 'nope', 'nope.', 'cancel that']);
-          const isNewRealTranscript =
-            newTranscript &&
-            newTranscript.trim() !== '' &&
-            newTranscript !== cancelledTranscriptRef.current &&
-            !CANCEL_WORDS.has(newTranscript.trim().toLowerCase());
-
-          if (isNewRealTranscript) {
-            // New command spoken
-            setCancelled(false);
-            confirmedRef.current = false;
-            cancelledTranscriptRef.current = null;
-            setUserPrompt(data.user_prompt ?? null);
-            setUserTranscript(newTranscript);
-          } else if (!cancelledRef.current) {
-            // Normal update
-            setUserPrompt(data.user_prompt ?? null);
-            setUserTranscript(newTranscript);
-          }
-          // Keep cancelled state if no new transcript
-        })
-        .catch(() => {});
-    };
-    tick(); 
-    const interval = setInterval(tick, 400);
-    return () => clearInterval(interval);
-  }, []);
-
+  // -------------------------------------------------------------------------
   // Send UI feedback (thumbs)
+  // -------------------------------------------------------------------------
   const sendThumbsFeedback = (value) => {
     fetch(`${AUDIO_BACKEND_BASE}/feedback`, {
       method: 'POST',
@@ -456,14 +567,15 @@ function App() {
         setCancelled(true);
         cancelledTranscriptRef.current = userTranscript;
       } else {
-        // Clear cancelled state on confirm
         setCancelled(false);
         confirmedRef.current = true;
       }
     }).catch(() => {});
   };
 
-  // Confirmation, only rendered when a complete command is pending verbal yes/no
+  // -------------------------------------------------------------------------
+  // Confirmation UI
+  // -------------------------------------------------------------------------
   const renderConfirmationUI = () => {
     if (!awaitingConfirmation) return null;
     return (
@@ -472,7 +584,6 @@ function App() {
         aria-label="Awaiting verbal confirmation"
         aria-live="polite"
       >
-        {/* Verbal instructions */}
         <div className="confirmation-verbal-cues">
           <span className="confirmation-cue confirmation-cue--yes" aria-label="Say Yes to confirm">
             🎙 Say <strong>"Yes"</strong> to confirm
@@ -482,7 +593,6 @@ function App() {
           </span>
         </div>
 
-        {/* Thumbs toggle + buttons */}
         <div className="confirmation-thumbs-row">
           <button
             type="button"
@@ -519,8 +629,10 @@ function App() {
     );
   };
 
+  // -------------------------------------------------------------------------
+  // Initialise utility modules once
+  // -------------------------------------------------------------------------
   useEffect(() => {
-    // Initialize modules
     auditLoggerRef.current = new AuditLogger();
     accessibilityLayerRef.current = new AccessibilityLayer();
     uiClientRef.current = new UiClient(setFeedbackItems, setError);
@@ -529,153 +641,69 @@ function App() {
       auditLoggerRef.current,
       accessibilityLayerRef.current
     );
-
-    return () => {
-      // Cleanup
-      if (errorFeedbackRef.current) {
-        errorFeedbackRef.current.clearAll();
-      }
-    };
+    return () => { errorFeedbackRef.current?.clearAll(); };
   }, []);
 
-      // Tell backend to start/stop audio capture (server records and saves to Recordings/)
-  useEffect(() => {
-    const base = AUDIO_BACKEND_BASE;
-
-    if (isListening) {
-      fetch(`${base}/audio/capture/start`, { method: 'POST' })
-        .then((r) => r.json())
-        .then((data) => {
-          if (!data.ok) {
-            console.warn('Backend capture start:', data.message);
-          }
-        })
-        .catch((err) => {
-          console.warn('Failed to start backend capture:', err);
-        });
-    } else {
-      fetch(`${base}/audio/capture/stop`, { method: 'POST' }).catch(() => {});
-    }
-  }, [isListening]);
-
-  // Poll backend capture status
-  useEffect(() => {
-    if (!isListening) return;
-    const base = AUDIO_BACKEND_BASE;
-    const interval = setInterval(() => {
-      fetch(`${base}/audio/capture/status`)
-        .then((r) => r.json())
-        .then((data) => {
-          if (data.capturing && data.state) {
-            if (data.state === 'speech_detected' || data.state === 'recording') {
-              setStatus('recording');
-            } else if (data.state === 'processing') {
-              setStatus('processing');
-            } else {
-              setStatus('listening');
-            }
-          }
-        })
-        .catch(() => {});
-    }, 400);
-    return () => clearInterval(interval);
-  }, [isListening]);
-
-  // Keyboard: light mode toggle (Alt+L) and collapse (Escape)
+  // -------------------------------------------------------------------------
+  // Keyboard shortcuts
+  // -------------------------------------------------------------------------
   useEffect(() => {
     const handleKeyDown = (e) => {
       const root = document.getElementById('voicebridge-root');
-      const isWidgetVisible = root && root.style.display !== 'none';
-
-      if (!isWidgetVisible) return;
-
-      // Collapse widget: Escape
-      if (e.key === 'Escape') {
-        root.style.display = 'none';
-        e.preventDefault();
-        return;
-      }
-      // Toggle light mode: Alt+L (L for light)
-      if (e.altKey && (e.key === 'l' || e.key === 'L')) {
-        setIsLightMode(prev => !prev);
-        e.preventDefault();
-      }
+      if (!root || root.style.display === 'none') return;
+      if (e.altKey && (e.key === 'l' || e.key === 'L')) { setIsLightMode(prev => !prev); e.preventDefault(); }
     };
-
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  // -------------------------------------------------------------------------
+  // Error handlers
+  // -------------------------------------------------------------------------
   const handleAudioData = async () => {
-    // Server (src/server.py) captures and saves to Recordings/; status kept by polling /audio/capture/status
+    // Server-side capture; status arrives via WebSocket
   };
 
   const handleError = (errorMessage) => {
-    // Map common error messages to error codes
     let errorCode = 'GENERIC_ERROR';
     if (errorMessage.includes('microphone') || errorMessage.includes('Microphone')) {
       errorCode = 'MIC_PERMISSION_DENIED';
     } else if (errorMessage.includes('device') || errorMessage.includes('in use')) {
       errorCode = 'AUDIO_DEVICE_ERROR';
     }
-
-    // Use ErrorFeedback to show error
     if (errorFeedbackRef.current) {
       errorFeedbackRef.current.showError(errorCode, errorMessage);
     } else {
-      // Fallback to old error handling
       setError(errorMessage);
     }
-    
     setStatus('idle');
     setIsListening(false);
   };
 
   const handleDismissFeedback = (feedbackId) => {
-    if (errorFeedbackRef.current) {
-      errorFeedbackRef.current.dismiss(feedbackId);
-    }
+    errorFeedbackRef.current?.dismiss(feedbackId);
   };
 
   const handleRecoverySelect = (feedbackId, optionId) => {
     const item = feedbackItems.find(f => f.id === feedbackId);
-    if (!item || !item.recoveryOptions) return;
-
+    if (!item?.recoveryOptions) return;
     const option = item.recoveryOptions.options.find(o => o.id === optionId);
     if (!option) return;
-
-    // Handle recovery actions
-    console.log('Recovery option selected:', option.label);
-    
-    // Example recovery actions
-    if (option.label.includes('Retry')) {
-      // Retry the failed operation
-      setIsListening(true);
-      setStatus('listening');
-    } else if (option.label.includes('Reload')) {
-      window.location.reload();
-    } else if (option.label.includes('Settings')) {
-      // Open settings (could navigate to chrome://settings/content/microphone)
-      window.open('chrome://settings/content/microphone', '_blank');
-    }
-
-    // Dismiss the feedback after action
+    if (option.label.includes('Retry')) { setIsListening(true); setStatus('listening'); }
+    else if (option.label.includes('Reload')) { window.location.reload(); }
+    else if (option.label.includes('Settings')) { window.open('chrome://settings/content/microphone', '_blank'); }
     handleDismissFeedback(feedbackId);
   };
 
-  const toggleTheme = () => {
-    setIsLightMode(!isLightMode);
-  };
-
-  const handleCollapse = () => {
-    const root = document.getElementById('voicebridge-root');
-    if (root) root.style.display = 'none';
-  };
+  const toggleTheme = () => setIsLightMode(prev => !prev);
 
   const isTrainingInProgress = trainingStatus?.training_in_progress ?? false;
   const isTrainingCompleted  = trainingStatus?.training_completed   ?? false;
   const showBanner = (isTrainingInProgress || isTrainingCompleted) && !bannerDismissed;
 
+  // -------------------------------------------------------------------------
+  // Render
+  // -------------------------------------------------------------------------
   return (
     <div
       className={`App extension-overlay ${isLightMode ? 'light-mode' : 'dark-mode'}`}
@@ -686,7 +714,17 @@ function App() {
         <header className="App-header">
           <div className="header-content">
             <div>
-              <h1>VoiceBridge</h1>
+              <h1>
+                <button
+                  type="button"
+                  className="title-btn"
+                  onClick={() => setActiveTab('MAIN')}
+                  aria-label="Go to VoiceBridge main page"
+                  title="VoiceBridge home"
+                >
+                  VoiceBridge
+                </button>
+              </h1>
               <p className="subtitle">An accessibility interface</p>
             </div>
             <div className="header-controls">
@@ -701,50 +739,26 @@ function App() {
               </button>
               <button
                 type="button"
-                className="minimize-button"
-                onClick={handleCollapse}
-                aria-label="Collapse widget (Escape)"
-                title="Collapse (Escape)"
+                className={`profile-icon-btn${activeTab === 'PROFILE' ? ' profile-icon-btn--active' : ''}`}
+                onClick={() => setActiveTab(activeTab === 'PROFILE' ? 'MAIN' : 'PROFILE')}
+                aria-label="Profile & Training"
+                title="Profile & Training"
               >
-                −
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="20" height="20" aria-hidden="true">
+                  <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
+                </svg>
+                {isTrainingCompleted && (
+                  <span className="profile-icon-btn__badge" aria-label="Restart required">↻</span>
+                )}
               </button>
             </div>
           </div>
-
-          <nav className="tab-nav" aria-label="Dashboard sections">
-            <button
-              type="button"
-              className={`tab-nav__btn${activeTab === 'MAIN' ? ' tab-nav__btn--active' : ''}`}
-              onClick={() => setActiveTab('MAIN')}
-              aria-current={activeTab === 'MAIN' ? 'page' : undefined}
-            >
-              VoiceBridge
-            </button>
-            <button
-              type="button"
-              className={`tab-nav__btn${activeTab === 'PROFILE' ? ' tab-nav__btn--active' : ''}`}
-              onClick={() => setActiveTab('PROFILE')}
-              aria-current={activeTab === 'PROFILE' ? 'page' : undefined}
-            >
-              Profile &amp; Training
-              {isTrainingCompleted && (
-                <span className="tab-nav__badge" aria-label="Restart required">↻</span>
-              )}
-            </button>
-          </nav>
         </header>
 
         <main className="App-main">
           {activeTab === 'MAIN' && showBanner && isTrainingCompleted && (
-            <div
-              className={`train-banner train-banner--done`}
-              role="status"
-              aria-live="polite"
-            >
-              <span
-                className={`train-banner__indicator train-banner__indicator--done`}
-                aria-hidden="true"
-              />
+            <div className="train-banner train-banner--done" role="status" aria-live="polite">
+              <span className="train-banner__indicator train-banner__indicator--done" aria-hidden="true" />
               <span className="train-banner__text">
                 Voice model ready — restart the server to activate.
               </span>
@@ -805,7 +819,7 @@ function App() {
                   {userPrompt && !cancelled && (awaitingConfirmation || !pendingCommand) && (
                     <div
                       className={`system-message-alert${awaitingConfirmation ? ' confirmation-ready' : ''}`}
-                      style={{marginBottom: 20, maxWidth: '100%'}}
+                      style={{ marginBottom: 20, maxWidth: '100%' }}
                     >
                       <div className="system-message-icon">
                         {awaitingConfirmation ? '✅' : 'ℹ️'}
@@ -817,8 +831,8 @@ function App() {
                     </div>
                   )}
                   <section className="llm-response-panel" aria-label="User Transcript">
-                    <h2 className="llm-response-heading">Executing</h2>
-                    <div className="llm-response-content" style={{maxHeight: 'none', overflow: 'visible'}}>
+                    <h2 className="llm-response-heading">Transcribed Audio</h2>
+                    <div className="llm-response-content" style={{ maxHeight: 'none', overflow: 'visible' }}>
                       <div className="transcript-text">
                         {cancelled
                           ? '❌ Cancelled'
