@@ -22,6 +22,7 @@ import sys
 import threading
 from typing import Optional, List
 from contextlib import asynccontextmanager
+from concurrent.futures import ThreadPoolExecutor
 
 import numpy as np
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Request, Query
@@ -37,6 +38,7 @@ from app.speech_to_text_engine import SpeechToTextEngine
 from app.user_profile_manager import UserProfileManager, DEFAULT_PROFILE_ID, ProfileNotFoundError
 from data import training_data_recorder
 from data.feedback_store import FeedbackStore
+from personalization.whisper_lora_trainer import WhisperLoRATrainer
 
 # Windows compatibility
 if sys.platform.startswith("win"):
@@ -204,6 +206,14 @@ class VoiceBridgeServer:
         self._last_action: Optional[str] = None  # "confirmed" | "cancelled" | None
 
         self.feedback_store = FeedbackStore()
+
+        # Training job tracking
+        self._training_task: Optional[asyncio.Task] = None
+        self._training_error: Optional[str] = None
+        
+        # Thread pool for CPU-intensive training jobs
+        # Using max_workers=1 ensures only one training job runs at a time
+        self._training_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="training")
 
         # Voice customisation
         self.profile_manager = UserProfileManager()
@@ -865,6 +875,174 @@ class VoiceBridgeServer:
         self.state_manager.reset()
         self._schedule_push("reset")
         return {"success": True, "state": "idle"}
+    
+    def _run_training_job_sync(self, profile_id: str = DEFAULT_PROFILE_ID, event_loop=None):
+        """
+        Synchronous training job that runs in a separate thread.
+        
+        This is the actual CPU-intensive work that should NOT block the event loop.
+        
+        Args:
+            profile_id: User profile ID
+            event_loop: Reference to the main event loop for callbacks
+        """
+        try:
+            logger.info("Starting Whisper LoRA training job in background thread...")
+            
+            # Get profile preferences to access data paths
+            prefs = self.profile_manager.load_preferences(profile_id)
+            
+            # Configure paths based on profile or defaults
+            data_dir = prefs.get("training_data_dir", "../data/training/audio")
+            meta_file = prefs.get("training_meta_file", "../data/training/samples.jsonl")
+            output_dir = prefs.get("training_output_dir", "../data/training/checkpoints")
+            
+            # Initialize trainer with callbacks for progress updates
+            def on_epoch_end(epoch: int, avg_loss: float):
+                logger.info(f"[Training Thread] Epoch {epoch} completed with avg loss: {avg_loss:.4f}")
+                # Schedule a websocket broadcast from the event loop
+                if event_loop:
+                    asyncio.run_coroutine_threadsafe(
+                        self.connection_manager.broadcast({
+                            "type": "training_progress",
+                            "epoch": epoch,
+                            "avg_loss": avg_loss,
+                        }),
+                        event_loop
+                    )
+            
+            def on_batch_end(epoch: int, batch_idx: int, step: int, loss: float):
+                # Optionally broadcast batch-level progress
+                # For now, just log to avoid spamming websocket
+                if batch_idx % 10 == 0:
+                    logger.debug(f"[Training Thread] Epoch {epoch}, Batch {batch_idx}, Loss: {loss:.4f}")
+            
+            trainer = WhisperLoRATrainer(
+                data_dir=data_dir,
+                meta_file=meta_file,
+                output_dir=output_dir,
+                on_epoch_end=on_epoch_end,
+                on_batch_end=on_batch_end,
+                epochs=prefs.get("training_epochs", 3),
+                batch_size=prefs.get("training_batch_size", 2),
+                lr=prefs.get("training_lr", 1e-4),
+            )
+            
+            # Setup trainer (loads data and model)
+            logger.info("[Training Thread] Setting up trainer...")
+            trainer.setup()
+            
+            if not trainer.has_new_data:
+                logger.info("[Training Thread] No new training data available")
+                self.profile_manager.set_training_state(
+                    training_in_progress=False,
+                    profile_id=profile_id,
+                )
+                self._training_error = "No new training data available"
+                return {
+                    "success": False,
+                    "error": "No new training data available"
+                }
+            
+            # Run training
+            logger.info("[Training Thread] Starting training...")
+            losses = trainer.train()
+            logger.info(f"[Training Thread] Training completed. Per-epoch losses: {[round(l, 4) for l in losses]}")
+            
+            # Evaluate
+            logger.info("[Training Thread] Evaluating model...")
+            eval_loss = trainer.evaluate()
+            logger.info(f"[Training Thread] Evaluation loss: {eval_loss:.4f}")
+            
+            # Save adapter
+            logger.info("[Training Thread] Saving adapter...")
+            saved_to = trainer.save()
+            logger.info(f"[Training Thread] Adapter saved to: {saved_to}")
+            
+            # Update preferences to mark training as completed
+            self.profile_manager.set_training_state(
+                training_in_progress=False,
+                training_completed=True,
+                profile_id=profile_id,
+            )
+            
+            logger.info("[Training Thread] Training job completed successfully")
+            
+            return {
+                "success": True,
+                "eval_loss": eval_loss,
+                "saved_to": saved_to,
+            }
+            
+        except FileNotFoundError as e:
+            error_msg = f"Training data not found: {str(e)}"
+            logger.error(f"[Training Thread] {error_msg}")
+            self._training_error = error_msg
+            self.profile_manager.set_training_state(
+                training_in_progress=False,
+                profile_id=profile_id,
+            )
+            return {
+                "success": False,
+                "error": error_msg,
+            }
+            
+        except Exception as e:
+            error_msg = f"Training failed: {str(e)}"
+            logger.error(f"[Training Thread] {error_msg}", exc_info=True)
+            self._training_error = error_msg
+            self.profile_manager.set_training_state(
+                training_in_progress=False,
+                profile_id=profile_id,
+            )
+            return {
+                "success": False,
+                "error": error_msg,
+            }
+    
+    async def run_training_job(self, profile_id: str = DEFAULT_PROFILE_ID):
+        """
+        Async wrapper that runs the training job in a background thread.
+        
+        This allows the event loop to remain responsive while training runs.
+        """
+        loop = asyncio.get_event_loop()
+        
+        try:
+            # Run the sync training function in a thread pool
+            # Pass the event loop so callbacks can communicate back
+            result = await loop.run_in_executor(
+                self._training_executor,
+                lambda: self._run_training_job_sync(profile_id, event_loop=loop)
+            )
+            
+            # Broadcast result via websocket
+            if result["success"]:
+                await self.connection_manager.broadcast({
+                    "type": "training_complete",
+                    "eval_loss": result["eval_loss"],
+                    "saved_to": result["saved_to"],
+                })
+            else:
+                await self.connection_manager.broadcast({
+                    "type": "training_error",
+                    "error": result.get("error", "Unknown error"),
+                })
+                
+        except Exception as e:
+            error_msg = f"Training job wrapper failed: {str(e)}"
+            logger.error(error_msg, exc_info=True)
+            self._training_error = error_msg
+            self.profile_manager.set_training_state(
+                training_in_progress=False,
+                profile_id=profile_id,
+            )
+            await self.connection_manager.broadcast({
+                "type": "training_error",
+                "error": error_msg,
+            })
+        finally:
+            self._training_task = None
 
 
 # ============================================================================
@@ -885,6 +1063,19 @@ async def lifespan(app: FastAPI):
     
     # Shutdown
     if server:
+        # Cancel any running training jobs
+        if server._training_task and not server._training_task.done():
+            logger.info("Cancelling running training job...")
+            server._training_task.cancel()
+            try:
+                await server._training_task
+            except asyncio.CancelledError:
+                pass
+        
+        # Shutdown thread pool executor
+        logger.info("Shutting down training executor...")
+        server._training_executor.shutdown(wait=True, cancel_futures=True)
+        
         await server.stop_voice_mode()
     logger.info("VoiceBridge Server shutdown")
 
@@ -1171,6 +1362,7 @@ async def get_training_status():
             "training_in_progress":      prefs.get("training_in_progress",      False),
             "training_completed":        prefs.get("training_completed",        False),
             "accumulated_audio_seconds": prefs.get("accumulated_audio_seconds", 0),
+            "training_error":            server._training_error,
         }
     except ProfileNotFoundError:
         raise HTTPException(status_code=404, detail="Profile not found")
@@ -1202,14 +1394,51 @@ async def start_training():
     if prefs.get("training_completed", False):
         raise HTTPException(status_code=409, detail="Training has already completed.")
 
-    # Mark job as started.
-    # TODO: set_training_state() as it progresses.
+    # Mark job as started
     server.profile_manager.set_training_state(
         training_in_progress=True,
         profile_id=DEFAULT_PROFILE_ID,
     )
+    
+    # Clear any previous training error
+    server._training_error = None
+    
+    # Launch training job as background task
+    server._training_task = asyncio.create_task(
+        server.run_training_job(DEFAULT_PROFILE_ID)
+    )
+    
     logger.info("Voice model training job started.")
     return {"started": True}
+
+
+@app.post("/training/cancel")
+async def cancel_training():
+    """
+    Cancel a running training job.
+    
+    404 — no training job is currently running
+    """
+    if not server:
+        raise HTTPException(status_code=503, detail="Server not initialized")
+    
+    if not server._training_task or server._training_task.done():
+        raise HTTPException(status_code=404, detail="No training job is currently running")
+    
+    # Cancel the task
+    server._training_task.cancel()
+    
+    # Update state
+    try:
+        server.profile_manager.set_training_state(
+            training_in_progress=False,
+            profile_id=DEFAULT_PROFILE_ID,
+        )
+    except ProfileNotFoundError:
+        raise HTTPException(status_code=404, detail="Profile not found")
+    
+    logger.info("Training job cancelled")
+    return {"cancelled": True}
 
 
 @app.get("/shortcuts")
