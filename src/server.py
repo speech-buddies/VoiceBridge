@@ -497,7 +497,6 @@ class VoiceBridgeServer:
             raise HTTPException(status_code=500, detail=f"Browser error: {e}")
 
     async def run_shortcut(self, shortcut_id: str) -> dict:
-        """Run all commands of a shortcut by id. Returns after all commands are executed."""
         shortcuts = self.shortcut_manager.list_shortcuts()
         shortcut = shortcuts.get(shortcut_id)
         if not shortcut:
@@ -508,10 +507,13 @@ class VoiceBridgeServer:
         browser = get_browser()
         if browser is None:
             raise HTTPException(status_code=409, detail="No active browser session")
-        for cmd in commands:
-            await self._execute_browser_command(cmd)
-        return {"success": True, "shortcut_id": shortcut_id, "commands_run": len(commands)}
-    
+        try:
+            for cmd in commands:
+                await self._execute_browser_command(cmd)
+        finally:
+            self.state_manager.transition_to(AppState.LISTENING)
+            await self._push_status("state_change")
+        return {"success": True, "shortcut_id": shortcut_id, "commands_run": len(commands)}    
     # ========================================================================
     # Audio Processing Pipeline
     # ========================================================================
