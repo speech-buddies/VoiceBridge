@@ -614,7 +614,6 @@ function App() {
     const handleKeyDown = (e) => {
       const root = document.getElementById('voicebridge-root');
       if (!root || root.style.display === 'none') return;
-      if (e.key === 'Escape') { root.style.display = 'none'; e.preventDefault(); return; }
       if (e.altKey && (e.key === 'l' || e.key === 'L')) { setIsLightMode(prev => !prev); e.preventDefault(); }
     };
     document.addEventListener('keydown', handleKeyDown);
@@ -660,10 +659,6 @@ function App() {
   };
 
   const toggleTheme = () => setIsLightMode(prev => !prev);
-  const handleCollapse = () => {
-    const root = document.getElementById('voicebridge-root');
-    if (root) root.style.display = 'none';
-  };
 
   const isTrainingInProgress = trainingStatus?.training_in_progress ?? false;
   const isTrainingCompleted  = trainingStatus?.training_completed   ?? false;
@@ -682,7 +677,17 @@ function App() {
         <header className="App-header">
           <div className="header-content">
             <div>
-              <h1>VoiceBridge</h1>
+              <h1>
+                <button
+                  type="button"
+                  className="title-btn"
+                  onClick={() => setActiveTab('MAIN')}
+                  aria-label="Go to VoiceBridge main page"
+                  title="VoiceBridge home"
+                >
+                  VoiceBridge
+                </button>
+              </h1>
               <p className="subtitle">An accessibility interface</p>
             </div>
             <div className="header-controls">
@@ -697,37 +702,20 @@ function App() {
               </button>
               <button
                 type="button"
-                className="minimize-button"
-                onClick={handleCollapse}
-                aria-label="Collapse widget (Escape)"
-                title="Collapse (Escape)"
+                className={`profile-icon-btn${activeTab === 'PROFILE' ? ' profile-icon-btn--active' : ''}`}
+                onClick={() => setActiveTab(activeTab === 'PROFILE' ? 'MAIN' : 'PROFILE')}
+                aria-label="Profile & Training"
+                title="Profile & Training"
               >
-                −
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="20" height="20" aria-hidden="true">
+                  <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
+                </svg>
+                {isTrainingCompleted && (
+                  <span className="profile-icon-btn__badge" aria-label="Restart required">↻</span>
+                )}
               </button>
             </div>
           </div>
-
-          <nav className="tab-nav" aria-label="Dashboard sections">
-            <button
-              type="button"
-              className={`tab-nav__btn${activeTab === 'MAIN' ? ' tab-nav__btn--active' : ''}`}
-              onClick={() => setActiveTab('MAIN')}
-              aria-current={activeTab === 'MAIN' ? 'page' : undefined}
-            >
-              VoiceBridge
-            </button>
-            <button
-              type="button"
-              className={`tab-nav__btn${activeTab === 'PROFILE' ? ' tab-nav__btn--active' : ''}`}
-              onClick={() => setActiveTab('PROFILE')}
-              aria-current={activeTab === 'PROFILE' ? 'page' : undefined}
-            >
-              Profile &amp; Training
-              {isTrainingCompleted && (
-                <span className="tab-nav__badge" aria-label="Restart required">↻</span>
-              )}
-            </button>
-          </nav>
         </header>
 
         <main className="App-main">
