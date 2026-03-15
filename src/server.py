@@ -553,7 +553,6 @@ class VoiceBridgeServer:
 
         # Transition to processing
         self.state_manager.transition_to(AppState.PROCESSING, audio_data=audio_data)
-        print("**SWITCHED TO PROCESSING")
         try:
             # Transcribe BEFORE touching any state, so empty audio never
             # clobbers the current UI state (e.g. an active confirmation prompt).
@@ -563,6 +562,7 @@ class VoiceBridgeServer:
             # no broadcasts. Leave confirmation prompts and UI exactly as-is.
             if not transcript or not transcript.strip() or transcript == "":
                 logger.info("Empty transcript after STT — ignoring silently, no state change")
+                self.state_manager.transition_to(AppState.LISTENING)
                 return
 
             # Only clear state now that we have a real transcript to process
