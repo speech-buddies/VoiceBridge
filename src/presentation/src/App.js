@@ -81,6 +81,40 @@ function useTrainingStatus(onProfileTab, trainingRunning) {
   return { data, failures };
 }
 
+function useShortcuts(activeTab, userPrompt) {
+  const [data, setData] = useState(null);
+  const refetch = useCallback(async () => {
+    try {
+      const r = await fetch(`${AUDIO_BACKEND_BASE}/shortcuts`);
+      if (r.ok) setData(await r.json());
+    } catch { /* silent */ }
+  }, []);
+
+  useEffect(() => {
+    refetch();
+  }, [refetch]);
+
+  useEffect(() => {
+    if (activeTab !== 'MAIN') return;
+    const interval = setInterval(refetch, 8000);
+    return () => clearInterval(interval);
+  }, [activeTab, refetch]);
+
+  useEffect(() => {
+    if (userPrompt && typeof userPrompt === 'string' && userPrompt.includes('saved.')) {
+      refetch();
+    }
+  }, [userPrompt, refetch]);
+
+  useEffect(() => {
+    const fn = () => { if (document.visibilityState === 'visible') refetch(); };
+    document.addEventListener('visibilitychange', fn);
+    return () => document.removeEventListener('visibilitychange', fn);
+  }, [refetch]);
+
+  return { shortcuts: data?.shortcuts ?? {}, refetch };
+}
+
 function PillToggle({ id, checked, onChange, disabled = false }) {
   return (
     <button
@@ -337,6 +371,8 @@ function App() {
     activeTab === 'PROFILE',
     prefs?.training_in_progress ?? false,
   );
+
+  const { shortcuts, refetch: refetchShortcuts } = useShortcuts(activeTab, userPrompt);
 
   // "model ready"  on training completion
   useEffect(() => {
@@ -739,6 +775,31 @@ function App() {
                     />
                   )}
                   {renderConfirmationUI()}
+                  {Object.keys(shortcuts).length > 0 && (
+                    <section className="shortcuts-bar" aria-label="Shortcuts">
+                      <h3 className="shortcuts-bar__title">Shortcuts</h3>
+                      <div className="shortcuts-bar__list">
+                        {Object.entries(shortcuts).map(([id, s]) => (
+                          <button
+                            key={id}
+                            type="button"
+                            className="shortcuts-bar__btn"
+                            onClick={async () => {
+                              try {
+                                const r = await fetch(`${AUDIO_BACKEND_BASE}/shortcuts/${id}/run`, { method: 'POST' });
+                                if (!r.ok) throw new Error();
+                                refetchShortcuts();
+                              } catch {
+                                addToast('Could not run shortcut.');
+                              }
+                            }}
+                          >
+                            {s.name || `shortcut_${id}`}
+                          </button>
+                        ))}
+                      </div>
+                    </section>
+                  )}
                 </div>
                 <div className="right-panel">
                   {userPrompt && !cancelled && (awaitingConfirmation || !pendingCommand) && (

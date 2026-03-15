@@ -430,6 +430,22 @@ class VoiceBridgeServer:
             }
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Browser error: {e}")
+
+    async def run_shortcut(self, shortcut_id: str) -> dict:
+        """Run all commands of a shortcut by id. Returns after all commands are executed."""
+        shortcuts = self.shortcut_manager.list_shortcuts()
+        shortcut = shortcuts.get(shortcut_id)
+        if not shortcut:
+            raise HTTPException(status_code=404, detail=f"Shortcut {shortcut_id} not found")
+        commands = shortcut.get("commands") or []
+        if not commands:
+            return {"success": True, "shortcut_id": shortcut_id, "commands_run": 0}
+        browser = get_browser()
+        if browser is None:
+            raise HTTPException(status_code=409, detail="No active browser session")
+        for cmd in commands:
+            await self._execute_browser_command(cmd)
+        return {"success": True, "shortcut_id": shortcut_id, "commands_run": len(commands)}
     
     # ========================================================================
     # Audio Processing Pipeline
@@ -519,6 +535,28 @@ class VoiceBridgeServer:
                     self._current_user_prompt = str(e)
                     logger.warning("Shortcut stop failed: %s", e)
 
+                self.state_manager.transition_to(
+                    AppState.LISTENING,
+                    transcript=transcript,
+                    metadata={"user_prompt": self._current_user_prompt}
+                )
+                return
+
+            # "run shortcut <id>" — run shortcut by id without confirmation
+            run_prefix = "run shortcut "
+            if normalized.startswith(run_prefix):
+                shortcut_id = normalized[len(run_prefix):].strip()
+                if shortcut_id and shortcut_id in self.shortcut_manager.list_shortcuts():
+                    try:
+                        await self.run_shortcut(shortcut_id)
+                        self._current_user_prompt = f'Ran shortcut "{shortcut_id}".'
+                    except HTTPException as e:
+                        self._current_user_prompt = e.detail or f"Could not run shortcut {shortcut_id}."
+                    except Exception as e:
+                        logger.exception("Error running shortcut %s", shortcut_id)
+                        self._current_user_prompt = f"Error running shortcut: {e}"
+                else:
+                    self._current_user_prompt = f'Shortcut "{shortcut_id}" not found.'
                 self.state_manager.transition_to(
                     AppState.LISTENING,
                     transcript=transcript,
@@ -1191,13 +1229,13 @@ async def get_shortcuts():
         raise HTTPException(status_code=503, detail="Server not initialized")
     try:
         prefs = server.profile_manager.load_preferences(DEFAULT_PROFILE_ID)
-        return {
-            "shortcuts": server.shortcut_manager.list_shortcuts(),
-            "custom_shortcuts_enabled": prefs.get("custom_shortcuts_enabled", False),
-            "recording": server.shortcut_manager.is_recording(),
-        }
     except ProfileNotFoundError:
-        raise HTTPException(status_code=404, detail="Profile not found")
+        prefs = {}
+    return {
+        "shortcuts": server.shortcut_manager.list_shortcuts(),
+        "custom_shortcuts_enabled": prefs.get("custom_shortcuts_enabled", False),
+        "recording": server.shortcut_manager.is_recording(),
+    }
 
 
 @app.post("/shortcuts")
@@ -1222,6 +1260,18 @@ async def delete_shortcut(shortcut_id: str):
         raise HTTPException(status_code=503, detail="Server not initialized")
     deleted = server.shortcut_manager.delete_shortcut(shortcut_id)
     return {"id": shortcut_id, "deleted": deleted}
+
+
+@app.post("/shortcuts/{shortcut_id}/run")
+async def run_shortcut(shortcut_id: str):
+    """Run all commands of a shortcut by id."""
+    if not server:
+        raise HTTPException(status_code=503, detail="Server not initialized")
+    try:
+        result = await server.run_shortcut(shortcut_id)
+        return result
+    except HTTPException:
+        raise
 
 
 # ============================================================================
