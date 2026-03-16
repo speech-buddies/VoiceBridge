@@ -10,7 +10,7 @@ import AccessibilityLayer from './utils/accessibilityLayer';
 
 const AUDIO_BACKEND_BASE = 'http://localhost:8000';
 const WS_URL = 'ws://localhost:8000/ws';
-const TRAINING_THRESHOLD_SEC = 1800; // 30 minutes
+const DEFAULT_TRAINING_THRESHOLD_SEC = 1800; // 30 minutes (fallback if API call fails)
 
 // ---------------------------------------------------------------------------
 // WebSocket hook — single persistent connection with exponential backoff
@@ -111,6 +111,28 @@ function usePreferences(addToast) {
 }
 
 // ---------------------------------------------------------------------------
+// Training config hook — fetches threshold from backend
+// ---------------------------------------------------------------------------
+function useTrainingConfig() {
+  const [config, setConfig] = useState({ 
+    audio_threshold_seconds: DEFAULT_TRAINING_THRESHOLD_SEC 
+  });
+
+  useEffect(() => {
+    fetch(`${AUDIO_BACKEND_BASE}/training/config`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data) setConfig(data);
+      })
+      .catch(() => {
+        // Fallback to default if fetch fails
+      });
+  }, []);
+
+  return config;
+}
+
+// ---------------------------------------------------------------------------
 // Training-status hook — reduced polling; WS pushes cover most updates
 // ---------------------------------------------------------------------------
 function useTrainingStatus(onProfileTab, trainingRunning) {
@@ -122,12 +144,19 @@ function useTrainingStatus(onProfileTab, trainingRunning) {
     try {
       const r = await fetch(`${AUDIO_BACKEND_BASE}/training/status`);
       if (!r.ok) throw new Error();
-      setData(await r.json());
+      const data = await r.json();
+      console.log('[useTrainingStatus] Fetched data:', data);
+      setData(data);
       setFailures(0);
     } catch {
       setFailures(n => n + 1);
     }
   }, []);
+
+  // Initial fetch on mount
+  useEffect(() => {
+    poll();
+  }, [poll]);
 
   useEffect(() => {
     clearInterval(timerRef.current);
@@ -138,7 +167,6 @@ function useTrainingStatus(onProfileTab, trainingRunning) {
       : trainingRunning ? 15_000
       : null;
     if (!interval) return;
-    poll();
     timerRef.current = setInterval(poll, interval);
     return () => clearInterval(timerRef.current);
   }, [onProfileTab, trainingRunning, poll]);
@@ -230,21 +258,42 @@ function ConfirmModal({ title, body, confirmLabel = 'Confirm', onConfirm, onCanc
 // ---------------------------------------------------------------------------
 // Profile tab
 // ---------------------------------------------------------------------------
-function ProfileTab({ prefs, savePrefs, trainingStatus, pollFailures, addToast }) {
+function ProfileTab({ prefs, savePrefs, trainingStatus, pollFailures, addToast, trainingThreshold }) {
   const [showLaunchModal, setShowLaunchModal] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [showDataWarningModal, setShowDataWarningModal] = useState(false);
   const [launching, setLaunching] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
 
   if (!prefs) {
     return <div className="profile-tab"><p className="profile-tab__loading">Loading…</p></div>;
   }
 
   const accSec     = trainingStatus?.accumulated_audio_seconds ?? 0;
-  const pct        = Math.min(100, Math.round((accSec / TRAINING_THRESHOLD_SEC) * 100));
+  const pct        = Math.min(100, Math.round((accSec / trainingThreshold) * 100));
   const inProgress = trainingStatus?.training_in_progress ?? false;
   const completed  = trainingStatus?.training_completed   ?? false;
-  const canLaunch  = accSec >= TRAINING_THRESHOLD_SEC && !inProgress && !completed;
-  const mins       = Math.floor(accSec / 60);
+  const error      = trainingStatus?.training_error ?? null;
+  const canLaunch  = accSec >= trainingThreshold && !inProgress && !completed;
+  
+  // Display in seconds if threshold < 60, otherwise minutes with 1 decimal
+  const useSeconds = trainingThreshold < 60;
+  const displayValue = useSeconds ? accSec : (accSec / 60).toFixed(1);
+  const displayThreshold = useSeconds ? trainingThreshold : (trainingThreshold / 60).toFixed(1);
+  const displayUnit = useSeconds ? 'sec' : 'min';
+  
   const stale      = pollFailures >= 3;
+
+  // Debug logging
+  console.log('[ProfileTab] Debug:', {
+    trainingStatus,
+    accSec,
+    displayValue,
+    threshold: trainingThreshold,
+    displayThreshold,
+    displayUnit,
+    pct
+  });
 
   const handleLaunch = async () => {
     setLaunching(true);
@@ -254,12 +303,47 @@ function ProfileTab({ prefs, savePrefs, trainingStatus, pollFailures, addToast }
       if (!r.ok) {
         const err = await r.json().catch(() => ({}));
         addToast(err.detail ?? 'Could not start training. Please try again.');
+      } else {
+        addToast('Training started in background');
       }
     } catch {
       addToast('Server unavailable — could not start training.');
     } finally {
       setLaunching(false);
     }
+  };
+
+  const handleCancel = async () => {
+    setCancelling(true);
+    setShowCancelModal(false);
+    try {
+      const r = await fetch(`${AUDIO_BACKEND_BASE}/training/cancel`, { method: 'POST' });
+      if (!r.ok) {
+        const err = await r.json().catch(() => ({}));
+        addToast(err.detail ?? 'Could not cancel training.');
+      } else {
+        addToast('Training cancelled');
+      }
+    } catch {
+      addToast('Server unavailable — could not cancel training.');
+    } finally {
+      setCancelling(false);
+    }
+  };
+
+  const handleTrainingToggle = (enabled) => {
+    if (enabled && !prefs.custom_training_enabled) {
+      // Show warning when enabling for the first time
+      setShowDataWarningModal(true);
+    } else {
+      // Directly disable without warning
+      savePrefs({ custom_training_enabled: enabled });
+    }
+  };
+
+  const confirmDataCollection = () => {
+    setShowDataWarningModal(false);
+    savePrefs({ custom_training_enabled: true });
   };
 
   return (
@@ -279,7 +363,7 @@ function ProfileTab({ prefs, savePrefs, trainingStatus, pollFailures, addToast }
             label="Collect Training Data"
             hint="Record audio to personalise your model"
             checked={prefs.custom_training_enabled ?? false}
-            onChange={v => savePrefs({ custom_training_enabled: v })}
+            onChange={handleTrainingToggle}
           />
           <PrefRow
             id="pref-shortcuts"
@@ -296,7 +380,7 @@ function ProfileTab({ prefs, savePrefs, trainingStatus, pollFailures, addToast }
         <div className="collect-card">
           <div className="status-card">
             <span className="status-card__label">Audio collected</span>
-            <span className="status-card__value">{mins} / {TRAINING_THRESHOLD_SEC / 60} min</span>
+            <span className="status-card__value">{displayValue} / {displayThreshold} {displayUnit}</span>
           </div>
 
           <div
@@ -319,16 +403,32 @@ function ProfileTab({ prefs, savePrefs, trainingStatus, pollFailures, addToast }
             </p>
           )}
 
+          {error && (
+            <p className="error-warning" role="alert">
+              ⚠ Training error: {error}
+            </p>
+          )}
+
           <div className="launch-block">
             {completed ? (
               <p className="launch-block__done">
                 ✓ Training complete. Restart the server to activate your model.
               </p>
             ) : inProgress ? (
-              <p className="launch-block__running" aria-live="polite">
-                <span className="launch-block__pulse" aria-hidden="true" />
-                Training in progress…
-              </p>
+              <>
+                <p className="launch-block__running" aria-live="polite">
+                  <span className="launch-block__pulse" aria-hidden="true" />
+                  Training in progress…
+                </p>
+                <button
+                  type="button"
+                  className="launch-block__btn launch-block__btn--cancel"
+                  disabled={cancelling}
+                  onClick={() => setShowCancelModal(true)}
+                >
+                  {cancelling ? 'Cancelling…' : 'Cancel Training'}
+                </button>
+              </>
             ) : (
               <button
                 type="button"
@@ -342,7 +442,7 @@ function ProfileTab({ prefs, savePrefs, trainingStatus, pollFailures, addToast }
             )}
             {!canLaunch && !inProgress && !completed && (
               <p className="launch-block__hint">
-                Collect {TRAINING_THRESHOLD_SEC / 60} minutes of audio to unlock.
+                Collect {displayThreshold} {displayUnit} of audio to unlock.
               </p>
             )}
           </div>
@@ -352,10 +452,30 @@ function ProfileTab({ prefs, savePrefs, trainingStatus, pollFailures, addToast }
       {showLaunchModal && (
         <ConfirmModal
           title="Start voice model training?"
-          body="Training runs in the background. Please keep the app open until the training job completes."
+          body="Training runs in the background. The server will remain responsive, but training may take several minutes depending on your data size."
           confirmLabel="Start Training"
           onConfirm={handleLaunch}
           onCancel={() => setShowLaunchModal(false)}
+        />
+      )}
+
+      {showCancelModal && (
+        <ConfirmModal
+          title="Cancel training?"
+          body="This will stop the current training job. Progress will not be saved."
+          confirmLabel="Cancel Training"
+          onConfirm={handleCancel}
+          onCancel={() => setShowCancelModal(false)}
+        />
+      )}
+
+      {showDataWarningModal && (
+        <ConfirmModal
+          title="Enable Training Data Collection?"
+          body="This will store audio recordings locally on the server to personalize your voice model. For 30 minutes of audio, approximately 150-200 MB of storage will be used. Audio files are saved in WAV format."
+          confirmLabel="Enable Data Collection"
+          onConfirm={confirmDataCollection}
+          onCancel={() => setShowDataWarningModal(false)}
         />
       )}
     </div>
@@ -391,6 +511,12 @@ function App() {
   const [toasts, setToasts] = useState([]);
   const [bannerDismissed, setBannerDismissed] = useState(false);
   const prevTrainingRunningRef = useRef(false);
+  
+  // Track shown notifications to prevent duplicates
+  const shownNotifications = useRef({
+    trainingComplete: false,
+    lastEpoch: -1,
+  });
 
   // Refs used inside the WS message handler (stale-closure-safe)
   const cancelledRef = useRef(false);
@@ -405,6 +531,8 @@ function App() {
 
   const { prefs, save: savePrefs } = usePreferences(addToast);
 
+  const trainingConfig = useTrainingConfig();
+
   const { data: trainingStatus, failures: pollFailures } = useTrainingStatus(
     activeTab === 'PROFILE',
     prefs?.training_in_progress ?? false,
@@ -413,9 +541,20 @@ function App() {
   // "model ready" toast on training completion
   useEffect(() => {
     if (prevTrainingRunningRef.current && trainingStatus?.training_completed) {
-      addToast('Your voice model is ready. Restart the server to activate it.');
-      setBannerDismissed(false);
+      // Only show if we haven't already shown the completion notification
+      if (!shownNotifications.current.trainingComplete) {
+        addToast('Your voice model is ready. Restart the server to activate it.');
+        setBannerDismissed(false);
+        shownNotifications.current.trainingComplete = true;
+      }
     }
+    
+    // Reset the flag when a new training starts
+    if (trainingStatus?.training_in_progress) {
+      shownNotifications.current.trainingComplete = false;
+      shownNotifications.current.lastEpoch = -1;
+    }
+    
     prevTrainingRunningRef.current = trainingStatus?.training_in_progress ?? false;
   }, [trainingStatus?.training_in_progress, trainingStatus?.training_completed, addToast]);
 
@@ -427,6 +566,42 @@ function App() {
   const handleServerMessage = useCallback((data) => {
     // Ignore keepalive frames
     if (data.type === 'ping' || data.type === 'pong') return;
+
+    // --- Training events ---
+    if (data.type === 'training_progress') {
+      // Real-time epoch progress - only show each epoch once
+      const epoch = data.epoch ?? -1;
+      if (epoch !== shownNotifications.current.lastEpoch) {
+        const loss = data.avg_loss != null ? data.avg_loss.toFixed(4) : 'N/A';
+        addToast(`Training: Epoch ${epoch} completed (loss: ${loss})`);
+        shownNotifications.current.lastEpoch = epoch;
+      }
+      return;
+    }
+
+    if (data.type === 'training_complete') {
+      // Only show completion notification once
+      if (!shownNotifications.current.trainingComplete) {
+        const evalLoss = data.eval_loss != null ? data.eval_loss.toFixed(4) : 'N/A';
+        addToast(`Training completed! Eval loss: ${evalLoss}`);
+        shownNotifications.current.trainingComplete = true;
+      }
+      // Force reload training status after a brief delay
+      setTimeout(() => {
+        fetch(`${AUDIO_BACKEND_BASE}/training/status`)
+          .then(r => r.ok ? r.json() : null)
+          .catch(() => {});
+      }, 500);
+      return;
+    }
+
+    if (data.type === 'training_error') {
+      addToast(`Training failed: ${data.error ?? 'Unknown error'}`);
+      // Reset flags on error
+      shownNotifications.current.trainingComplete = false;
+      shownNotifications.current.lastEpoch = -1;
+      return;
+    }
 
     const newAwaiting    = data.awaiting_confirmation ?? false;
     const newPending     = data.pending_command ?? null;
@@ -490,7 +665,7 @@ function App() {
     // --- errors ---
     if (data.error) setError(data.error);
     else if (data.type !== 'error') setError(null);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [addToast]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useServerSocket(handleServerMessage);
 
@@ -710,22 +885,47 @@ function App() {
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="20" height="20" aria-hidden="true">
                   <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
                 </svg>
-                {isTrainingCompleted && (
-                  <span className="profile-icon-btn__badge" aria-label="Restart required">↻</span>
-                )}
               </button>
             </div>
           </div>
         </header>
 
         <main className="App-main">
-          {activeTab === 'MAIN' && showBanner && isTrainingCompleted && (
-            <div className="train-banner train-banner--done" role="status" aria-live="polite">
-              <span className="train-banner__indicator train-banner__indicator--done" aria-hidden="true" />
-              <span className="train-banner__text">
-                Voice model ready — restart the server to activate.
-              </span>
-            </div>
+          {activeTab === 'MAIN' && showBanner && (
+            <>
+              {isTrainingInProgress && (
+                <div className="train-banner train-banner--running" role="status" aria-live="polite">
+                  <span className="train-banner__indicator train-banner__indicator--running" aria-hidden="true" />
+                  <span className="train-banner__text">
+                    Training in progress - VoiceBridge still responsive
+                  </span>
+                  <button
+                    type="button"
+                    className="train-banner__dismiss"
+                    onClick={() => setBannerDismissed(true)}
+                    aria-label="Dismiss notification"
+                  >
+                    ✕
+                  </button>
+                </div>
+              )}
+              {isTrainingCompleted && (
+                <div className="train-banner train-banner--done" role="status" aria-live="polite">
+                  <span className="train-banner__indicator train-banner__indicator--done" aria-hidden="true" />
+                  <span className="train-banner__text">
+                    Voice model ready — restart the server to activate.
+                  </span>
+                  <button
+                    type="button"
+                    className="train-banner__dismiss"
+                    onClick={() => setBannerDismissed(true)}
+                    aria-label="Dismiss notification"
+                  >
+                    ✕
+                  </button>
+                </div>
+              )}
+            </>
           )}
 
           <div className="main-container">
@@ -736,6 +936,7 @@ function App() {
                 trainingStatus={trainingStatus}
                 pollFailures={pollFailures}
                 addToast={addToast}
+                trainingThreshold={trainingConfig.audio_threshold_seconds}
               />
             ) : (
               <>
