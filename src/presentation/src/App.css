@@ -1188,3 +1188,269 @@
   outline: 2px solid var(--blue);
   outline-offset: 2px;
 }
+/* Training UI Additions for App.css */
+
+/* ========================================
+   App-main Layout Fix for Banner
+   ======================================== */
+.App-main {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  align-items: center; /* Center horizontally */
+}
+
+/* ========================================
+   Training Banner Styles
+   ======================================== */
+.train-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  margin: 0 0 16px 0;
+  border-radius: 8px;
+  font-size: 14px;
+  line-height: 1.5;
+  width: 100%;
+  max-width: 100%; /* Allow full width */
+  box-sizing: border-box;
+  flex-shrink: 0; /* Don't shrink the banner */
+}
+
+.train-banner--running {
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  color: #60a5fa;
+}
+
+.train-banner--done {
+  background: rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  color: #4ade80;
+}
+
+.train-banner__indicator {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.train-banner__indicator--running {
+  background: #60a5fa;
+  animation: pulse-indicator 2s ease-in-out infinite;
+}
+
+.train-banner__indicator--done {
+  background: #4ade80;
+}
+
+.train-banner__text {
+  flex: 1;
+}
+
+.train-banner__dismiss {
+  background: transparent;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  font-size: 18px;
+  padding: 4px;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+  flex-shrink: 0;
+}
+
+.train-banner__dismiss:hover {
+  opacity: 1;
+}
+
+@keyframes pulse-indicator {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(1.2);
+  }
+}
+
+/* Make sure main-container is centered and doesn't overflow */
+.main-container {
+  flex: 1;
+  width: 100%;
+  max-width: 100%;
+  display: flex;
+  justify-content: center; /* Center the content */
+  align-items: flex-start; /* Align to top */
+  /* Your existing main-container styles will be preserved */
+}
+
+/* ========================================
+   Profile Tab Enhancements
+   ======================================== */
+.launch-block__btn--cancel {
+  margin-top: 12px;
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.launch-block__btn--cancel:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: rgba(239, 68, 68, 0.5);
+}
+
+.error-warning {
+  margin-top: 12px;
+  padding: 12px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 6px;
+  color: #ef4444;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.stale-warning {
+  margin-top: 12px;
+  padding: 12px;
+  background: rgba(251, 191, 36, 0.1);
+  border: 1px solid rgba(251, 191, 36, 0.3);
+  border-radius: 6px;
+  color: #fbbf24;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* ========================================
+   Light Mode Overrides
+   ======================================== */
+.light-mode .train-banner--running {
+  background: rgba(59, 130, 246, 0.15);
+  border-color: rgba(59, 130, 246, 0.4);
+  color: #2563eb;
+}
+
+.light-mode .train-banner--done {
+  background: rgba(34, 197, 94, 0.15);
+  border-color: rgba(34, 197, 94, 0.4);
+  color: #16a34a;
+}
+
+.light-mode .train-banner__indicator--running {
+  background: #2563eb;
+}
+
+.light-mode .train-banner__indicator--done {
+  background: #16a34a;
+}
+
+.light-mode .launch-block__btn--cancel {
+  background: rgba(239, 68, 68, 0.15);
+  color: #dc2626;
+  border-color: rgba(239, 68, 68, 0.4);
+}
+
+.light-mode .launch-block__btn--cancel:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.25);
+  border-color: rgba(239, 68, 68, 0.6);
+}
+
+.light-mode .error-warning {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #dc2626;
+}
+
+.light-mode .stale-warning {
+  background: rgba(251, 191, 36, 0.15);
+  border-color: rgba(251, 191, 36, 0.4);
+  color: #d97706;
+}
+
+/* ========================================
+   Toast Enhancements
+   ======================================== */
+.toast {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  background: rgba(31, 41, 55, 0.95);
+  border: 1px solid rgba(75, 85, 99, 0.5);
+  border-radius: 8px;
+  color: #f3f4f6;
+  font-size: 14px;
+  line-height: 1.5;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+  animation: toast-slide-in 0.3s ease-out;
+}
+
+.light-mode .toast {
+  background: rgba(255, 255, 255, 0.95);
+  border-color: rgba(209, 213, 219, 0.8);
+  color: #1f2937;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.toast__msg {
+  flex: 1;
+}
+
+.toast__x {
+  background: transparent;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  font-size: 18px;
+  padding: 4px;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+}
+
+.toast__x:hover {
+  opacity: 1;
+}
+
+.toast-stack {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  z-index: 10000;
+  pointer-events: none;
+}
+
+.toast-stack > * {
+  pointer-events: auto;
+}
+
+@keyframes toast-slide-in {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* ========================================
+   Accessibility
+   ======================================== */
+@media (prefers-reduced-motion: reduce) {
+  .train-banner__indicator--running {
+    animation: none;
+  }
+  
+  .toast {
+    animation: none;
+  }
+}

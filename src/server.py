@@ -41,6 +41,9 @@ from data import training_data_recorder
 from data.feedback_store import FeedbackStore
 from personalization.whisper_lora_trainer import WhisperLoRATrainer
 
+# Training configuration
+TRAINING_AUDIO_THRESHOLD_SEC = 30
+
 # Windows compatibility
 if sys.platform.startswith("win"):
     asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
@@ -1025,7 +1028,7 @@ class VoiceBridgeServer:
                 output_dir=output_dir,
                 on_epoch_end=on_epoch_end,
                 on_batch_end=on_batch_end,
-                epochs=prefs.get("training_epochs", 3),
+                epochs=1,
                 batch_size=prefs.get("training_batch_size", 2),
                 lr=prefs.get("training_lr", 1e-4),
             )
@@ -1470,13 +1473,26 @@ async def get_training_status():
         raise HTTPException(status_code=404, detail="Profile not found")
 
 
+@app.get("/training/config")
+async def get_training_config():
+    """
+    Return training configuration including thresholds.
+    
+    Allows frontend to dynamically fetch requirements instead of hardcoding.
+    """
+    return {
+        "audio_threshold_seconds": TRAINING_AUDIO_THRESHOLD_SEC,
+        "audio_threshold_minutes": TRAINING_AUDIO_THRESHOLD_SEC / 60,
+    }
+
+
 @app.post("/training/start")
 async def start_training():
     """
     Launch a background voice-model training job.
 
     400 — training not enabled (custom_training_enabled is False)
-    409 — a job is already running or has completed
+    409 — a job is already running
     """
     if not server:
         raise HTTPException(status_code=503, detail="Server not initialized")
@@ -1493,12 +1509,26 @@ async def start_training():
         )
     if prefs.get("training_in_progress", False):
         raise HTTPException(status_code=409, detail="A training job is already running.")
+    
+    # Check if enough audio data has been collected
+    accumulated_sec = prefs.get("accumulated_audio_seconds", 0)
+    if accumulated_sec < TRAINING_AUDIO_THRESHOLD_SEC:
+        minutes_needed = TRAINING_AUDIO_THRESHOLD_SEC / 60
+        minutes_collected = accumulated_sec / 60
+        raise HTTPException(
+            status_code=400,
+            detail=f"Not enough training data. Need {minutes_needed:.0f} minutes, have {minutes_collected:.1f} minutes.",
+        )
+    
+    # Allow starting new training even if previous training completed
+    # The completed flag will be reset when the new job starts
     if prefs.get("training_completed", False):
-        raise HTTPException(status_code=409, detail="Training has already completed.")
+        logger.info("Starting new training - resetting completed flag")
 
-    # Mark job as started
+    # Mark job as started and reset completed flag
     server.profile_manager.set_training_state(
         training_in_progress=True,
+        training_completed=False,  # Reset for new training run
         profile_id=DEFAULT_PROFILE_ID,
     )
     
@@ -1554,6 +1584,36 @@ async def cancel_training():
     
     logger.info("Training job cancelled")
     return {"cancelled": True}
+
+
+@app.post("/training/reset")
+async def reset_training_state():
+    """
+    Reset training state flags.
+    
+    Clears training_completed and training_error to allow starting fresh.
+    Useful after server restart or when you want to clear old training state.
+    """
+    if not server:
+        raise HTTPException(status_code=503, detail="Server not initialized")
+    
+    try:
+        server.profile_manager.set_training_state(
+            training_in_progress=False,
+            training_completed=False,
+            profile_id=DEFAULT_PROFILE_ID,
+        )
+        server._training_error = None
+        
+        logger.info("Training state reset")
+        return {
+            "reset": True,
+            "training_in_progress": False,
+            "training_completed": False,
+            "training_error": None
+        }
+    except ProfileNotFoundError:
+        raise HTTPException(status_code=404, detail="Profile not found")
 
 
 @app.get("/shortcuts")
