@@ -410,3 +410,4 @@ data/preferences.json
 data/training/*
 command_cache.json
 data/consent_log.jsonl
+shortcuts.json
