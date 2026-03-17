@@ -421,7 +421,7 @@ class VoiceBridgeServer:
                     _idx = _display.lower().index(_marker)
                     _display = _display[:_idx]
             _display = _display.rstrip(".,; ")
-            self._current_user_prompt = f'"{_display}" — say yes to confirm or no to cancel.'
+            self._current_user_prompt = f'"{_display}"'
             self._last_command = clarified_command
 
             # Push updated confirmation state to all WS clients
