@@ -62,6 +62,7 @@
 }
 .App {
   min-height: 100vh;
+  width: 100%;
   display: flex;
   flex-direction: column;
   transition: background-color 0.3s ease, color 0.3s ease;
@@ -72,18 +73,18 @@
   min-height: 100vh;
   display: flex;
   align-items: flex-start;
-  justify-content: center;
-  padding: 12px 10px 10px 10px;
+  justify-content: flex-start;
+  padding: 0;
   position: relative;
   background: transparent !important;
+  width: 100%;
 }
 
 .extension-container {
   background: transparent;
-  border-radius: 16px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
   width: 100%;
-  max-height: 98vh;
+  min-height: 100vh;
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -111,10 +112,10 @@
 }
 
 .App-header {
-  padding: 1rem 1.5rem 0.75rem;
+  padding: 2rem 1.5rem 1rem;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
   transition: background 0.3s ease, border-color 0.3s ease;
-  border-radius: 16px 16px 0 0;
+  border-radius: 0;
 }
 
 .dark-mode .App-header {
@@ -131,9 +132,9 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  max-width: 1400px;
-  margin: 0 auto;
   width: 100%;
+  max-width: none;
+  margin: 0;
   position: relative;
   gap: 2rem;
 }
@@ -147,6 +148,7 @@
 
 .header-content > div {
   text-align: center;
+  padding-top: 0.25rem;
 }
 
 .theme-toggle,
@@ -217,7 +219,7 @@
   letter-spacing: -0.02em;
   font-family: inherit;
   transition: opacity 0.2s ease;
-  line-height: 1;
+  line-height: 1.25;
 }
 .title-btn:hover { opacity: 0.75; }
 .title-btn:focus-visible {
@@ -325,7 +327,7 @@
   padding: 0.75rem 1rem;
   transition: background 0.3s ease;
   overflow-y: auto;
-  border-radius: 0 0 16px 16px;
+  border-radius: 0;
 }
 
 .dark-mode .App-main {
@@ -341,8 +343,8 @@
   flex-direction: row;
   flex-wrap: nowrap;
   gap: 0.5rem;
-  max-width: 1400px;
   width: 100%;
+  max-width: none;
   align-items: stretch;
 }
 
@@ -1304,16 +1306,6 @@
 /* Training UI Additions for App.css */
 
 /* ========================================
-   App-main Layout Fix for Banner
-   ======================================== */
-.App-main {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  align-items: center; /* Center horizontally */
-}
-
-/* ========================================
    Training Banner Styles
    ======================================== */
 .train-banner {
@@ -1392,14 +1384,15 @@
 
 /* Make sure main-container is centered and doesn't overflow */
 .main-container {
-  flex: 1;
-  width: 100%;
-  max-width: 100%;
   display: flex;
-  justify-content: center; /* Center the content */
-  align-items: flex-start; /* Align to top */
-  /* Your existing main-container styles will be preserved */
+  flex-direction: row;
+  flex-wrap: nowrap;
+  gap: 0.5rem;
+  width: 100%;
+  max-width: none;
+  align-items: stretch;
 }
+  /* Your existing main-container styles will be preserved */
 
 /* ========================================
    Profile Tab Enhancements
