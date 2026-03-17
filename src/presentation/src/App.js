@@ -1019,7 +1019,7 @@ function App() {
                   {userPrompt && !cancelled && (awaitingConfirmation || !pendingCommand) && (
                     <div
                       className={`system-message-alert${awaitingConfirmation ? ' confirmation-ready' : ''}`}
-                      style={{ marginBottom: 20, maxWidth: '100%' }}
+                      style={{ maxWidth: '100%' }}
                     >
                       <div className="system-message-icon">
                         {awaitingConfirmation ? '✅' : 'ℹ️'}
@@ -1030,7 +1030,7 @@ function App() {
                       </div>
                     </div>
                   )}
-                  
+
                   {renderConfirmationUI()}
 
                   <section className="llm-response-panel" aria-label="User Transcript">

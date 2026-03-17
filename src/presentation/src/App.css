@@ -151,6 +151,7 @@
 .header-content > div {
   text-align: center;
   padding-top: 0.25rem;
+  padding-bottom: 0.25rem;
 }
 
 .theme-toggle,
@@ -327,7 +328,7 @@
   display: flex;
   justify-content: center;
   align-items: stretch;
-  padding: 0.75rem 1rem;
+  padding: 2.5rem 1rem;
   transition: background 0.3s ease;
   overflow-y: auto;
   border-radius: 0;
@@ -354,7 +355,7 @@
 .left-panel {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 1rem;
   flex: 1 1 0;
   min-width: 0;
   overflow: hidden;
@@ -407,6 +408,7 @@
 .right-panel {
   display: flex;
   flex-direction: column;
+  gap: 1rem;
   flex: 1 1 0;
   min-width: 0;
   overflow: hidden;
@@ -416,7 +418,6 @@
 .llm-response-panel {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
   padding: 0.5rem 0.75rem;
   border-radius: 12px;
   border: 1px dashed;
@@ -486,7 +487,7 @@
   display: flex;
   gap: 12px;
   padding: 16px;
-  margin-bottom: 16px;
+  margin-bottom: 0;
   background-color: #e6f2ff;
   border: 1px solid #4a90e2;
   border-radius: 8px;
@@ -619,11 +620,11 @@
   }
 
   /* When stacked, right panel (status/command info) floats to the top
-     so the user always sees what's happening before the mic controls */
+     so the user always sees what's happening before the mic controls 
   .right-panel {
     order: -1;
-  }
-}
+  }*/
+} 
 
 @media (max-width: 960px) {
   .App-header h1 {
@@ -640,7 +641,7 @@
   }
 
   .App-main {
-    padding: 0.5rem 0.75rem;
+    padding-top: 2.5rem;
   }
 }
 
@@ -650,7 +651,7 @@
   }
 
   .App-main {
-    padding: 0.5rem;
+    padding: 2.5rem;
   }
 }
 
@@ -712,11 +713,8 @@
 .confirmation-ui {
   border-radius: 10px;
   padding: 14px 16px;
-  margin-top: 0.5rem;
-  margin-bottom: 0.5rem;
   display: flex;
   flex-direction: column;
-  gap: 12px;
   animation: slideDown 0.2s ease;
 }
 
