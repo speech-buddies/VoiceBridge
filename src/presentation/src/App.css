@@ -17,6 +17,7 @@
   .llm-response-panel {
     max-width: 100vw;
     min-width: 0;
+    margin-top: 0.5rem;
     overflow-x: auto;
   }
   .App-header, .App-main, .App-footer {
@@ -130,20 +131,21 @@
 
 .header-content {
   display: flex;
-  justify-content: center;
   align-items: center;
+  justify-content: center;
   width: 100%;
-  max-width: none;
-  margin: 0;
   position: relative;
   gap: 2rem;
 }
 
 .header-controls {
+  position: absolute;
+  right: 1.5rem;
+  top: 50%;
+  transform: translateY(-50%);
   display: flex;
   gap: 10px;
   align-items: center;
-  justify-content: center;
 }
 
 .header-content > div {
@@ -214,12 +216,12 @@
   padding: 0;
   margin: 0;
   cursor: pointer;
-  font-size: 2.5rem;
+  font-size: 3.0rem;
   font-weight: 700;
   letter-spacing: -0.02em;
   font-family: inherit;
   transition: opacity 0.2s ease;
-  line-height: 1.25;
+  line-height: 1.45;
 }
 .title-btn:hover { opacity: 0.75; }
 .title-btn:focus-visible {
@@ -306,9 +308,10 @@
 
 
 .subtitle {
-  font-size: 0.9rem;
+  font-size: 1.1rem;
   font-weight: 300;
   transition: color 0.3s ease;
+  padding-bottom: 0.5rem;
 }
 
 .dark-mode .subtitle {
@@ -628,7 +631,8 @@
   }
 
   .subtitle {
-    font-size: 0.8rem;
+    font-size: 1.1rem;
+    padding-bottom: 0.5rem;
   }
 
   .App-header {
@@ -708,7 +712,8 @@
 .confirmation-ui {
   border-radius: 10px;
   padding: 14px 16px;
-  margin-top: 12px;
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
   display: flex;
   flex-direction: column;
   gap: 12px;
