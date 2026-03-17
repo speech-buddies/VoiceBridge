@@ -338,11 +338,12 @@ class VoiceBridgeServer:
         Flow:
         1. Call orchestrator to check if command is clear
         2. If orchestrator needs clarification -> return user_prompt
-        3. If orchestrator returns clarified command -> pass to browser controller
+        3. If orchestrator returns clarified command -> pass to _handle_clarified_command
         
         Args:
             transcript: User's transcript
             conversation_context: Conversation history
+            initial_intent: First-turn transcript used as the cache key
             
         Returns:
             dict with either:
@@ -404,58 +405,8 @@ class VoiceBridgeServer:
                 }
             logger.info(f"Orchestrator clarified command: '{clarified_command}'")
 
-
-            # Only require confirmation if training mode is enabled
-            prefs = self.profile_manager.load_preferences(DEFAULT_PROFILE_ID)
-            if prefs.get("custom_training_enabled", False):
-                # Enter confirmation gate
-                self._pending_command = clarified_command
-                self._awaiting_confirmation = True
-                # Build user-facing command summary.
-                _trim_markers = [" and keep", " and keep it", " until the user", " while ", " unless"]
-                _display = clarified_command
-                for _marker in _trim_markers:
-                    if _marker in _display.lower():
-                        _idx = _display.lower().index(_marker)
-                        _display = _display[:_idx]
-                _display = _display.rstrip(".,; ")
-                self._current_user_prompt = f'"{_display}"'
-                self._last_command = clarified_command
-                # Push updated confirmation state to all WS clients
-                await self._push_status("confirmation_ready")
-                return {
-                    "needs_input": True,
-                    "awaiting_confirmation": True,
-                    "user_prompt": self._current_user_prompt,
-                }
-            else:
-                # No confirmation needed, execute immediately
-                self._last_command = clarified_command
-                self._current_user_prompt = None
-                self._awaiting_confirmation = False
-                self._pending_command = None
-                # Execute the command directly
-                self.state_manager.transition_to(AppState.EXECUTING, transcript=clarified_command)
-                try:
-                    result = await self._execute_browser_command(clarified_command)
-                except Exception as e:
-                    logger.error(f"Execution error: {e}")
-                    self.state_manager.handle_error(str(e))
-                    await self._push_status("error")
-                    raise HTTPException(status_code=500, detail=f"Command execution error: {e}")
-                # Back to listening
-                await asyncio.sleep(0.1)
-                if self.is_voice_mode_active:
-                    self.state_manager.transition_to(AppState.LISTENING)
-                else:
-                    self.state_manager.transition_to(AppState.IDLE)
-                await self._push_status("executed")
-                return {
-                    "needs_input": False,
-                    "success": True,
-                    "command": clarified_command,
-                    "details": result.get("history") if result else None
-                }
+            # Step 4: Route to confirmation gate or immediate execution
+            return await self._handle_clarified_command(clarified_command)
             
         except OrchestratorError as e:
             logger.error(f"Orchestrator error: {e}")
@@ -466,7 +417,78 @@ class VoiceBridgeServer:
             logger.error(f"Error in parse_and_execute_command: {e}")
             self.state_manager.transition_to(AppState.ERROR, error=str(e))
             raise HTTPException(status_code=500, detail=f"Command execution error: {e}")
-    
+
+    async def _handle_clarified_command(self, clarified_command: str) -> dict:
+        """
+        Route a fully clarified command to either the confirmation gate
+        (training mode) or immediate execution (normal mode).
+
+        Called by parse_and_execute_command once the orchestrator has
+        produced a clean command and guardrails have passed.
+        """
+        prefs = self.profile_manager.load_preferences(DEFAULT_PROFILE_ID)
+
+        if prefs.get("custom_training_enabled", False):
+            return await self._enter_confirmation_gate(clarified_command)
+        else:
+            return await self._execute_immediately(clarified_command)
+
+    async def _enter_confirmation_gate(self, clarified_command: str) -> dict:
+        """
+        Pause execution and ask the user to confirm the command.
+        Used only when training mode is active.
+        """
+        self._pending_command = clarified_command
+        self._awaiting_confirmation = True
+        self._last_command = clarified_command
+
+        # Trim trailing clauses that bloat the display (e.g. "and keep it playing until...")
+        _trim_markers = [" and keep", " and keep it", " until the user", " while ", " unless"]
+        display = clarified_command
+        for marker in _trim_markers:
+            if marker in display.lower():
+                display = display[:display.lower().index(marker)]
+        display = display.rstrip(".,; ")
+        self._current_user_prompt = f'"{display}"'
+
+        await self._push_status("confirmation_ready")
+        return {
+            "needs_input": True,
+            "awaiting_confirmation": True,
+            "user_prompt": self._current_user_prompt,
+        }
+
+    async def _execute_immediately(self, clarified_command: str) -> dict:
+        """
+        Execute a clarified command directly, without a confirmation gate.
+        Used in normal (non-training) mode.
+        """
+        self._last_command = clarified_command
+        self._current_user_prompt = None
+        self._awaiting_confirmation = False
+        self._pending_command = None
+
+        self.state_manager.transition_to(AppState.EXECUTING, transcript=clarified_command)
+        try:
+            result = await self._execute_browser_command(clarified_command)
+        except Exception as e:
+            logger.error(f"Execution error: {e}")
+            self.state_manager.handle_error(str(e))
+            await self._push_status("error")
+            raise HTTPException(status_code=500, detail=f"Command execution error: {e}")
+
+        await asyncio.sleep(0.1)
+        next_state = AppState.LISTENING if self.is_voice_mode_active else AppState.IDLE
+        self.state_manager.transition_to(next_state)
+        await self._push_status("executed")
+
+        return {
+            "needs_input": False,
+            "success": True,
+            "command": clarified_command,
+            "details": result.get("history") if result else None,
+        }
+
     async def _execute_browser_command(self, clarified_command: str) -> dict:
         """
         Execute a natural language command via the browser controller.
@@ -1488,6 +1510,7 @@ async def get_training_status():
     try:
         prefs = server.profile_manager.load_preferences(DEFAULT_PROFILE_ID)
         return {
+            "custom_training_enabled":   prefs.get("custom_training_enabled",   False),
             "training_in_progress":      prefs.get("training_in_progress",      False),
             "training_completed":        prefs.get("training_completed",        False),
             "accumulated_audio_seconds": prefs.get("accumulated_audio_seconds", 0),
