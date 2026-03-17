@@ -1,5 +1,69 @@
+@media (max-width: 1200px) and (min-width: 701px) {
+  .main-container {
+    flex-wrap: wrap;
+    gap: 1rem;
+    width: 100%;
+    min-width: 0;
+    max-width: 100vw;
+  }
+  .left-panel,
+  .right-panel {
+    flex: 1 1 100%;
+    min-width: 0;
+    max-width: 100vw;
+    width: 100%;
+    overflow: visible;
+  }
+  .llm-response-panel {
+    max-width: 100vw;
+    min-width: 0;
+    margin-top: 0.5rem;
+    overflow-x: auto;
+  }
+  .App-header, .App-main, .App-footer {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  .header-content {
+    flex-direction: column;
+    gap: 1.2rem;
+    align-items: stretch;
+  }
+}
+@media (max-width: 1000px) and (min-width: 701px) {
+  .main-container {
+    flex-direction: column;
+    gap: 0.75rem;
+    width: 100%;
+    min-width: 0;
+    max-width: 100vw;
+  }
+  .left-panel,
+  .right-panel {
+    width: 100%;
+    min-width: 0;
+    max-width: 100vw;
+    flex: 1 1 100%;
+    overflow: visible;
+  }
+  .llm-response-panel {
+    max-width: 100vw;
+    min-width: 0;
+    overflow-x: auto;
+  }
+  .App-header, .App-main, .App-footer {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  .header-content {
+    flex-direction: column;
+    gap: 1.2rem;
+    align-items: stretch;
+  }
+}
 .App {
   min-height: 100vh;
+  width: 100%;
   display: flex;
   flex-direction: column;
   transition: background-color 0.3s ease, color 0.3s ease;
@@ -10,18 +74,18 @@
   min-height: 100vh;
   display: flex;
   align-items: flex-start;
-  justify-content: center;
-  padding: 24px 20px 20px 20px;
+  justify-content: flex-start;
+  padding: 0;
   position: relative;
   background: transparent !important;
+  width: 100%;
 }
 
 .extension-container {
   background: transparent;
-  border-radius: 16px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
   width: 100%;
-  max-height: 90vh;
+  min-height: 100vh;
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -49,10 +113,10 @@
 }
 
 .App-header {
-  padding: 2rem;
+  padding: 2rem 1.5rem 1rem;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
   transition: background 0.3s ease, border-color 0.3s ease;
-  border-radius: 16px 16px 0 0;
+  border-radius: 0;
 }
 
 .dark-mode .App-header {
@@ -67,24 +131,27 @@
 
 .header-content {
   display: flex;
-  justify-content: center;
   align-items: center;
-  max-width: 1400px;
-  margin: 0 auto;
+  justify-content: center;
   width: 100%;
   position: relative;
   gap: 2rem;
 }
 
 .header-controls {
+  position: absolute;
+  right: 1.5rem;
+  top: 50%;
+  transform: translateY(-50%);
   display: flex;
   gap: 10px;
   align-items: center;
-  justify-content: center;
 }
 
 .header-content > div {
   text-align: center;
+  padding-top: 0.25rem;
+  padding-bottom: 0.25rem;
 }
 
 .theme-toggle,
@@ -150,12 +217,12 @@
   padding: 0;
   margin: 0;
   cursor: pointer;
-  font-size: 2.5rem;
+  font-size: 3.0rem;
   font-weight: 700;
   letter-spacing: -0.02em;
   font-family: inherit;
   transition: opacity 0.2s ease;
-  line-height: 1;
+  line-height: 1.45;
 }
 .title-btn:hover { opacity: 0.75; }
 .title-btn:focus-visible {
@@ -233,8 +300,8 @@
 }
 
 .App-header h1 {
-  font-size: 2.5rem;
-  margin-bottom: 0.5rem;
+  font-size: 1.8rem;
+  margin-bottom: 0.25rem;
   font-weight: 700;
   letter-spacing: -0.02em;
   transition: background 0.3s ease;
@@ -245,6 +312,7 @@
   font-size: 1.1rem;
   font-weight: 300;
   transition: color 0.3s ease;
+  padding-bottom: 0.5rem;
 }
 
 .dark-mode .subtitle {
@@ -260,10 +328,10 @@
   display: flex;
   justify-content: center;
   align-items: stretch;
-  padding: 1rem 2rem;
+  padding: 2.5rem 1rem;
   transition: background 0.3s ease;
   overflow-y: auto;
-  border-radius: 0 0 16px 16px;
+  border-radius: 0;
 }
 
 .dark-mode .App-main {
@@ -278,16 +346,16 @@
   display: flex;
   flex-direction: row;
   flex-wrap: nowrap;
-  gap: 0.75rem;
-  max-width: 1400px;
+  gap: 0.5rem;
   width: 100%;
+  max-width: none;
   align-items: stretch;
 }
 
 .left-panel {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 1rem;
   flex: 1 1 0;
   min-width: 0;
   overflow: hidden;
@@ -340,6 +408,7 @@
 .right-panel {
   display: flex;
   flex-direction: column;
+  gap: 1rem;
   flex: 1 1 0;
   min-width: 0;
   overflow: hidden;
@@ -349,7 +418,6 @@
 .llm-response-panel {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
   padding: 0.5rem 0.75rem;
   border-radius: 12px;
   border: 1px dashed;
@@ -419,7 +487,7 @@
   display: flex;
   gap: 12px;
   padding: 16px;
-  margin-bottom: 16px;
+  margin-bottom: 0;
   background-color: #e6f2ff;
   border: 1px solid #4a90e2;
   border-radius: 8px;
@@ -545,28 +613,80 @@
   border-top: 1px solid rgba(0, 0, 0, 0.1);
 }
 
-@media (max-width: 680px) {
+@media (max-width: 860px) {
   .main-container {
     flex-direction: column;
-    gap: 0.75rem;
+    gap: 0.5rem;
   }
 
   /* When stacked, right panel (status/command info) floats to the top
-     so the user always sees what's happening before the mic controls */
+     so the user always sees what's happening before the mic controls 
   .right-panel {
     order: -1;
+  }*/
+} 
+
+@media (max-width: 960px) {
+  .App-header h1 {
+    font-size: 1.5rem;
+  }
+
+  .subtitle {
+    font-size: 1.1rem;
+    padding-bottom: 0.5rem;
+  }
+
+  .App-header {
+    padding: 0.75rem 1rem 0.5rem;
+  }
+
+  .App-main {
+    padding-top: 2.5rem;
   }
 }
 
 @media (max-width: 768px) {
   .App-header h1 {
-    font-size: 2rem;
+    font-size: 1.4rem;
   }
 
   .App-main {
-    padding: 1rem;
+    padding: 2.5rem;
   }
 }
+
+@media (max-width: 600px) {
+  .main-container {
+    flex-direction: column;
+    gap: 0.5rem;
+    width: 100%;
+    min-width: 0;
+    max-width: 100vw;
+  }
+  .left-panel,
+  .right-panel {
+    width: 100%;
+    min-width: 0;
+    max-width: 100vw;
+    flex: 1 1 100%;
+    overflow: visible;
+  }
+  .llm-response-panel {
+    max-width: 100vw;
+    min-width: 0;
+    overflow-x: auto;
+  }
+  .App-header, .App-main, .App-footer {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+  }
+  .header-content {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: stretch;
+  }
+}
+
 
 /* Confirmation-ready alert */
 .system-message-alert.confirmation-ready {
@@ -593,10 +713,8 @@
 .confirmation-ui {
   border-radius: 10px;
   padding: 14px 16px;
-  margin-top: 12px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
   animation: slideDown 0.2s ease;
 }
 
@@ -1191,16 +1309,6 @@
 /* Training UI Additions for App.css */
 
 /* ========================================
-   App-main Layout Fix for Banner
-   ======================================== */
-.App-main {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  align-items: center; /* Center horizontally */
-}
-
-/* ========================================
    Training Banner Styles
    ======================================== */
 .train-banner {
@@ -1279,14 +1387,15 @@
 
 /* Make sure main-container is centered and doesn't overflow */
 .main-container {
-  flex: 1;
-  width: 100%;
-  max-width: 100%;
   display: flex;
-  justify-content: center; /* Center the content */
-  align-items: flex-start; /* Align to top */
-  /* Your existing main-container styles will be preserved */
+  flex-direction: row;
+  flex-wrap: nowrap;
+  gap: 0.5rem;
+  width: 100%;
+  max-width: none;
+  align-items: stretch;
 }
+  /* Your existing main-container styles will be preserved */
 
 /* ========================================
    Profile Tab Enhancements
