@@ -404,34 +404,58 @@ class VoiceBridgeServer:
                 }
             logger.info(f"Orchestrator clarified command: '{clarified_command}'")
 
-            # ----------------------------------------------------------------
-            # Complete command ready → enter confirmation gate.
-            # We stay in LISTENING state; _awaiting_confirmation=True means
-            # the next audio chunk will be routed to _process_confirmation.
-            # ----------------------------------------------------------------
-            self._pending_command = clarified_command
-            self._awaiting_confirmation = True
-            # Build user-facing command summary.
-            # Remove continuation clauses (e.g., "and keep", "until", "while")
-            # so the confirmation prompt shows only the primary action.
-            _trim_markers = [" and keep", " and keep it", " until the user", " while ", " unless"]
-            _display = clarified_command
-            for _marker in _trim_markers:
-                if _marker in _display.lower():
-                    _idx = _display.lower().index(_marker)
-                    _display = _display[:_idx]
-            _display = _display.rstrip(".,; ")
-            self._current_user_prompt = f'"{_display}" — say yes to confirm or no to cancel.'
-            self._last_command = clarified_command
 
-            # Push updated confirmation state to all WS clients
-            await self._push_status("confirmation_ready")
-
-            return {
-                "needs_input": True,
-                "awaiting_confirmation": True,
-                "user_prompt": self._current_user_prompt,
-            }
+            # Only require confirmation if training mode is enabled
+            prefs = self.profile_manager.load_preferences(DEFAULT_PROFILE_ID)
+            if prefs.get("custom_training_enabled", False):
+                # Enter confirmation gate
+                self._pending_command = clarified_command
+                self._awaiting_confirmation = True
+                # Build user-facing command summary.
+                _trim_markers = [" and keep", " and keep it", " until the user", " while ", " unless"]
+                _display = clarified_command
+                for _marker in _trim_markers:
+                    if _marker in _display.lower():
+                        _idx = _display.lower().index(_marker)
+                        _display = _display[:_idx]
+                _display = _display.rstrip(".,; ")
+                self._current_user_prompt = f'"{_display}"'
+                self._last_command = clarified_command
+                # Push updated confirmation state to all WS clients
+                await self._push_status("confirmation_ready")
+                return {
+                    "needs_input": True,
+                    "awaiting_confirmation": True,
+                    "user_prompt": self._current_user_prompt,
+                }
+            else:
+                # No confirmation needed, execute immediately
+                self._last_command = clarified_command
+                self._current_user_prompt = None
+                self._awaiting_confirmation = False
+                self._pending_command = None
+                # Execute the command directly
+                self.state_manager.transition_to(AppState.EXECUTING, transcript=clarified_command)
+                try:
+                    result = await self._execute_browser_command(clarified_command)
+                except Exception as e:
+                    logger.error(f"Execution error: {e}")
+                    self.state_manager.handle_error(str(e))
+                    await self._push_status("error")
+                    raise HTTPException(status_code=500, detail=f"Command execution error: {e}")
+                # Back to listening
+                await asyncio.sleep(0.1)
+                if self.is_voice_mode_active:
+                    self.state_manager.transition_to(AppState.LISTENING)
+                else:
+                    self.state_manager.transition_to(AppState.IDLE)
+                await self._push_status("executed")
+                return {
+                    "needs_input": False,
+                    "success": True,
+                    "command": clarified_command,
+                    "details": result.get("history") if result else None
+                }
             
         except OrchestratorError as e:
             logger.error(f"Orchestrator error: {e}")
