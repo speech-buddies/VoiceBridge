@@ -12,6 +12,7 @@ Key improvements:
 1. Cleaner parse_and_execute_command function
 2. Better state management for conversation flow
 3. Clear separation: Orchestrator for clarification, Browser controller for execution
+4. WebSocket-based status push (replaces client polling)
 """
 
 import asyncio
@@ -21,6 +22,7 @@ import sys
 import threading
 from typing import Optional, List
 from contextlib import asynccontextmanager
+from concurrent.futures import ThreadPoolExecutor
 
 import numpy as np
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Request, Query
@@ -34,8 +36,13 @@ from control.session_manager import get_browser, start_session, stop_session
 from app.command_orchestrator import CommandOrchestrator, OrchestratorError
 from app.speech_to_text_engine import SpeechToTextEngine
 from app.user_profile_manager import UserProfileManager, DEFAULT_PROFILE_ID, ProfileNotFoundError
+from app.shortcut_manager import ShortcutManager
 from data import training_data_recorder
 from data.feedback_store import FeedbackStore
+from personalization.whisper_lora_trainer import WhisperLoRATrainer
+
+# Training configuration
+TRAINING_AUDIO_THRESHOLD_SEC = 30
 
 # Windows compatibility
 if sys.platform.startswith("win"):
@@ -163,7 +170,11 @@ class VoiceBridgeServer:
         self.is_voice_mode_active = False
         self._browser_session_started = False
         self._session_lock = asyncio.Lock()
+        self.shortcut_manager = ShortcutManager()
+
+        self._command_processing_lock = asyncio.Lock()
         
+    
         # Initialize modules
         self.speech_to_text = SpeechToTextEngine()
         
@@ -198,34 +209,91 @@ class VoiceBridgeServer:
         # _pending_command holds the clarified command text until confirmed
         self._awaiting_confirmation: bool = False
         self._pending_command: Optional[str] = None
-        self._pending_audio: Optional[bytes] = None  # audio for the pending command
-        self._pending_transcript: Optional[bytes] = None
+        self._pending_audio_turns: list[bytes] = []
+        self._pending_transcript_turns: list[str] = []
         self._last_action: Optional[str] = None  # "confirmed" | "cancelled" | None
 
         self.feedback_store = FeedbackStore()
 
+        # Training job tracking
+        self._training_task: Optional[asyncio.Task] = None
+        self._training_error: Optional[str] = None
+        
+        # Thread pool for CPU-intensive training jobs
+        # Using max_workers=1 ensures only one training job runs at a time
+        self._training_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="training")
+
         # Voice customisation
         self.profile_manager = UserProfileManager()
         self._shortcuts: dict = {}   # phrase -> command
-    
-    def _broadcast_state_change(self, state_data, old_state):
-        """Broadcast state changes to WebSocket clients"""
-        message = {
-            'type': 'state_change',
-            'old_state': old_state.value,
-            'new_state': state_data.state.value,
-            'timestamp': state_data.timestamp.isoformat(),
-            'has_transcript': state_data.transcript is not None,
-            'transcript': state_data.transcript,
-            'error': state_data.error,
-            'user_prompt': self._current_user_prompt
+
+    # ========================================================================
+    # WebSocket Push Helpers
+    # ========================================================================
+
+    def _build_status_payload(self, msg_type: str = "status_update") -> dict:
+        """
+        Build the full status dict that replaces what the frontend used to poll.
+        Sent over the WebSocket so clients don't need to poll /status anymore.
+        """
+        state_info = self.state_manager.get_state_info()
+        return {
+            "type": msg_type,
+            # Core state
+            "state": state_info.get("state"),
+            "timestamp": state_info.get("timestamp"),
+            "has_audio": state_info.get("has_audio", False),
+            "has_transcript": state_info.get("has_transcript", False),
+            "error": state_info.get("error"),
+            # Transcript / command fields the frontend polls for
+            "transcript": self._last_transcript or state_info.get("transcript"),
+            "user_transcript": self._user_transcript,
+            "clarified_command": self._clarified_command,
+            "last_command": self._last_command,
+            "user_prompt": self._current_user_prompt,
+            # Confirmation gate
+            "awaiting_confirmation": self._awaiting_confirmation,
+            "pending_command": self._pending_command,
+            "last_action": self._last_action,
+            # Audio capture state (replaces /audio/capture/status polling)
+            "capture_state": self._get_capture_state(),
+            # Cache
+            "cache_stats": (
+                self.command_orchestrator.get_cache_stats()
+                if self.command_orchestrator else None
+            ),
         }
-        
+
+    def _get_capture_state(self) -> Optional[str]:
+        """Return current audio capture state string, or None if not capturing."""
+        with _capture_lock:
+            if _capture_instance is None:
+                return None
+            try:
+                return _capture_instance.state
+            except Exception:
+                return None
+
+    async def _push_status(self, msg_type: str = "status_update"):
+        """Push current full status to all WebSocket clients."""
+        payload = self._build_status_payload(msg_type)
+        await self.connection_manager.broadcast(payload)
+
+    def _schedule_push(self, msg_type: str = "status_update"):
+        """Schedule a status push from a synchronous context."""
+        asyncio.create_task(self._push_status(msg_type))
+
+    # ========================================================================
+    # State Change Callbacks
+    # ========================================================================
+
+    def _broadcast_state_change(self, state_data, old_state):
+        """Broadcast enriched status payload on every state transition."""
         logger.info(f"State: {old_state.value} -> {state_data.state.value}")
         if self._current_user_prompt:
             logger.info(f"User prompt: {self._current_user_prompt}")
-        
-        asyncio.create_task(self.connection_manager.broadcast(message))
+        # Push full status so clients receive everything in one message
+        self._schedule_push("state_change")
     
     def _on_state_change(self, state_data, old_state):
         """Handle state changes"""
@@ -284,7 +352,9 @@ class VoiceBridgeServer:
         logger.info(f"parse_and_execute_command: '{transcript}'")
         
         if not transcript.strip():
-            raise HTTPException(status_code=400, detail="Empty transcript")
+            # Should be caught before this point, but guard defensively.
+            logger.warning("parse_and_execute_command called with empty transcript — ignoring")
+            return {"needs_input": False, "success": False, "details": "empty transcript"}
         
         # Check if orchestrator is available
         if not self.command_orchestrator:
@@ -353,6 +423,9 @@ class VoiceBridgeServer:
             _display = _display.rstrip(".,; ")
             self._current_user_prompt = f'"{_display}" — say yes to confirm or no to cancel.'
             self._last_command = clarified_command
+
+            # Push updated confirmation state to all WS clients
+            await self._push_status("confirmation_ready")
 
             return {
                 "needs_input": True,
@@ -425,7 +498,25 @@ class VoiceBridgeServer:
             }
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Browser error: {e}")
-    
+
+    async def run_shortcut(self, shortcut_id: str) -> dict:
+        shortcuts = self.shortcut_manager.list_shortcuts()
+        shortcut = shortcuts.get(shortcut_id)
+        if not shortcut:
+            raise HTTPException(status_code=404, detail=f"Shortcut {shortcut_id} not found")
+        commands = shortcut.get("commands") or []
+        if not commands:
+            return {"success": True, "shortcut_id": shortcut_id, "commands_run": 0}
+        browser = get_browser()
+        if browser is None:
+            raise HTTPException(status_code=409, detail="No active browser session")
+        try:
+            for cmd in commands:
+                await self._execute_browser_command(cmd)
+        finally:
+            self.state_manager.transition_to(AppState.LISTENING)
+            await self._push_status("state_change")
+        return {"success": True, "shortcut_id": shortcut_id, "commands_run": len(commands)}    
     # ========================================================================
     # Audio Processing Pipeline
     # ========================================================================
@@ -449,11 +540,11 @@ class VoiceBridgeServer:
         if current_state != AppState.LISTENING:
             logger.warning(f"Received audio in unexpected state: {current_state.value}")
             return None
-        elif self._awaiting_confirmation:
-            await self._process_confirmation(audio_data)
-        else:
-            await self._process_new_command(audio_data)
-
+        async with self._command_processing_lock:
+            if self._awaiting_confirmation:
+                await self._process_confirmation(audio_data)
+            else:
+                await self._process_new_command(audio_data)
 
     async def _process_new_command(self, audio_data: bytes):
         """Process a new voice command from the user."""
@@ -461,17 +552,100 @@ class VoiceBridgeServer:
         # But keep user_transcript - it will be updated with new input
         self._clarified_command = None
         self._last_action = None  
+        self._current_user_prompt = None
 
         # Transition to processing
         self.state_manager.transition_to(AppState.PROCESSING, audio_data=audio_data)
-        print("**SWITCHED TO PROCESSING")
         try:
-            # Transcribe
+            # Transcribe BEFORE touching any state, so empty audio never
+            # clobbers the current UI state (e.g. an active confirmation prompt).
             transcript = await self.transcribe_audio(audio_data)
+
+            # Empty transcript (noise, or STT returned nothing) — no state changes,
+            # no broadcasts. Leave confirmation prompts and UI exactly as-is.
+            if not transcript or not transcript.strip() or transcript == "":
+                logger.info("Empty transcript after STT — ignoring silently, no state change")
+                self.state_manager.transition_to(AppState.LISTENING)
+                return
+
+            # Only clear state now that we have a real transcript to process
+            self._clarified_command = None
+            self._last_action = None
             self._last_transcript = transcript
             self._user_transcript = transcript  # Store latest user input
-            self._pending_audio = audio_data    # stash for training sample on confirmation
-            self._pending_transcript = transcript
+            if not self._conversation_context:          # first turn — fresh session
+                self._pending_audio_turns = []
+                self._pending_transcript_turns = []
+            self._pending_audio_turns.append(audio_data)
+            self._pending_transcript_turns.append(transcript)
+
+            if not transcript or not transcript.strip():
+                self._current_user_prompt = "I didn't catch that."
+                self.state_manager.transition_to(
+                    AppState.LISTENING,
+                    transcript="",
+                    metadata={"user_prompt": self._current_user_prompt}
+                )
+                return
+
+            # ------------------------------------------------------------
+            # Shortcut control commands — intercept before orchestration
+            # ------------------------------------------------------------
+            normalized = transcript.strip().lower().rstrip(".,!?;:")
+
+            if normalized == "start shortcut":
+                started = self.shortcut_manager.start_recording()
+                self._current_user_prompt = (
+                    "Shortcut recording started."
+                    if started else
+                    "A shortcut is already being recorded."
+                )
+                self.state_manager.transition_to(
+                    AppState.LISTENING,
+                    transcript=transcript,
+                    metadata={"user_prompt": self._current_user_prompt}
+                )
+                return
+
+            if normalized == "end shortcut":
+                try:
+                    shortcut = self.shortcut_manager.stop_recording()
+                    self._current_user_prompt = f'Shortcut "{shortcut["name"]}" saved.'
+                except ValueError as e:
+                    self._current_user_prompt = str(e)
+                    logger.warning("Shortcut stop failed: %s", e)
+
+                self.state_manager.transition_to(
+                    AppState.LISTENING,
+                    transcript=transcript,
+                    metadata={"user_prompt": self._current_user_prompt}
+                )
+                return
+
+            # "run shortcut <id>" — run shortcut by id without confirmation
+            run_prefix = "run shortcut "
+            if normalized.startswith(run_prefix):
+                shortcut_id = normalized[len(run_prefix):].strip()
+                if shortcut_id and shortcut_id in self.shortcut_manager.list_shortcuts():
+                    try:
+                        await self.run_shortcut(shortcut_id)
+                        self._current_user_prompt = f'Ran shortcut "{shortcut_id}".'
+                    except HTTPException as e:
+                        self._current_user_prompt = e.detail or f"Could not run shortcut {shortcut_id}."
+                    except Exception as e:
+                        logger.exception("Error running shortcut %s", shortcut_id)
+                        self._current_user_prompt = f"Error running shortcut: {e}"
+                else:
+                    self._current_user_prompt = f'Shortcut "{shortcut_id}" not found.'
+                self.state_manager.transition_to(
+                    AppState.LISTENING,
+                    transcript=transcript,
+                    metadata={"user_prompt": self._current_user_prompt}
+                )
+                return
+            # ------------------------------------------------------------
+            # Push transcript update immediately so UI reflects it without waiting
+            await self._push_status("transcript_update")
 
             # Capture initial intent before appending — empty context means first turn
             if not self._conversation_context:
@@ -539,13 +713,16 @@ class VoiceBridgeServer:
             self._pending_command = None
             self._initial_intent = None
             
+            # Push error state
+            await self._push_status("error")
+
             # Return to listening/idle
             await asyncio.sleep(2)
             if self.is_voice_mode_active:
                 self.state_manager.transition_to(AppState.LISTENING)
             else:
                 self.state_manager.transition_to(AppState.IDLE)
-    
+        
     async def _process_confirmation(self, audio_data: bytes):
         """
         Handle a voice yes/no response while _awaiting_confirmation is True.
@@ -554,11 +731,21 @@ class VoiceBridgeServer:
         no / nope / cancel / etc. → log verbal feedback, discard, back to LISTENING
         anything else             → treat as a brand-new command
         """
-        self.state_manager.transition_to(AppState.PROCESSING, audio_data=audio_data)
-
         try:
+            # Transcribe BEFORE any state transition — if it's empty noise,
+            # we want to leave the confirmation prompt completely untouched.
             transcript = await self.transcribe_audio(audio_data)
+
+            if not transcript or not transcript.strip():
+                logger.info("Empty transcript during confirmation — ignoring, confirmation state preserved")
+                return
+
+            self.state_manager.transition_to(AppState.PROCESSING, audio_data=audio_data)
             self._user_transcript = transcript
+
+            # Push transcript so UI updates immediately
+            await self._push_status("transcript_update")
+
             word = transcript.strip().lower().rstrip(".,!?")
 
             if word in ("yes", "yeah", "yep"):
@@ -601,8 +788,8 @@ class VoiceBridgeServer:
         """Clear all confirmation state without triggering any transitions."""
         self._awaiting_confirmation = False
         self._pending_command = None
-        self._pending_audio = None
-        self._pending_transcript = None
+        self._pending_audio_turns = []
+        self._pending_transcript_turns = []
         self._current_user_prompt = None
         self._conversation_context = []
         self._initial_intent = None  # Reset session root transcript
@@ -610,12 +797,15 @@ class VoiceBridgeServer:
     async def _execute_confirmed_command(self):
         """Execute the pending command and return to LISTENING."""
         pending = self._pending_command
-        initial_intent = self._initial_intent          # capture before reset clears it
-        pending_audio = self._pending_audio            # capture before reset clears them
-        pending_transcript = self._pending_transcript
+        initial_intent = self._initial_intent
+        pending_audio_turns = list(self._pending_audio_turns)        # all turns
+        pending_transcript_turns = list(self._pending_transcript_turns)
         logger.info(f"[CONFIRMATION] Executing confirmed command: {pending}")
-        self._last_action = "confirmed"  
+        self._last_action = "confirmed"
         self._reset_confirmation_gate()
+
+        # Push confirmed state before execution begins
+        await self._push_status("confirmed")
 
         # Cache confirmed command
         if self.command_orchestrator and initial_intent and pending:
@@ -625,6 +815,10 @@ class VoiceBridgeServer:
                 initial_intent, pending,
             )
 
+        if self.shortcut_manager.is_recording() and pending:
+            self.shortcut_manager.add_recorded_command(pending)
+            logger.info("Shortcut buffer append: '%s'", pending)
+
         self.state_manager.transition_to(AppState.EXECUTING, transcript=pending)
         try:
             await self._execute_browser_command(pending)
@@ -632,25 +826,32 @@ class VoiceBridgeServer:
             logger.error(f"Execution error after confirmation: {e}")
             self.state_manager.handle_error(str(e))
 
-        # Save confirmed audio + transcript for training (only when toggle is on)
-        if pending_audio and pending_transcript:
+        # Save all confirmed audio turns for training (only when toggle is on)
+        if pending_audio_turns:
+            total_duration_s = 0.0
             try:
                 prefs = self.profile_manager.load_preferences(DEFAULT_PROFILE_ID)
                 if prefs.get("custom_training_enabled", False):
-                    duration_s = training_data_recorder.save_sample(
-                        pending_audio, pending_transcript
-                    )
-                    current = prefs.get("accumulated_audio_seconds", 0)
-                    self.profile_manager.set_training_state(
-                        accumulated_audio_seconds=current + int(duration_s),
-                        profile_id=DEFAULT_PROFILE_ID,
-                    )
-                    logger.info(
-                        "Training sample saved: %.2fs | total %.0fs | '%s'",
-                        duration_s,
-                        current + duration_s,
-                        pending_transcript[:60],
-                    )
+                    for audio, transcript in zip(pending_audio_turns, pending_transcript_turns):
+                        duration_s = training_data_recorder.save_sample(
+                            audio, transcript
+                        )
+                        total_duration_s += duration_s
+                        logger.info(
+                            "Training sample saved: %.2fs | '%s'",
+                            duration_s, transcript[:60],
+                        )
+
+                    if total_duration_s:
+                        current = prefs.get("accumulated_audio_seconds", 0)
+                        self.profile_manager.set_training_state(
+                            accumulated_audio_seconds=current + int(total_duration_s),
+                            profile_id=DEFAULT_PROFILE_ID,
+                        )
+                        logger.info(
+                            "Total training audio this session: %.2fs | running total: %.0fs",
+                            total_duration_s, current + total_duration_s,
+                        )
             except Exception as e:
                 logger.warning("Training sample save failed (non-fatal): %s", e)
 
@@ -660,18 +861,17 @@ class VoiceBridgeServer:
         self.state_manager.transition_to(target)
         logger.info(f"[CONFIRMATION] Command executed, state reset to {target}")
 
-        if hasattr(self, 'manager') and self.manager:
-            await self.manager.broadcast({"state": self.state_manager.get_state_info()})
-            
     async def _cancel_confirmed_command(self):
         self._last_action = "cancelled"  
         self._reset_confirmation_gate()
+
+        # Push cancelled state
+        await self._push_status("cancelled")
+
         await asyncio.sleep(0.1)
         target = AppState.LISTENING if self.is_voice_mode_active else AppState.IDLE
         self.state_manager.transition_to(target)
         logger.info(f"[CONFIRMATION] Command cancelled, state reset to {target}")
-        if hasattr(self, 'manager') and self.manager:
-            await self.manager.broadcast({"state": self.state_manager.get_state_info()})
 
     # ========================================================================
     # Audio Capture Management
@@ -698,6 +898,7 @@ class VoiceBridgeServer:
             _capture_instance.start()
         
         logger.info("Audio capture started")
+        await self._push_status("capture_started")
     
     async def stop_audio_capture(self):
         """Stop audio capture."""
@@ -713,6 +914,7 @@ class VoiceBridgeServer:
                 _capture_instance = None
         
         logger.info("Audio capture stopped")
+        await self._push_status("capture_stopped")
     
     # ========================================================================
     # Public API Methods
@@ -756,6 +958,7 @@ class VoiceBridgeServer:
         status['awaiting_confirmation'] = self._awaiting_confirmation
         status['pending_command'] = self._pending_command
         status['last_action'] = self._last_action
+        status['capture_state'] = self._get_capture_state()
         if self.command_orchestrator:
             status['cache_stats'] = self.command_orchestrator.get_cache_stats()
         return status
@@ -775,7 +978,176 @@ class VoiceBridgeServer:
                 self.command_orchestrator.cache.size,
             )
         self.state_manager.reset()
+        self._schedule_push("reset")
         return {"success": True, "state": "idle"}
+    
+    def _run_training_job_sync(self, profile_id: str = DEFAULT_PROFILE_ID, event_loop=None):
+        """
+        Synchronous training job that runs in a separate thread.
+        
+        This is the actual CPU-intensive work that should NOT block the event loop.
+        
+        Args:
+            profile_id: User profile ID
+            event_loop: Reference to the main event loop for callbacks
+        """
+        try:
+            logger.info("Starting Whisper LoRA training job in background thread...")
+            
+            # Get profile preferences to access data paths
+            prefs = self.profile_manager.load_preferences(profile_id)
+            
+            # Configure paths based on profile or defaults
+            data_dir = prefs.get("training_data_dir", "../data/training/audio")
+            meta_file = prefs.get("training_meta_file", "../data/training/samples.jsonl")
+            output_dir = prefs.get("training_output_dir", "../data/training/checkpoints")
+            
+            # Initialize trainer with callbacks for progress updates
+            def on_epoch_end(epoch: int, avg_loss: float):
+                logger.info(f"[Training Thread] Epoch {epoch} completed with avg loss: {avg_loss:.4f}")
+                # Schedule a websocket broadcast from the event loop
+                if event_loop:
+                    asyncio.run_coroutine_threadsafe(
+                        self.connection_manager.broadcast({
+                            "type": "training_progress",
+                            "epoch": epoch,
+                            "avg_loss": avg_loss,
+                        }),
+                        event_loop
+                    )
+            
+            def on_batch_end(epoch: int, batch_idx: int, step: int, loss: float):
+                # Optionally broadcast batch-level progress
+                # For now, just log to avoid spamming websocket
+                if batch_idx % 10 == 0:
+                    logger.debug(f"[Training Thread] Epoch {epoch}, Batch {batch_idx}, Loss: {loss:.4f}")
+            
+            trainer = WhisperLoRATrainer(
+                data_dir=data_dir,
+                meta_file=meta_file,
+                output_dir=output_dir,
+                on_epoch_end=on_epoch_end,
+                on_batch_end=on_batch_end,
+                epochs=1,
+                batch_size=prefs.get("training_batch_size", 2),
+                lr=prefs.get("training_lr", 1e-4),
+            )
+            
+            # Setup trainer (loads data and model)
+            logger.info("[Training Thread] Setting up trainer...")
+            trainer.setup()
+            
+            if not trainer.has_new_data:
+                logger.info("[Training Thread] No new training data available")
+                self.profile_manager.set_training_state(
+                    training_in_progress=False,
+                    profile_id=profile_id,
+                )
+                self._training_error = "No new training data available"
+                return {
+                    "success": False,
+                    "error": "No new training data available"
+                }
+            
+            # Run training
+            logger.info("[Training Thread] Starting training...")
+            losses = trainer.train()
+            logger.info(f"[Training Thread] Training completed. Per-epoch losses: {[round(l, 4) for l in losses]}")
+            
+            # Evaluate
+            logger.info("[Training Thread] Evaluating model...")
+            eval_loss = trainer.evaluate()
+            logger.info(f"[Training Thread] Evaluation loss: {eval_loss:.4f}")
+            
+            # Save adapter
+            logger.info("[Training Thread] Saving adapter...")
+            saved_to = trainer.save()
+            logger.info(f"[Training Thread] Adapter saved to: {saved_to}")
+            
+            # Update preferences to mark training as completed
+            self.profile_manager.set_training_state(
+                training_in_progress=False,
+                training_completed=True,
+                profile_id=profile_id,
+            )
+            
+            logger.info("[Training Thread] Training job completed successfully")
+            
+            return {
+                "success": True,
+                "eval_loss": eval_loss,
+                "saved_to": saved_to,
+            }
+            
+        except FileNotFoundError as e:
+            error_msg = f"Training data not found: {str(e)}"
+            logger.error(f"[Training Thread] {error_msg}")
+            self._training_error = error_msg
+            self.profile_manager.set_training_state(
+                training_in_progress=False,
+                profile_id=profile_id,
+            )
+            return {
+                "success": False,
+                "error": error_msg,
+            }
+            
+        except Exception as e:
+            error_msg = f"Training failed: {str(e)}"
+            logger.error(f"[Training Thread] {error_msg}", exc_info=True)
+            self._training_error = error_msg
+            self.profile_manager.set_training_state(
+                training_in_progress=False,
+                profile_id=profile_id,
+            )
+            return {
+                "success": False,
+                "error": error_msg,
+            }
+    
+    async def run_training_job(self, profile_id: str = DEFAULT_PROFILE_ID):
+        """
+        Async wrapper that runs the training job in a background thread.
+        
+        This allows the event loop to remain responsive while training runs.
+        """
+        loop = asyncio.get_event_loop()
+        
+        try:
+            # Run the sync training function in a thread pool
+            # Pass the event loop so callbacks can communicate back
+            result = await loop.run_in_executor(
+                self._training_executor,
+                lambda: self._run_training_job_sync(profile_id, event_loop=loop)
+            )
+            
+            # Broadcast result via websocket
+            if result["success"]:
+                await self.connection_manager.broadcast({
+                    "type": "training_complete",
+                    "eval_loss": result["eval_loss"],
+                    "saved_to": result["saved_to"],
+                })
+            else:
+                await self.connection_manager.broadcast({
+                    "type": "training_error",
+                    "error": result.get("error", "Unknown error"),
+                })
+                
+        except Exception as e:
+            error_msg = f"Training job wrapper failed: {str(e)}"
+            logger.error(error_msg, exc_info=True)
+            self._training_error = error_msg
+            self.profile_manager.set_training_state(
+                training_in_progress=False,
+                profile_id=profile_id,
+            )
+            await self.connection_manager.broadcast({
+                "type": "training_error",
+                "error": error_msg,
+            })
+        finally:
+            self._training_task = None
 
 
 # ============================================================================
@@ -796,6 +1168,19 @@ async def lifespan(app: FastAPI):
     
     # Shutdown
     if server:
+        # Cancel any running training jobs
+        if server._training_task and not server._training_task.done():
+            logger.info("Cancelling running training job...")
+            server._training_task.cancel()
+            try:
+                await server._training_task
+            except asyncio.CancelledError:
+                pass
+        
+        # Shutdown thread pool executor
+        logger.info("Shutting down training executor...")
+        server._training_executor.shutdown(wait=True, cancel_futures=True)
+        
         await server.stop_voice_mode()
     logger.info("VoiceBridge Server shutdown")
 
@@ -835,7 +1220,7 @@ async def root():
 
 @app.get("/status")
 async def get_status():
-    """Get current status"""
+    """Get current status — kept for REST compatibility / initial hydration."""
     if not server:
         raise HTTPException(status_code=503, detail="Server not initialized")
     
@@ -844,7 +1229,7 @@ async def get_status():
 
 @app.get("/audio/capture/status")
 async def audio_capture_status():
-    """Get status of backend audio capture."""
+    """Get status of backend audio capture — kept for REST compatibility."""
     with _capture_lock:
         if _capture_instance is None:
             return {"capturing": False, "state": "idle"}
@@ -942,7 +1327,16 @@ async def health_check():
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
-    """WebSocket for real-time updates"""
+    """
+    WebSocket for real-time status push.
+
+    On connect the client receives a full 'connected' snapshot so it can
+    hydrate immediately without a separate REST call.  Subsequent messages
+    are pushed whenever server state changes — no client polling required.
+
+    The client may optionally send a JSON ping `{"type": "ping"}` to keep
+    the connection alive; the server replies with `{"type": "pong"}`.
+    """
     if not server:
         await websocket.close(code=1011, reason="Server not initialized")
         return
@@ -950,17 +1344,24 @@ async def websocket_endpoint(websocket: WebSocket):
     await server.connection_manager.connect(websocket)
     
     try:
-        # Send initial state
-        await websocket.send_json({
-            'type': 'connected',
-            'state': server.state_manager.current_state.value,
-            'voice_mode_active': server.is_voice_mode_active,
-            'data': server.get_status()
-        })
+        # Send full initial snapshot so the client can hydrate immediately
+        initial_payload = server._build_status_payload("connected")
+        initial_payload["voice_mode_active"] = server.is_voice_mode_active
+        await websocket.send_json(initial_payload)
         
-        # Keep connection alive
+        # Keep connection alive; handle optional ping frames from the client
         while True:
-            await websocket.receive_text()
+            try:
+                raw = await asyncio.wait_for(websocket.receive_text(), timeout=30)
+                import json as _json
+                msg = _json.loads(raw)
+                if msg.get("type") == "ping":
+                    await websocket.send_json({"type": "pong"})
+            except asyncio.TimeoutError:
+                # Send a server-side keepalive ping
+                await websocket.send_json({"type": "ping"})
+            except Exception:
+                break
     
     except WebSocketDisconnect:
         server.connection_manager.disconnect(websocket)
@@ -1066,9 +1467,23 @@ async def get_training_status():
             "training_in_progress":      prefs.get("training_in_progress",      False),
             "training_completed":        prefs.get("training_completed",        False),
             "accumulated_audio_seconds": prefs.get("accumulated_audio_seconds", 0),
+            "training_error":            server._training_error,
         }
     except ProfileNotFoundError:
         raise HTTPException(status_code=404, detail="Profile not found")
+
+
+@app.get("/training/config")
+async def get_training_config():
+    """
+    Return training configuration including thresholds.
+    
+    Allows frontend to dynamically fetch requirements instead of hardcoding.
+    """
+    return {
+        "audio_threshold_seconds": TRAINING_AUDIO_THRESHOLD_SEC,
+        "audio_threshold_minutes": TRAINING_AUDIO_THRESHOLD_SEC / 60,
+    }
 
 
 @app.post("/training/start")
@@ -1077,7 +1492,7 @@ async def start_training():
     Launch a background voice-model training job.
 
     400 — training not enabled (custom_training_enabled is False)
-    409 — a job is already running or has completed
+    409 — a job is already running
     """
     if not server:
         raise HTTPException(status_code=503, detail="Server not initialized")
@@ -1094,17 +1509,111 @@ async def start_training():
         )
     if prefs.get("training_in_progress", False):
         raise HTTPException(status_code=409, detail="A training job is already running.")
+    
+    # Check if enough audio data has been collected
+    accumulated_sec = prefs.get("accumulated_audio_seconds", 0)
+    if accumulated_sec < TRAINING_AUDIO_THRESHOLD_SEC:
+        minutes_needed = TRAINING_AUDIO_THRESHOLD_SEC / 60
+        minutes_collected = accumulated_sec / 60
+        raise HTTPException(
+            status_code=400,
+            detail=f"Not enough training data. Need {minutes_needed:.0f} minutes, have {minutes_collected:.1f} minutes.",
+        )
+    
+    # Allow starting new training even if previous training completed
+    # The completed flag will be reset when the new job starts
     if prefs.get("training_completed", False):
-        raise HTTPException(status_code=409, detail="Training has already completed.")
+        logger.info("Starting new training - resetting completed flag")
 
-    # Mark job as started.
-    # TODO: set_training_state() as it progresses.
+    # Mark job as started and reset completed flag
     server.profile_manager.set_training_state(
         training_in_progress=True,
+        training_completed=False,  # Reset for new training run
         profile_id=DEFAULT_PROFILE_ID,
     )
+    
+    # Clear any previous training error
+    server._training_error = None
+    
+    # Launch training job as background task
+    server._training_task = asyncio.create_task(
+        server.run_training_job(DEFAULT_PROFILE_ID)
+    )
+    
     logger.info("Voice model training job started.")
     return {"started": True}
+
+# Shortcuts Endpoints and Functions
+def create_shortcut(self, name: str, commands: list[str]) -> dict: #manually create a shortcut outside of the recording flow
+    with self._lock:
+        shortcut_id = str(self._next_id())
+        shortcut = {
+            "id": shortcut_id,
+            "name": name.strip(),
+            "commands": commands,
+        }
+        self._shortcuts[shortcut_id] = shortcut
+        self._flush()
+        return shortcut
+    
+
+@app.post("/training/cancel")
+async def cancel_training():
+    """
+    Cancel a running training job.
+    
+    404 — no training job is currently running
+    """
+    if not server:
+        raise HTTPException(status_code=503, detail="Server not initialized")
+    
+    if not server._training_task or server._training_task.done():
+        raise HTTPException(status_code=404, detail="No training job is currently running")
+    
+    # Cancel the task
+    server._training_task.cancel()
+    
+    # Update state
+    try:
+        server.profile_manager.set_training_state(
+            training_in_progress=False,
+            profile_id=DEFAULT_PROFILE_ID,
+        )
+    except ProfileNotFoundError:
+        raise HTTPException(status_code=404, detail="Profile not found")
+    
+    logger.info("Training job cancelled")
+    return {"cancelled": True}
+
+
+@app.post("/training/reset")
+async def reset_training_state():
+    """
+    Reset training state flags.
+    
+    Clears training_completed and training_error to allow starting fresh.
+    Useful after server restart or when you want to clear old training state.
+    """
+    if not server:
+        raise HTTPException(status_code=503, detail="Server not initialized")
+    
+    try:
+        server.profile_manager.set_training_state(
+            training_in_progress=False,
+            training_completed=False,
+            profile_id=DEFAULT_PROFILE_ID,
+        )
+        server._training_error = None
+        
+        logger.info("Training state reset")
+        return {
+            "reset": True,
+            "training_in_progress": False,
+            "training_completed": False,
+            "training_error": None
+        }
+    except ProfileNotFoundError:
+        raise HTTPException(status_code=404, detail="Profile not found")
 
 
 @app.get("/shortcuts")
@@ -1114,32 +1623,49 @@ async def get_shortcuts():
         raise HTTPException(status_code=503, detail="Server not initialized")
     try:
         prefs = server.profile_manager.load_preferences(DEFAULT_PROFILE_ID)
-        return {
-            "shortcuts":               server._shortcuts,
-            "custom_shortcuts_enabled": prefs.get("custom_shortcuts_enabled", False),
-        }
     except ProfileNotFoundError:
-        raise HTTPException(status_code=404, detail="Profile not found")
+        prefs = {}
+    return {
+        "shortcuts": server.shortcut_manager.list_shortcuts(),
+        "custom_shortcuts_enabled": prefs.get("custom_shortcuts_enabled", False),
+        "recording": server.shortcut_manager.is_recording(),
+    }
 
 
 @app.post("/shortcuts")
 async def create_shortcut(body: ShortcutCreate):
-    """Add or update a shortcut."""
+    """Add a shortcut manually."""
     if not server:
         raise HTTPException(status_code=503, detail="Server not initialized")
     if not body.phrase.strip() or not body.command.strip():
         raise HTTPException(status_code=422, detail="phrase and command must not be empty")
-    server._shortcuts[body.phrase.strip()] = body.command.strip()
-    return {"phrase": body.phrase.strip(), "command": body.command.strip()}
+
+    shortcut = server.shortcut_manager.create_shortcut(
+        name=body.phrase.strip(),
+        commands=[body.command.strip()],
+    )
+    return shortcut
 
 
-@app.delete("/shortcuts/{phrase}")
-async def delete_shortcut(phrase: str):
-    """Delete a shortcut by phrase."""
+@app.delete("/shortcuts/{shortcut_id}")
+async def delete_shortcut(shortcut_id: str):
+    """Delete a shortcut by id."""
     if not server:
         raise HTTPException(status_code=503, detail="Server not initialized")
-    deleted = server._shortcuts.pop(phrase, None) is not None
-    return {"phrase": phrase, "deleted": deleted}
+    deleted = server.shortcut_manager.delete_shortcut(shortcut_id)
+    return {"id": shortcut_id, "deleted": deleted}
+
+
+@app.post("/shortcuts/{shortcut_id}/run")
+async def run_shortcut(shortcut_id: str):
+    """Run all commands of a shortcut by id."""
+    if not server:
+        raise HTTPException(status_code=503, detail="Server not initialized")
+    try:
+        result = await server.run_shortcut(shortcut_id)
+        return result
+    except HTTPException:
+        raise
 
 
 # ============================================================================
