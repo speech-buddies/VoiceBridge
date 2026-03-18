@@ -998,6 +998,7 @@ function App() {
                             key={id}
                             type="button"
                             className="shortcuts-bar__btn"
+                            title={`shortcut_${id}`}
                             onClick={async () => {
                               try {
                                 const r = await fetch(`${AUDIO_BACKEND_BASE}/shortcuts/${id}/run`, { method: 'POST' });
