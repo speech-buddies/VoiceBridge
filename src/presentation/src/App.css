@@ -326,12 +326,14 @@
 .App-main {
   flex: 1;
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  justify-content: flex-start;
   align-items: stretch;
   padding: 2.5rem 1rem;
   transition: background 0.3s ease;
   overflow-y: auto;
   border-radius: 0;
+  gap: 1rem;
 }
 
 .dark-mode .App-main {
@@ -476,7 +478,6 @@
   word-wrap: break-word;
   white-space: pre-wrap;
   min-height: 1.25rem;
-  /* Remove max-height and overflow to avoid clipping system message or command */
   max-height: none;
   overflow: visible;
   font-size: 0.9rem;
@@ -495,28 +496,24 @@
   animation: slideDown 0.3s ease-out;
 }
 
-/* Light mode adjustments */
 .light-mode .system-message-alert {
   background-color: #e6f2ff;
   border-color: #4a90e2;
   box-shadow: 0 2px 8px rgba(74, 144, 226, 0.15);
 }
 
-/* Dark mode adjustments */
 .dark-mode .system-message-alert {
   background-color: rgba(74, 144, 226, 0.15);
   border-color: #5ba3f5;
   box-shadow: 0 2px 8px rgba(74, 144, 226, 0.2);
 }
 
-/* Info icon */
 .system-message-icon {
   font-size: 24px;
   flex-shrink: 0;
   line-height: 1;
 }
 
-/* Message content */
 .system-message-content {
   flex: 1;
   min-width: 0;
@@ -618,12 +615,6 @@
     flex-direction: column;
     gap: 0.5rem;
   }
-
-  /* When stacked, right panel (status/command info) floats to the top
-     so the user always sees what's happening before the mic controls 
-  .right-panel {
-    order: -1;
-  }*/
 } 
 
 @media (max-width: 960px) {
@@ -730,7 +721,6 @@
   color: #222;
 }
 
-/* Verbal cues — displayed as instructional text, not buttons */
 .confirmation-verbal-cues {
   display: flex;
   flex-direction: column;
@@ -766,7 +756,6 @@
   border-left: 3px solid #c92a2a;
 }
 
-/* Thumbs section */
 .confirmation-thumbs-row {
   display: flex;
   flex-direction: column;
@@ -934,35 +923,88 @@
   color: var(--green);
 }
 
+/* ========================================
+   Training Banner
+   ======================================== */
+
+/* Wrapper — constrains width and centres the banner */
+.train-banner-wrapper {
+  width: 100%;
+  margin: 0 auto;
+  flex-shrink: 0;
+  align-self: center;
+}
+
+/* Base banner */
 .train-banner {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 7px 12px;
-  background: var(--surface-2);
-  border-bottom: 1px solid var(--border-sub);
-  font-size: 0.82rem;
-  color: var(--text-secondary);
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  line-height: 1.5;
+  /* width: 100%;
+  box-sizing: border-box; */
+  flex-shrink: 0;
 }
 
-.train-banner--done { color: var(--green); }
+/* Dark mode — black background, preserve text/indicator colours */
+.dark-mode .train-banner--running {
+  background: #000;
+  border: 1px solid #333;
+  color: #60a5fa;
+}
+
+.dark-mode .train-banner--done {
+  background: #102412;
+  border: 1px solid #0a4914;
+  color: #4ade80;
+}
+
+/* Light mode — original colours unchanged */
+.light-mode .train-banner--running {
+  background: rgba(59, 130, 246, 0.15);
+  border: 1px solid rgba(59, 130, 246, 0.4);
+  color: #2563eb;
+}
+
+.light-mode .train-banner--done {
+  background: rgba(34, 197, 94, 0.15);
+  border: 1px solid rgba(34, 197, 94, 0.4);
+  color: #16a34a;
+}
 
 .train-banner__indicator {
-  width: 8px; height: 8px;
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
   flex-shrink: 0;
 }
 
-.train-banner__indicator--pulse {
-  background: var(--blue);
-  animation: pulse-dot 1.4s ease-in-out infinite;
+.train-banner__indicator--running {
+  background: #60a5fa;
+  animation: pulse-indicator 2s ease-in-out infinite;
 }
 
-.train-banner__indicator--done { background: var(--green); }
+.dark-mode .train-banner__indicator--running {
+  background: #60a5fa;
+}
 
-@keyframes pulse-dot {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50%       { opacity: 0.4; transform: scale(0.75); }
+.light-mode .train-banner__indicator--running {
+  background: #2563eb;
+}
+
+.train-banner__indicator--done {
+  background: #4ade80;
+}
+
+.dark-mode .train-banner__indicator--done {
+  background: #4ade80;
+}
+
+.light-mode .train-banner__indicator--done {
+  background: #16a34a;
 }
 
 .train-banner__text { flex: 1; }
@@ -970,20 +1012,32 @@
 .train-banner__dismiss {
   background: none;
   border: none;
-  color: var(--text-secondary);
+  color: inherit;
   cursor: pointer;
-  font-size: 0.8rem;
-  padding: 4px 6px;
-  min-height: 44px; min-width: 44px;
+  font-size: 18px;
+  padding: 4px;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+  flex-shrink: 0;
+  min-height: 44px;
+  min-width: 44px;
   border-radius: 4px;
 }
 
-.train-banner__dismiss:hover  { color: var(--text-primary); }
+.train-banner__dismiss:hover { opacity: 1; }
 .train-banner__dismiss:focus-visible {
   outline: 2px solid var(--blue);
   outline-offset: 2px;
 }
 
+@keyframes pulse-indicator {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.5; transform: scale(1.2); }
+}
+
+/* ========================================
+   Profile Tab
+   ======================================== */
 .profile-tab {
   padding: 16px;
   display: flex;
@@ -1089,9 +1143,38 @@
 .progress-track__fill--done { background: var(--green); }
 
 .stale-warning {
-  font-size: 0.78rem;
-  color: var(--red);
+  margin-top: 12px;
+  padding: 12px;
+  background: rgba(251, 191, 36, 0.1);
+  border: 1px solid rgba(251, 191, 36, 0.3);
+  border-radius: 6px;
+  color: #fbbf24;
+  font-size: 13px;
+  line-height: 1.5;
   margin: 0;
+}
+
+.light-mode .stale-warning {
+  background: rgba(251, 191, 36, 0.15);
+  border-color: rgba(251, 191, 36, 0.4);
+  color: #d97706;
+}
+
+.error-warning {
+  margin-top: 12px;
+  padding: 12px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 6px;
+  color: #ef4444;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.light-mode .error-warning {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #dc2626;
 }
 
 .launch-block {
@@ -1127,6 +1210,29 @@
   outline-offset: 2px;
 }
 
+.launch-block__btn--cancel {
+  margin-top: 12px;
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.launch-block__btn--cancel:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: rgba(239, 68, 68, 0.5);
+}
+
+.light-mode .launch-block__btn--cancel {
+  background: rgba(239, 68, 68, 0.15);
+  color: #dc2626;
+  border-color: rgba(239, 68, 68, 0.4);
+}
+
+.light-mode .launch-block__btn--cancel:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.25);
+  border-color: rgba(239, 68, 68, 0.6);
+}
+
 .launch-block__hint {
   font-size: 0.78rem;
   color: var(--text-secondary);
@@ -1156,6 +1262,14 @@
   animation: pulse-dot 1.4s ease-in-out infinite;
 }
 
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.4; transform: scale(0.75); }
+}
+
+/* ========================================
+   Modal
+   ======================================== */
 .modal-veil {
   position: fixed;
   inset: 0;
@@ -1229,6 +1343,9 @@
 }
 .modal-box__btn--cancel:hover { filter: brightness(1.08); }
 
+/* ========================================
+   Toasts
+   ======================================== */
 .toast-stack {
   position: fixed;
   bottom: 20px;
@@ -1236,13 +1353,19 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-  z-index: 1100;
+  z-index: 10000;
   max-width: min(92vw, 340px);
+  pointer-events: none;
+}
+
+.toast-stack > * {
+  pointer-events: auto;
 }
 
 .toast {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 10px;
   padding: 10px 12px;
   background: var(--surface-1);
@@ -1250,6 +1373,13 @@
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.25);
   animation: toast-in 0.2s ease;
+}
+
+.light-mode .toast {
+  background: rgba(255, 255, 255, 0.95);
+  border-color: rgba(209, 213, 219, 0.8);
+  color: #1f2937;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 @keyframes toast-in {
@@ -1271,16 +1401,23 @@
   cursor: pointer;
   font-size: 0.8rem;
   padding: 4px 6px;
-  min-height: 44px; min-width: 44px;
+  min-height: 44px;
+  min-width: 44px;
   border-radius: 4px;
   flex-shrink: 0;
+  opacity: 0.6;
+  transition: opacity 0.2s;
 }
 
-.toast__x:hover { color: var(--text-primary); }
+.toast__x:hover { color: var(--text-primary); opacity: 1; }
 .toast__x:focus-visible {
   outline: 2px solid var(--blue);
   outline-offset: 2px;
 }
+
+/* ========================================
+   Misc
+   ======================================== */
 .customize-toggle {
   background: none;
   border: 1px solid var(--border-mid);
@@ -1306,259 +1443,16 @@
   outline: 2px solid var(--blue);
   outline-offset: 2px;
 }
-/* Training UI Additions for App.css */
-
-/* ========================================
-   Training Banner Styles
-   ======================================== */
-.train-banner {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
-  margin: 0 0 16px 0;
-  border-radius: 8px;
-  font-size: 14px;
-  line-height: 1.5;
-  width: 100%;
-  max-width: 100%; /* Allow full width */
-  box-sizing: border-box;
-  flex-shrink: 0; /* Don't shrink the banner */
-}
-
-.train-banner--running {
-  background: rgba(59, 130, 246, 0.1);
-  border: 1px solid rgba(59, 130, 246, 0.3);
-  color: #60a5fa;
-}
-
-.train-banner--done {
-  background: rgba(34, 197, 94, 0.1);
-  border: 1px solid rgba(34, 197, 94, 0.3);
-  color: #4ade80;
-}
-
-.train-banner__indicator {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.train-banner__indicator--running {
-  background: #60a5fa;
-  animation: pulse-indicator 2s ease-in-out infinite;
-}
-
-.train-banner__indicator--done {
-  background: #4ade80;
-}
-
-.train-banner__text {
-  flex: 1;
-}
-
-.train-banner__dismiss {
-  background: transparent;
-  border: none;
-  color: inherit;
-  cursor: pointer;
-  font-size: 18px;
-  padding: 4px;
-  opacity: 0.6;
-  transition: opacity 0.2s;
-  flex-shrink: 0;
-}
-
-.train-banner__dismiss:hover {
-  opacity: 1;
-}
-
-@keyframes pulse-indicator {
-  0%, 100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.5;
-    transform: scale(1.2);
-  }
-}
-
-/* Make sure main-container is centered and doesn't overflow */
-.main-container {
-  display: flex;
-  flex-direction: row;
-  flex-wrap: nowrap;
-  gap: 0.5rem;
-  width: 100%;
-  max-width: none;
-  align-items: stretch;
-}
-  /* Your existing main-container styles will be preserved */
-
-/* ========================================
-   Profile Tab Enhancements
-   ======================================== */
-.launch-block__btn--cancel {
-  margin-top: 12px;
-  background: rgba(239, 68, 68, 0.1);
-  color: #ef4444;
-  border: 1px solid rgba(239, 68, 68, 0.3);
-}
-
-.launch-block__btn--cancel:hover:not(:disabled) {
-  background: rgba(239, 68, 68, 0.2);
-  border-color: rgba(239, 68, 68, 0.5);
-}
-
-.error-warning {
-  margin-top: 12px;
-  padding: 12px;
-  background: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.3);
-  border-radius: 6px;
-  color: #ef4444;
-  font-size: 13px;
-  line-height: 1.5;
-}
-
-.stale-warning {
-  margin-top: 12px;
-  padding: 12px;
-  background: rgba(251, 191, 36, 0.1);
-  border: 1px solid rgba(251, 191, 36, 0.3);
-  border-radius: 6px;
-  color: #fbbf24;
-  font-size: 13px;
-  line-height: 1.5;
-}
-
-/* ========================================
-   Light Mode Overrides
-   ======================================== */
-.light-mode .train-banner--running {
-  background: rgba(59, 130, 246, 0.15);
-  border-color: rgba(59, 130, 246, 0.4);
-  color: #2563eb;
-}
-
-.light-mode .train-banner--done {
-  background: rgba(34, 197, 94, 0.15);
-  border-color: rgba(34, 197, 94, 0.4);
-  color: #16a34a;
-}
-
-.light-mode .train-banner__indicator--running {
-  background: #2563eb;
-}
-
-.light-mode .train-banner__indicator--done {
-  background: #16a34a;
-}
-
-.light-mode .launch-block__btn--cancel {
-  background: rgba(239, 68, 68, 0.15);
-  color: #dc2626;
-  border-color: rgba(239, 68, 68, 0.4);
-}
-
-.light-mode .launch-block__btn--cancel:hover:not(:disabled) {
-  background: rgba(239, 68, 68, 0.25);
-  border-color: rgba(239, 68, 68, 0.6);
-}
-
-.light-mode .error-warning {
-  background: rgba(239, 68, 68, 0.15);
-  border-color: rgba(239, 68, 68, 0.4);
-  color: #dc2626;
-}
-
-.light-mode .stale-warning {
-  background: rgba(251, 191, 36, 0.15);
-  border-color: rgba(251, 191, 36, 0.4);
-  color: #d97706;
-}
-
-/* ========================================
-   Toast Enhancements
-   ======================================== */
-.toast {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 12px 16px;
-  background: rgba(31, 41, 55, 0.95);
-  border: 1px solid rgba(75, 85, 99, 0.5);
-  border-radius: 8px;
-  color: #f3f4f6;
-  font-size: 14px;
-  line-height: 1.5;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-  animation: toast-slide-in 0.3s ease-out;
-}
-
-.light-mode .toast {
-  background: rgba(255, 255, 255, 0.95);
-  border-color: rgba(209, 213, 219, 0.8);
-  color: #1f2937;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
-
-.toast__msg {
-  flex: 1;
-}
-
-.toast__x {
-  background: transparent;
-  border: none;
-  color: inherit;
-  cursor: pointer;
-  font-size: 18px;
-  padding: 4px;
-  opacity: 0.6;
-  transition: opacity 0.2s;
-}
-
-.toast__x:hover {
-  opacity: 1;
-}
-
-.toast-stack {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  z-index: 10000;
-  pointer-events: none;
-}
-
-.toast-stack > * {
-  pointer-events: auto;
-}
-
-@keyframes toast-slide-in {
-  from {
-    transform: translateX(100%);
-    opacity: 0;
-  }
-  to {
-    transform: translateX(0);
-    opacity: 1;
-  }
-}
 
 /* ========================================
    Accessibility
    ======================================== */
 @media (prefers-reduced-motion: reduce) {
-  .train-banner__indicator--running {
+  .train-banner__indicator--running,
+  .launch-block__pulse {
     animation: none;
   }
-  
+
   .toast {
     animation: none;
   }

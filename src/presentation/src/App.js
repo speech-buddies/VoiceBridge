@@ -471,7 +471,7 @@ function ProfileTab({ prefs, savePrefs, trainingStatus, pollFailures, addToast, 
                 aria-disabled={!canLaunch || launching}
                 onClick={() => setShowLaunchModal(true)}
               >
-                {launching ? 'Starting…' : 'Launch Customisation'}
+                {launching ? 'Starting…' : 'Launch Model Training'}
               </button>
             )}
             {!canLaunch && !inProgress && !completed && (
@@ -574,7 +574,6 @@ function App() {
 
   const { shortcuts, refetch: refetchShortcuts } = useShortcuts(activeTab, userPrompt);
 
-  // "model ready"  on training completion
   // "model ready" toast on training completion
   useEffect(() => {
     if (prevTrainingRunningRef.current && trainingStatus?.training_completed) {
@@ -609,8 +608,8 @@ function App() {
       // Real-time epoch progress - only show each epoch once
       const epoch = data.epoch ?? -1;
       if (epoch !== shownNotifications.current.lastEpoch) {
-        const loss = data.avg_loss != null ? data.avg_loss.toFixed(4) : 'N/A';
-        addToast(`Training: Epoch ${epoch} completed (loss: ${loss})`);
+        // const loss = data.avg_loss != null ? data.avg_loss.toFixed(4) : 'N/A';
+        addToast(`Training: Epoch ${epoch} completed`);
         shownNotifications.current.lastEpoch = epoch;
       }
       return;
@@ -619,8 +618,8 @@ function App() {
     if (data.type === 'training_complete') {
       // Only show completion notification once
       if (!shownNotifications.current.trainingComplete) {
-        const evalLoss = data.eval_loss != null ? data.eval_loss.toFixed(4) : 'N/A';
-        addToast(`Training completed! Eval loss: ${evalLoss}`);
+        // const evalLoss = data.eval_loss != null ? data.eval_loss.toFixed(4) : 'N/A';
+        addToast(`Training completed!`);
         shownNotifications.current.trainingComplete = true;
       }
       // Force reload training status after a brief delay
@@ -928,13 +927,14 @@ function App() {
         </header>
 
         <main className="App-main">
-          {activeTab === 'MAIN' && showBanner && (
-            <>
+          {/* Training banner — inside App-main, above all tab content */}
+          {showBanner && (
+            <div className="train-banner-wrapper">
               {isTrainingInProgress && (
                 <div className="train-banner train-banner--running" role="status" aria-live="polite">
                   <span className="train-banner__indicator train-banner__indicator--running" aria-hidden="true" />
                   <span className="train-banner__text">
-                    Training in progress - VoiceBridge still responsive
+                    Training in progress — VoiceBridge still responsive
                   </span>
                   <button
                     type="button"
@@ -962,7 +962,7 @@ function App() {
                   </button>
                 </div>
               )}
-            </>
+            </div>
           )}
 
           <div className="main-container">
