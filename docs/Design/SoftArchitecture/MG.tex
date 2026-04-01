@@ -78,6 +78,7 @@ Jan 21, 2026 & 2.1 & Added communication protocol details\\
 Feb 10, 2026 & 2.2 & Implemented advisor feedback on structure, clarity and terminology \\
 Feb 16, 2026 & 2.3 & Updated module descriptions to resemble rev0 architecture \\
 Feb 23, 2026 & 2.4 & Implemented advisor feedback on module classification and command refinement \\
+April 1, 2026 & 3.0 & Updated module descriptions to reflect final architecture \\
 \bottomrule
 \end{tabularx}
 
@@ -387,8 +388,9 @@ Controls microphone hardware and audio capture. Filters noise to improve voice i
 
 \textbf{Personalization Layer} &
 Prompting Module \newline
+Shortcut Manager \newline
 Model Tuner &
-Provides user prompting, model fine-tuning, and instruction management. Supports optional personalization based on confidence scores and usage history. \\
+Provides user prompting, model fine-tuning, and creation of personalized shortcuts. Supports optional personalization based on confidence scores and usage history. \\
 
 \bottomrule
 \end{tabular}
@@ -704,6 +706,25 @@ Provides user prompting, model fine-tuning, and instruction management. Supports
 \end{itemize}
 \textbf{Implemented By:} ML runtime (Whisper fine-tuning layer or lightweight personalization pipeline).
 
+\medskip
+\subsubsection*{M19: Shortcut Manager} \refstepcounter{mnum}\mthemnum\label{m19}
+\textbf{Secrets:} 
+\begin{itemize}
+  \item Internal mapping of shortcut IDs to recorded command sequences
+  \item Temporary in-memory recording buffer for active shortcut creation
+  \item Recording state indicating whether shortcut capture is currently active
+  \item Persistent storage path and serialization format for saved shortcuts
+\end{itemize}
+\textbf{Services:} 
+\begin{itemize}
+  \item Start and stop recording of multi-step browser command shortcuts
+  \item Store and persist recorded shortcuts for future reuse
+  \item Return the current set of saved shortcuts
+  \item Delete an existing shortcut by ID
+  \item Report whether shortcut recording is currently active
+  \item Cancel an in-progress recording without saving
+\end{itemize}
+\textbf{Implemented By:} \texttt{ShortcutManager} class in the control/runtime layer with JSON-backed file persistence.
 
 \section{Traceability Matrix} \label{SecTM}
 
