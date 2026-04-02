@@ -42,6 +42,7 @@ Verification and Validation Report: \progname}
 March 8th, 2026 & 1.0 & Added Non-Functional Performance tests\\
 March 9th, 2026 & 1.0 & Added Non-Functional Usability and Humanity tests\\
 March 9th, 2026 & 1.0 & Added all remaining tests and completed document\\
+April 1st, 2026 & 1.1 & TA and Peer Review feedback implemented\\
 \bottomrule
 \end{tabularx}
 
@@ -71,11 +72,11 @@ March 9th, 2026 & 1.0 & Added all remaining tests and completed document\\
 
 \pagenumbering{arabic}
 
-This document is the Verification and Validation (V\&V) Report for the VoiceBridge project. It presents the results of all verification and validation activities conducted to assess whether the system meets its specified requirements and quality goals. It details the testing procedures, outcomes, and traceability to requirements, and documents any changes made as a result of feedback from users and the supervisor. Its purpose is to provide clear evidence that VoiceBridge fulfills its intended functionality, performance, and usability objectives, and to support ongoing improvement through reflection on the V\&V process.
+This document is the Verification and Validation (V\&V) Report for the \emph{VoiceBridge} project. It presents the results of all verification and validation activities conducted to assess whether the system meets its specified requirements and quality goals. It details the testing procedures, outcomes, and traceability to requirements, and documents any changes made as a result of feedback from users and the supervisor. Its purpose is to provide clear evidence that VoiceBridge fulfills its intended functionality, performance, and usability objectives, and to support ongoing improvement through reflection on the V\&V process.
 
 \section{Functional Requirements Evaluation}
 
-This section presents the evaluation results for all functional requirements as defined in the SRS. Each functional requirement is evaluated through the corresponding test cases from Section 4.1 of the V\&V Plan. For detailed test specifications (initial state, inputs, expected outputs, and execution methodology), refer to the V\&V Plan. This section focuses on test results and traceability.
+This section presents the evaluation results for all functional requirements as defined in the \href{../SRS-Volere/SRS.pdf}{SRS}. Each functional requirement is evaluated through the corresponding test cases from Section 4.1 of the \href{../VnVPlan/VnVPlan.pdf}{V\&V Plan}. For detailed test specifications (initial state, inputs, expected outputs, and execution methodology), refer to the V\&V Plan. This section focuses on test results and traceability.
 
 \subsection{FR1: Accept Speech Audio via Microphone}
 
@@ -112,11 +113,12 @@ This section presents the evaluation results for all functional requirements as 
 
 \subsubsection{test-FR3-UI-1: Real-Time Display Latency}
 \textbf{Summary:} Automated measurement of time-to-first-text for 100 utterances across platforms.\\
-\textbf{Result:} Partial -- some utterances were displayed within approximately 2 seconds, but most trials experienced additional latency of a couple of seconds before the first text appeared.
+\textbf{Result:} Partial -- some utterances were displayed within approximately 2 seconds, but most trials experienced additional latency of a couple of seconds before the first text appeared. Fix: add incremental transcription streaming and profile the ASR pipeline to reduce time-to-first-text.
+
 
 \subsubsection{test-FR3-UI-2: Continuous Update \& Finalization}
 \textbf{Summary:} Manual verification of incremental text updates and finalization cues during streaming transcription.\\
-\textbf{Result:} Partial -- continuous streaming transcription is not yet implemented, but text updates do appear on the UI once recognition completes, so only finalization behavior could be partially observed.
+\textbf{Result:} Partial -- continuous streaming transcription is not yet implemented, but text updates do appear on the UI once recognition completes, so only finalization behavior could be partially observed. Fix: implement streaming output and incremental UI updates during recognition.
 
 \subsection{FR4: Map Text to Arbitrary Device Commands}
 
@@ -149,7 +151,7 @@ This section presents the evaluation results for all functional requirements as 
 
 \subsubsection{test-FR5-EXEC-2: Accessibility/API Fallback Paths}
 \textbf{Summary:} Verification of fallback behavior when primary API is disabled.\\
-\textbf{Result:} Partial -- when the primary API was disabled, commands were not able to be executed and robust fallback mechanisms still need to be implemented.
+\textbf{Result:} Partial -- when the primary API was disabled, commands were not able to be executed and robust fallback mechanisms still need to be implemented. Fix: add alternative execution paths or local automation fallback for API outages.
 
 \subsubsection{test-FR5-EXEC-3: Safety \& Confirmation for Destructive Actions}
 \textbf{Summary:} Manual verification of confirmation prompts for destructive commands.\\
@@ -186,8 +188,8 @@ The ASR latency benchmark was executed using 20 audio samples spoken by various 
 2  & google.com & 1 & 6.30 \\ \hline
 3  & search Wikipedia about paris & 4 & 6.08 \\ \hline
 4  & navigate to paris's sport section & 5 & 5.93 \\ \hline
-5  & open gmail & 2 & 4.73 \\ \hline
-6  & open google and search for keyboards & 6 & 5.03 \\ \hline
+5  & open Gmail & 2 & 4.73 \\ \hline
+6  & open Google and search for keyboards & 6 & 5.03 \\ \hline
 7  & go on bestbuy and search for newest game & 8 & 5.43 \\ \hline
 8  & search software engineering jobs & 4 & 4.48 \\ \hline
 9  & search how to boil pasta & 5 & 5.21 \\ \hline
@@ -243,8 +245,8 @@ The command pipeline latency benchmark was run using the same 20 audio samples f
 2  & google.com & 1 & 9.41 \\ \hline
 3  & search Wikipedia about paris & 4 & 12.87 \\ \hline
 4  & navigate to paris's sport section & 5 & 14.35 \\ \hline
-5  & open gmail & 2 & 9.76 \\ \hline
-6  & open google and search for keyboards & 6 & 13.42 \\ \hline
+5  & open Gmail & 2 & 9.76 \\ \hline
+6  & open Google and search for keyboards & 6 & 13.42 \\ \hline
 7  & go on bestbuy and search for newest game & 8 & 15.91 \\ \hline
 8  & search software engineering jobs & 4 & 12.26 \\ \hline
 9  & search how to boil pasta & 5 & 11.83 \\ \hline
@@ -267,8 +269,11 @@ The command pipeline latency benchmark was run using the same 20 audio samples f
 \paragraph{Calculation of Average Latency}
 \[
 \begin{aligned}
-\text{Average Latency} &= \frac{1}{20}(8.92 + 9.41 + 12.87 + 14.35 + 9.76 + 13.42 + 15.91 + 12.26 + 11.83 + 13.74 \\
-&\quad + 12.95 + 18.62 + 10.54 + 14.08 + 9.88 + 13.67 + 12.43 + 9.15 + 11.96 + 8.64) \\
+\text{Average Latency}
+&= \frac{1}{20}(8.92 + 9.41 + 12.87 + 14.35 + 9.76 \\
+&\quad + 13.42 + 15.91 + 12.26 + 11.83 + 13.74 \\
+&\quad + 12.95 + 18.62 + 10.54 + 14.08 + 9.88 \\
+&\quad + 13.67 + 12.43 + 9.15 + 11.96 + 8.64) \\
 &= 12.52 \text{ s}
 \end{aligned}
 \]
@@ -660,7 +665,6 @@ Code coverage for the Python backend was measured using \texttt{pytest-cov}, whi
 
 
 \bibliographystyle{plainnat}
-\bibliography{../../refs/References}
 
 \newpage{}
 \section*{Appendix --- Reflection}
