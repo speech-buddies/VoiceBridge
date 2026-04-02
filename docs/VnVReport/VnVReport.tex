@@ -56,6 +56,14 @@ April 1st, 2026 & 1.1 & TA and Peer Review feedback implemented\\
   \textbf{symbol} & \textbf{description}\\
   \midrule 
   T & Test\\
+  ASR & Automatic Speech Recognition\\
+  UI & User Interface\\
+  NFR & Non-Functional Requirement\\
+  FR & Functional Requirement\\
+  WER & Word Error Rate\\
+  SNR & Signal-to-Noise Ratio\\
+  WCAG & Web Content Accessibility Guidelines\\
+  LoRA & Low-Rank Adaptation\\
   \bottomrule
 \end{tabular}\\
 
@@ -159,7 +167,7 @@ This section presents the evaluation results for all functional requirements as 
 
 \subsection{FR6: Handle Security Software Interference}
 
-\textbf{Requirement:} The system must detect when browser, operating system, or antivirus security controls block or restrict automated actions and provide clear feedback to the user, including the affected command and available fallback options. No specific test cases were defined in the V\&V Plan for FR6. This requirement was evaluated through scenario-based testing during command execution tests FR5.
+\textbf{Requirement:} The system must detect when browser, operating system, or antivirus security controls block or restrict automated actions and provide clear feedback to the user, including the affected command and available fallback options. No specific test cases were defined in the V\&V Plan for FR6, so this requirement was evaluated through scenario-based testing during command execution tests FR5. This is documented here to preserve traceability between the current report and the original V\&V Plan, even though FR6 was not separately amended into the plan.
 
 \section{Nonfunctional Requirements Evaluation}
 This section evaluates the selected nonfunctional requirements defined in the VnV Plan. The assessment focuses on two key quality attributes: performance and usability/humanity. The following subsections describe the tests conducted and the results obtained for each category.
@@ -220,7 +228,7 @@ where \(L_i\) is the latency measured for sample \(i\).
 The measured average latency across the 20 audio samples was 5.66 seconds.
 
 \paragraph{Conclusion}
-This test \textbf{does not fully satisfy} PRF-13.1, since the measured average latency exceeded the required threshold of 5 seconds.
+This test \textbf{does not fully satisfy} PRF-13.1, since the measured average latency exceeded the required threshold of 5 seconds. Future work should focus on profiling the ASR pipeline, reducing model inference latency, and improving streaming transcription so that the average latency can be brought below the 5-second target.
 
 \subsubsection{test-PF-2: Command Pipeline Latency}
 
@@ -299,10 +307,10 @@ This test was planned to evaluate ASR and command classification performance und
 This test was not executed during the current development cycle.
 
 \paragraph{Rationale}
-Robustness to stationary background noise was identified as a stretch goal for the project. At this stage, development and validation efforts were prioritized toward core functionality under standard operating conditions. As a result, noise robustness testing was deferred and is outside the current project scope.
+In the original V\&V Plan, robustness to stationary background noise was identified as a stretch goal rather than a required baseline test. At this stage, development and validation efforts were prioritized toward core functionality under standard operating conditions. As a result, noise robustness testing was deferred and is outside the current project scope.
 
 \paragraph{Conclusion}
-No result is reported for this test. Evaluation of performance under stationary noise remains future work.
+No result is reported for this test. Evaluation of performance under stationary noise remains future work, and the deferred stretch-goal status is documented here for traceability back to the V\&V Plan.
 
 
 \subsection{Usability and Humanity Requirements Evaluation}
@@ -605,7 +613,7 @@ PRF-13.1 (ASR Latency $\leq$5s, SRS 13.1) & test-PF-1 & Fail & Avg 5.66s $>$5s (
 \hline
 PRF-13.2 (Pipeline $\leq$15s, SRS 13.1) & test-PF-2 & Pass & Avg 12.52s $<$15s (Table~\ref{tab:command-pipeline-latency}). \\
 \hline
-PRF-13.3 (Noise Accuracy, SRS 13.3) & test-PF-3 & N/A & Deferred (stretch); future work for 5--20dB SNR. \\
+PRF-13.3 (Noise Accuracy, SRS 13.3) & test-PF-3 & N/A & Deferred (original V\&V Plan stretch goal); future work for 5--20dB SNR. \\
 \hline
 UHR-12.1 (Ease of Use, SRS 12.1) & test-UH-1 & Pass & 100\% tasks in $\leq$4 interactions; 4.5/5 rating (Table~\ref{tab:uh1}); feedback $<$1s. \\
 \hline
@@ -665,6 +673,8 @@ Code coverage for the Python backend was measured using \texttt{pytest-cov}, whi
 
 
 \bibliographystyle{plainnat}
+\bibliography{references}
+No references were cited in this report, but the bibliography section is included for completeness and to allow for future citations if needed.
 
 \newpage{}
 \section*{Appendix --- Reflection}
