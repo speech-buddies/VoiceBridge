@@ -62,6 +62,7 @@ Jan 11, 2026 & 1.1 & Updated local functions\\
 Jan 21, 2026 & 2.0 & Merged modules in application layer\\
 Jan 28, 2026 & 2.1 & Added reflection for peer module implementation\\
 Feb 16, 2026 & 2.2 & Updated module specifications to resemble rev0 implementation\\
+April 1, 2026 & 3.0 & Updated module descriptions to reflect final architecture \\
 Apr 01, 2026 & 2.3 & Updated M15 interface specification to match \texttt{audio\_capture.py} \\
 Apr 01, 2026 & 2.4 & Updated M18 interface specification to match \texttt{whisper\_lora\_trainer.py} \\
 \bottomrule
@@ -1533,6 +1534,8 @@ prevent catastrophic forgetting as new audio data accumulates over time.
   \item \textbf{exception:} \texttt{FileNotFoundError} if \texttt{meta\_file} or any referenced \texttt{wav\_file} is absent (missing \texttt{wav\_file} entries are skipped with a warning rather than raising).
 \end{itemize}
 
+
+
 \noindent\texttt{train()}:
 \begin{itemize}
   \item \textbf{transition:} For each epoch $e \in [1 \ldots \texttt{epochs}]$: run \texttt{\_train\_epoch(e)}, record average loss, save per-epoch checkpoint, invoke \texttt{on\_epoch\_end} if set. Increment \texttt{\_global\_step} per batch; save mid-run checkpoint every \texttt{checkpoint\_every} steps.
@@ -1588,6 +1591,97 @@ prevent catastrophic forgetting as new audio data accumulates over time.
   \item \texttt{\_require\_setup()}: \texttt{void} $\rightarrow$ \texttt{void} \\
   \textbf{Description:} Raises \texttt{RuntimeError} if \texttt{model} is \texttt{None}, guarding all public methods that depend on \texttt{setup()}.
 \end{itemize}
+
+
+\label{MIS:M19}
+
+\section{(M19) MIS of ShortcutManager} \label{M19}
+
+\textbf{Module:} ShortcutManager
+
+\subsection{Uses:}
+\begin{itemize}
+\item File System for reading and writing persistent shortcut data in \texttt{shortcuts.json}.
+\item Lock/Thread Synchronization utilities for safe concurrent access to shortcut state.
+\item AuditLogger (M11) indirectly through logging of shortcut lifecycle events and failures.
+\end{itemize}
+
+\subsection{Syntax:}
+
+\subsubsection{Exported Access Programs:}
+
+\begin{tabular}{|l|l|l|l|}
+\hline
+\textbf{Name} & \textbf{In} & \textbf{Out} & \textbf{Exceptions} \\ \hline
+\texttt{startRecording} & -- & \texttt{success: bool} & -- \\ 
+\texttt{addRecordedCommand} & clarifiedCommand & -- & -- \\ 
+\texttt{stopRecording} & -- & shortcut & ValueError \\ 
+\texttt{cancelRecording} & -- & -- & -- \\ 
+\texttt{isRecording} & -- & \texttt{recording: bool} & -- \\ 
+\texttt{listShortcuts} & -- & shortcuts & -- \\ 
+\texttt{deleteShortcut} & shortcutID & \texttt{success: bool} & -- \\ \hline
+\end{tabular}
+
+\subsection{Semantics}
+
+Stores and manages user-defined multi-step browser command shortcuts.
+Supports system usability by allowing users to record, persist, retrieve, and delete reusable command sequences.
+Ensures shortcut operations are thread-safe through mutual exclusion during state changes.
+
+\subsubsection{State Variables:}
+\begin{itemize}
+\item \texttt{\_shortcuts}: mapping from shortcut ID to shortcut record.
+\item \texttt{\_recording}: indicates whether shortcut recording is currently active.
+\item \texttt{\_buffer}: ordered list of commands collected during the current recording session.
+\item \texttt{\_path}: file path for persistent shortcut storage.
+\end{itemize}
+
+\subsubsection{Access Routine Semantics:}
+
+\noindent\texttt{startRecording()}:
+\begin{itemize}
+\item \textbf{transition:} If no shortcut recording is active, sets \texttt{\_recording := true} and clears \texttt{\_buffer}.
+\item \textbf{output:} Returns \texttt{true} if recording successfully starts, otherwise returns \texttt{false}.
+\end{itemize}
+
+\noindent\texttt{addRecordedCommand(clarifiedCommand)}:
+\begin{itemize}
+\item \textbf{transition:} If recording is active, appends \texttt{clarifiedCommand} to \texttt{\_buffer}. If recording is inactive, no state change occurs.
+\end{itemize}
+
+\noindent\texttt{stopRecording()}:
+\begin{itemize}
+\item \textbf{transition:} If recording is active and \texttt{\_buffer} is non-empty, creates a new shortcut record with a unique ID, default name, and recorded command list; stores it in \texttt{\_shortcuts}; resets recording state; and flushes data to persistent storage.
+\item \textbf{output:} Returns the created shortcut record.
+\item \textbf{exception:} Raises \texttt{ValueError} if no recording is active or if no commands were recorded.
+\end{itemize}
+
+\noindent\texttt{cancelRecording()}:
+\begin{itemize}
+\item \textbf{transition:} Sets \texttt{\_recording := false} and clears \texttt{\_buffer} without saving a shortcut.
+\end{itemize}
+
+\noindent\texttt{isRecording()}:
+\begin{itemize}
+\item \textbf{output:} Returns the current value of \texttt{\_recording}.
+\end{itemize}
+
+\noindent\texttt{listShortcuts()}:
+\begin{itemize}
+\item \textbf{output:} Returns a copy of the currently stored shortcuts.
+\end{itemize}
+
+\noindent\texttt{deleteShortcut(shortcutID)}:
+\begin{itemize}
+\item \textbf{transition:} Removes the shortcut associated with \texttt{shortcutID} if it exists, and flushes the updated shortcut set to persistent storage.
+\item \textbf{output:} Returns \texttt{true} if a shortcut was removed, otherwise \texttt{false}.
+\end{itemize}
+
+
+
+
+
+
 
 
 \bibliographystyle {plainnat}
