@@ -84,6 +84,66 @@ client should be part of the explanation.  For example, if you made changes in
 response to usability testing, explain what the testing found and what changes
 it led to.}
 
+\subsection{Shortcut Manager Iteration}
+
+One important design iteration in VoiceBridge was the development of the
+\texttt{ShortcutManager}. In the earlier versions of the system, commands were
+handled one at a time with no persistent way to record, save, and replay common
+action sequences. While this was enough to demonstrate basic browser control, it
+did not match the client need for efficiency and accessibility in repeated
+everyday tasks. For a user with impaired speech, repeatedly issuing the same
+sequence of voice commands can increase fatigue and reduce the overall usability
+of the system. Because of this, we introduced shortcuts as a way to reduce the
+number of spoken interactions required for frequent tasks.
+
+Our first idea was relatively simple: store a shortcut as a sequence of recorded
+commands and replay them later. However, once we integrated this into the live
+system, we found that shortcut behavior could conflict with the runtime state
+machine. For example, the user could try to begin a shortcut recording while the
+system was still processing another command, or multiple parts of the backend
+could attempt to modify shortcut state at the same time. This was especially
+important because VoiceBridge is a real-time system with asynchronous events,
+including speech capture, transcription, intent resolution, and browser
+execution. As a result, we revised the design so that shortcut recording became
+an explicitly managed subsystem rather than just an added list of commands.
+
+The final design introduced a dedicated \texttt{ShortcutManager} module with a
+clear internal state, persistent storage, and locking for safe concurrent
+access. Instead of scattering shortcut logic across the codebase, the manager
+became responsible for starting and stopping recordings, storing recorded
+commands, validating shortcut names, and loading/saving shortcuts from disk.
+This design was chosen to improve maintainability and prevent race conditions in
+cases where multiple backend events happen close together. The use of a lock was
+an important iteration because testing showed that shortcut actions could overlap
+with other command-processing flows in unpredictable ways if the state was not
+protected.
+
+We also changed how shortcuts were represented. In earlier thinking, shortcuts
+were treated mainly as temporary in-memory recordings for the active session.
+This was limiting, because a user would lose their shortcuts between runs of the
+application. Since one of the client goals was to make the system practical for
+daily use, we moved to persistent storage using a local JSON-based approach.
+This allowed shortcuts to survive application restarts and made the feature more
+realistic as an assistive tool rather than just a demo feature. The trade-off
+was that we now needed validation and structured file handling, but this was
+worth it because it supported a more reliable user experience.
+
+Another design change was motivated by usability. Initially, shortcut support was
+focused only on storing the raw sequence of actions. As the design matured, we
+recognized that the feature also needed clear start/stop control and user
+feedback so that recording would feel predictable. Without this, a user could be
+unsure whether the system was actively recording commands into a shortcut or just
+executing them normally. This was especially important given our client focus on
+accessibility and confidence in system behavior. We therefore refined the design
+so that shortcut recording had explicit transitions, clear prompts, and tighter
+integration with the system state flow.
+
+Overall, the \texttt{ShortcutManager} evolved from a simple convenience idea
+into a more structured subsystem designed around accessibility, predictability,
+and safe execution. The main reason for these changes was not just technical
+cleanup, but the need to better support users who benefit from reducing repeated
+speech effort while still being able to trust what the system is doing.
+
 \section{Design Decisions (LO12)}
 
 \plt{Reflect and justify your design decisions.  How did limitations,
