@@ -78,6 +78,8 @@ Jan 21, 2026 & 2.1 & Added communication protocol details\\
 Feb 10, 2026 & 2.2 & Implemented advisor feedback on structure, clarity and terminology \\
 Feb 16, 2026 & 2.3 & Updated module descriptions to resemble rev0 architecture \\
 Feb 23, 2026 & 2.4 & Implemented advisor feedback on module classification and command refinement \\
+Apr 01, 2026 & 2.5 & Updated M15 module description to match \texttt{audio\_capture.py} implementation \\
+Apr 01, 2026 & 2.6 & Updated M18 module description to match \texttt{whisper\_lora\_trainer.py} implementation \\
 April 1, 2026 & 3.0 & Updated module descriptions to reflect final architecture \\
 \bottomrule
 \end{tabularx}
@@ -322,7 +324,7 @@ The following 18 modules represent the leaf nodes in the architectural decomposi
   \item \textbf{Out-of-Scope Handler} - Validates command safety, provides fallback handling, and reports unsafe operations
   \item \textbf{Audio Capture} - Captures and normalizes audio input from system microphone using voice activity detection (VAD) on audio stream
   \item \textbf{Prompting Module} - Generates contextual, accessible, and confidence-based prompts for user clarification
-  \item \textbf{Model Tuner} - Adapts speech and intent models to individual user patterns through personalized embeddings
+  \item \textbf{Model Tuner} - Incrementally fine-tunes Whisper-small via LoRA adapters on new user audio, with experience replay to prevent catastrophic forgetting
 \end{itemize}
 \section{Connection Between Requirements and Design} \label{SecConnection}
 
@@ -648,30 +650,27 @@ Provides user prompting, model fine-tuning, and creation of personalized shortcu
 \subsection*{Input Processing Layer Modules}
 
 \subsubsection*{M15: Real-time Audio Capture with Voice Activity Detection} \refstepcounter{mnum}\mthemnum\label{m15}
-\textbf{Secrets:} 
+
+\textbf{Secrets:}
 \begin{itemize}
-  \item Audio device configuration and sampling parameters (sample rate, channels, chunk size)
-  \item WebRTC VAD integration and aggressiveness levels (0--3)
-  \item Hybrid speech detection combining VAD and optional energy thresholds
-  \item State machine logic (IDLE, LISTENING, SPEECH\_DETECTED, RECORDING, PROCESSING, STOPPED)
-  \item Pre-buffering mechanism to capture audio before speech detection
-  \item Silence detection thresholds and automatic recording termination
-  \item Audio format conversion between int16 (for VAD) and float32 (for output)
-  \item Stream management and threading strategy for continuous capture
+  \item Audio device configuration and sampling parameters (sample rate, channels, chunk size) encapsulated in \texttt{AudioConfig}
+  \item Hybrid speech detection combining WebRTC VAD (aggressiveness 0--3) with an optional RMS energy threshold
+  \item Six-state capture machine (IDLE, LISTENING, SPEECH\_DETECTED, RECORDING, PROCESSING, STOPPED) and its thread-safety strategy
+  \item Pre-roll ring buffer used to recover audio onset that precedes speech detection
+  \item Silence-run and max-duration counters that trigger automatic recording termination
+  \item Audio format pipeline: float32 stream input $\to$ int16 bytes for VAD $\to$ normalized float32 output for Whisper
 \end{itemize}
-\textbf{Services:} 
+
+\textbf{Services:}
 \begin{itemize}
-  \item Configure audio parameters via \texttt{AudioConfig} (sample rate, VAD aggressiveness, buffer durations, silence thresholds)
-  \item Start and stop continuous audio stream with state management
-  \item Detect speech frames vs. silence using WebRTC VAD
-  \item Optionally apply energy-based speech detection as secondary criterion
-  \item Automatically trigger recording on speech detection with pre-buffered audio
-  \item End recording after configurable silence duration (default 1500ms) or maximum duration (default 30s)
-  \item Emit complete audio recordings as float32 arrays with metadata (duration, sample count, timestamp)
-  \item List available audio input devices
-  \item Provide capture statistics (total recordings, audio duration, VAD errors, stream errors)
+  \item Validate and initialize audio capture parameters via \texttt{AudioConfig}
+  \item Start and stop the continuous microphone stream (\texttt{start}, \texttt{stop})
+  \item Automatically detect speech onset and record complete utterances, emitting each as a float32 array with metadata (duration, sample count, timestamp) via a caller-supplied callback
+  \item Enumerate available audio input devices (\texttt{list\_audio\_devices})
+  \item Expose runtime diagnostics: total recordings, captured audio seconds, VAD errors, and stream errors (\texttt{get\_stats})
 \end{itemize}
-\textbf{Implemented By:} \texttt{audio\_capture.py} using sounddevice and webrtcvad libraries.
+
+\textbf{Implemented By:} \texttt{audio\_capture.py} (\texttt{AudioConfig}, \texttt{AudioState}, \texttt{RealtimeAudioCapture}) using the \texttt{sounddevice} and \texttt{webrtcvad} libraries.
 
 \subsection*{Personalization Layer}
 \subsubsection*{M17: Prompting Module} \refstepcounter{mnum}\mthemnum\label{m17}
@@ -691,20 +690,23 @@ Provides user prompting, model fine-tuning, and creation of personalized shortcu
 
 \medskip
 \subsubsection*{M18: Model Tuner} \refstepcounter{mnum}\mthemnum\label{m18}
-\textbf{Secrets:} 
+\textbf{Secrets:}
 \begin{itemize}
-  \item Adaptation strategy for user-specific speech patterns
-  \item Tuning weights for model updates
-  \item Online vs. offline update thresholds
-  \item Embedding storage rules
+  \item Incremental fine-tuning strategy: only LoRA adapter weights (targeting Whisper-small decoder \texttt{q\_proj}/\texttt{v\_proj} layers) are trained; the base model is frozen
+  \item Seen-files ledger (\texttt{seen\_files.json}) that tracks which audio samples have already been incorporated, ensuring each recording is trained on exactly once
+  \item Experience-replay policy: a random subset of previously-seen samples (sized \texttt{replay\_ratio} $\times$ \#new files) is mixed into each run to prevent catastrophic forgetting
+  \item LoRA hyperparameters (rank, scaling factor, dropout) and their effect on adapter capacity vs.\ training speed
+  \item Adapter persistence path (\texttt{models/adapters}) and the in-place overwrite protocol used to keep a single live adapter up to date across runs
 \end{itemize}
-\textbf{Services:} 
+\textbf{Services:}
 \begin{itemize}
-  \item Update inference parameters based on user data
-  \item Compute personalized embeddings
-  \item Adjust thresholds for intent classification and STT confidence
+  \item Prepare a training run: filter metadata to unseen files, load or initialise the LoRA adapter, and build train/test \texttt{DataLoader}s (\texttt{setup})
+  \item Train the adapter on new audio data for a configurable number of epochs, returning per-epoch losses (\texttt{train})
+  \item Evaluate adapter quality on the held-out test split, returning average cross-entropy loss (\texttt{evaluate})
+  \item Persist the updated adapter to disk and advance the seen-files ledger (\texttt{save})
+  \item Expose whether unseen training data is available for the current run (\texttt{has\_new\_data})
 \end{itemize}
-\textbf{Implemented By:} ML runtime (Whisper fine-tuning layer or lightweight personalization pipeline).
+\textbf{Implemented By:} \texttt{whisper\_lora\_trainer.py} (\texttt{WhisperLoRATrainer}) using HuggingFace \texttt{transformers}, \texttt{peft} (LoRA), and PyTorch.
 
 \medskip
 \subsubsection*{M19: Shortcut Manager} \refstepcounter{mnum}\mthemnum\label{m19}
