@@ -62,6 +62,8 @@ Jan 11, 2026 & 1.1 & Updated local functions\\
 Jan 21, 2026 & 2.0 & Merged modules in application layer\\
 Jan 28, 2026 & 2.1 & Added reflection for peer module implementation\\
 Feb 16, 2026 & 2.2 & Updated module specifications to resemble rev0 implementation\\
+Apr 01, 2026 & 2.3 & Updated M15 interface specification to match \texttt{audio\_capture.py} \\
+Apr 01, 2026 & 2.4 & Updated M18 interface specification to match \texttt{whisper\_lora\_trainer.py} \\
 \bottomrule
 \end{tabularx}
 
@@ -74,6 +76,8 @@ Feb 16, 2026 & 2.2 & Updated module specifications to resemble rev0 implementati
 \textbf{Acronym} & \textbf{Meaning} \\ \hline
 DOM & Document Object Model \\ \hline
 ARIA & Accessible Rich Internet Applications \\ \hline
+LoRA & Low-Rank Adaptation (parameter-efficient fine-tuning method) \\ \hline
+WER & Word Error Rate \\ \hline
 \end{tabular}
 
 \vspace{1em}
@@ -1221,87 +1225,163 @@ Integrates with M11 to log anomaly-triggered safety events.
 
 
 
-\section{(M15) MIS of MicrophoneManager} \label{M15}
+\section{(M15) MIS of RealtimeAudioCapture} \label{M15}
 
-\textbf{Module:} MicrophoneManager
+\textbf{Module:} RealtimeAudioCapture (\texttt{audio\_capture.py})
 
 \subsection{Uses:}
 \begin{itemize}
-\item VAD Noise Filter (M16) for downstream speech/noise classification.
-\item Session Manager (M8) for tracking active input sessions.
-\item AuditLogger (M11) for logging permission events or device failures.
+  \item Speech-to-Text Engine (M4) — consumer of the float32 audio arrays emitted via the \texttt{on\_audio\_ready} callback.
+  \item AuditLogger (M11) — stream and VAD error counts are available through \texttt{get\_stats} for diagnostic logging.
 \end{itemize}
 
 \subsection{Syntax:}
+
+\subsubsection{Exported Constants:}
+
+\begin{tabular}{|l|l|l|}
+\hline
+\textbf{Name} & \textbf{Type} & \textbf{Value / Description} \\ \hline
+\texttt{AudioState.IDLE}            & string & \texttt{"idle"} \\ 
+\texttt{AudioState.LISTENING}       & string & \texttt{"listening"} \\ 
+\texttt{AudioState.SPEECH\_DETECTED}& string & \texttt{"speech\_detected"} \\ 
+\texttt{AudioState.RECORDING}       & string & \texttt{"recording"} \\ 
+\texttt{AudioState.PROCESSING}      & string & \texttt{"processing"} \\ 
+\texttt{AudioState.STOPPED}         & string & \texttt{"stopped"} \\ \hline
+\end{tabular}
+
+\subsubsection{Exported Types:}
+
+\begin{itemize}
+  \item \textbf{AudioConfig} — configuration record with fields:
+    \begin{itemize}
+      \item \texttt{sample\_rate: $\mathbb{N}$} — PCM sample rate in Hz; must be in $\{8000, 16000, 32000, 48000\}$ (default 16000)
+      \item \texttt{channels: $\mathbb{N}$} — number of input channels; must be 1 (default 1)
+      \item \texttt{chunk\_duration\_ms: $\mathbb{N}$} — VAD frame duration in ms; must be in $\{10, 20, 30\}$ (default 30)
+      \item \texttt{vad\_aggressiveness: $\mathbb{N}$} — WebRTC VAD level in $[0..3]$ (default 3)
+      \item \texttt{pre\_buffer\_duration\_ms: $\mathbb{N}$} — onset pre-roll window in ms (default 300)
+      \item \texttt{silence\_duration\_ms: $\mathbb{N}$} — silence run required to end a recording in ms (default 1500)
+      \item \texttt{max\_recording\_duration\_s: $\mathbb{N}$} — hard recording cap in seconds (default 30)
+      \item \texttt{energy\_threshold: $\mathbb{R}$ | None} — RMS energy floor for secondary speech detection (default 800)
+      \item \texttt{device: $\mathbb{N}$ | None} — sounddevice input device index (default None = system default)
+    \end{itemize}
+  \item \textbf{AudioMetadata} — dict with keys \texttt{duration\_s: $\mathbb{R}$}, \texttt{sample\_rate: $\mathbb{N}$}, \texttt{num\_samples: $\mathbb{N}$}, \texttt{timestamp: $\mathbb{R}$}
+\end{itemize}
 
 \subsubsection{Exported Access Programs:}
 
 \begin{tabular}{|l|l|l|l|}
 \hline
 \textbf{Name} & \textbf{In} & \textbf{Out} & \textbf{Exceptions} \\ \hline
-\texttt{listDevices} & - & deviceList & DeviceQueryException \\ 
-\texttt{startCapture} & deviceID & \texttt{status: bool} & PermissionException \\ 
-\texttt{readFrame} & - & audioFrame & CaptureInactiveException \\ \hline
+\texttt{AudioConfig} &
+  \makecell[l]{sample\_rate, channels, \\ chunk\_duration\_ms, \\ vad\_aggressiveness, \\ pre\_buffer\_duration\_ms, \\ silence\_duration\_ms, \\ max\_recording\_duration\_s, \\ energy\_threshold, device} &
+  \texttt{AudioConfig} &
+  \texttt{ValueError} \\ \hline
+\texttt{RealtimeAudioCapture} &
+  \makecell[l]{config: AudioConfig | None, \\ on\_audio\_ready: Callable | None} &
+  \texttt{RealtimeAudioCapture} &
+  \texttt{ValueError} \\ \hline
+\texttt{start}  & -- & -- & \texttt{Exception} \\ \hline
+\texttt{stop}   & -- & -- & -- \\ \hline
+\texttt{get\_stats} & -- & \texttt{dict} & -- \\ \hline
+\texttt{list\_audio\_devices} & -- & \texttt{list[(int, dict)]} & -- \\ \hline
 \end{tabular}
 
 \subsection{Semantics}
 
-Implements audio acquisition requirements (FR1). Provides consistent, normalized microphone
-input to subsequent modules. Integrates with M8 to maintain session continuity.
+Implements audio acquisition requirements (FR1). Provides a self-contained, callback-driven pipeline from raw microphone input to segmented, normalized utterances ready for ASR processing.
+
+\subsubsection{State Variables:}
+\begin{itemize}
+  \item \texttt{config: AudioConfig} — immutable capture and VAD parameters set at construction.
+  \item \texttt{state: string} — current position in the \texttt{AudioState} machine; protected by \texttt{state\_lock}.
+  \item \texttt{pre\_buffer: deque[bytes]} — ring buffer of the most recent \texttt{pre\_buffer\_chunks} PCM chunks, used to seed recordings with audio that preceded speech detection.
+  \item \texttt{recording\_buffer: list[bytes]} — accumulates raw PCM bytes for the utterance currently being recorded.
+  \item \texttt{silence\_counter: $\mathbb{N}$} — number of consecutive silent chunks observed during RECORDING; reset on any speech frame.
+  \item \texttt{recording\_chunks\_count: $\mathbb{N}$} — total chunks added to \texttt{recording\_buffer} for the current utterance.
+  \item \texttt{stats: dict} — running counters: \texttt{total\_recordings}, \texttt{total\_audio\_seconds}, \texttt{vad\_errors}, \texttt{stream\_errors}.
+\end{itemize}
+
+\subsubsection{Environment Variables:}
+\begin{itemize}
+  \item System audio input device (selected via \texttt{config.device} or OS default).
+\end{itemize}
+
+\subsubsection{Assumptions:}
+\begin{itemize}
+  \item The host OS grants microphone permission to the process.
+  \item The \texttt{sounddevice} library can open a stream at the configured sample rate and block size.
+  \item The caller's \texttt{on\_audio\_ready} callback does not block the audio thread for extended periods.
+\end{itemize}
 
 \subsubsection{Access Routine Semantics:}
 
-\noindent\texttt{startCapture(deviceID)}:
+\noindent\texttt{AudioConfig(\ldots)}:
 \begin{itemize}
-\item \textbf{transition:} Initializes device stream and marks microphone as active.
+  \item \textbf{transition:} Store all parameters; derive \texttt{chunk\_size}, \texttt{pre\_buffer\_chunks}, \texttt{silence\_chunks}, \texttt{max\_recording\_chunks} from duration inputs.
+  \item \textbf{output:} Initialized \texttt{AudioConfig} record.
+  \item \textbf{exception:} \texttt{ValueError} (raised by \texttt{RealtimeAudioCapture}) if \texttt{validate()} returns \texttt{false}.
 \end{itemize}
 
-\noindent\texttt{readFrame()}:
+\noindent\texttt{RealtimeAudioCapture(config, on\_audio\_ready)}:
 \begin{itemize}
-\item \textbf{transition:} Retrieves the latest audio frame for processing.
+  \item \textbf{transition:} Validate \texttt{config}; initialize VAD, state machine, pre-roll buffer, recording buffer, counters, and stats.
+  \item \textbf{output:} Initialized capture instance with \texttt{state = IDLE}.
+  \item \textbf{exception:} \texttt{ValueError} if \texttt{config.validate()} returns \texttt{false}.
 \end{itemize}
 
-\label{MIS:M16}
-
-\section{(M16) MIS of VADNoiseFilter} \label{M16}
-
-\textbf{Module:} VADNoiseFilter
-
-\subsection{Uses:}
+\noindent\texttt{start()}:
 \begin{itemize}
-\item MicrophoneManager (M15) for raw audio frames.
-\item Speech-to-Text Engine (M4) for improved transcription accuracy.
-\item AuditLogger (M11) for tracking confidence drops or noise anomalies.
+  \item \textbf{transition:} Set \texttt{state := LISTENING}; open a \texttt{sounddevice.InputStream} with \texttt{\_audio\_callback} and start it. No-op if \texttt{state $\neq$ IDLE}.
+  \item \textbf{output:} --
+  \item \textbf{exception:} Propagates \texttt{Exception} from \texttt{sounddevice} if the device cannot be opened; reverts \texttt{state} to IDLE.
 \end{itemize}
 
-\subsection{Syntax:}
-
-\subsubsection{Exported Access Programs:}
-
-\begin{tabular}{|l|l|l|l|}
-\hline
-\textbf{Name} & \textbf{In} & \textbf{Out} & \textbf{Exceptions} \\ \hline
-\texttt{filterFrame} & \texttt{audioFrame: AudioFrame} & \texttt{cleanedFrame: AudioFrame} & - \\ 
-\texttt{detectSpeech} & \texttt{audioFrame: AudioFrame} & \texttt{isSpeech: bool} & - \\ 
-\texttt{resetState} & - & \texttt{status: bool} & - \\ \hline
-\end{tabular}
-
-\subsection{Semantics}
-
-Supports Integrity Requirements (IR2) by reducing background noise prior to transcription.
-Provides binary VAD detections for downstream timing and segmentation.
-
-\subsubsection{Access Routine Semantics:}
-
-\noindent\texttt{filterFrame(frame)}:
+\noindent\texttt{stop()}:
 \begin{itemize}
-\item \textbf{transition:} Updates internal noise profile and returns processed audio.
+  \item \textbf{transition:} Set \texttt{state := STOPPED}; signal \texttt{stop\_event}; stop and close the stream; set \texttt{state := IDLE}.
+  \item \textbf{output:} --
+  \item \textbf{exception:} --
 \end{itemize}
 
-\noindent\texttt{detectSpeech(frame)}:
+\noindent\texttt{get\_stats()}:
 \begin{itemize}
-\item \textbf{transition:} Computes speech probability using configured thresholds.
+  \item \textbf{transition:} None (read-only snapshot).
+  \item \textbf{output:} Shallow copy of \texttt{stats} dict with keys \texttt{total\_recordings: $\mathbb{N}$}, \texttt{total\_audio\_seconds: $\mathbb{R}$}, \texttt{vad\_errors: $\mathbb{N}$}, \texttt{stream\_errors: $\mathbb{N}$}.
+  \item \textbf{exception:} --
 \end{itemize}
+
+\noindent\texttt{list\_audio\_devices()} [static]:
+\begin{itemize}
+  \item \textbf{transition:} None.
+  \item \textbf{output:} List of \texttt{(index: $\mathbb{N}$, device\_info: dict)} tuples for all input-capable devices; also prints a formatted table to stdout.
+  \item \textbf{exception:} --
+\end{itemize}
+
+\subsubsection{Local Functions:}
+\begin{itemize}
+  \item \texttt{\_set\_state(new\_state: string)}: \texttt{string} $\rightarrow$ \texttt{void} \\
+  \textbf{Description:} Acquires \texttt{state\_lock}, updates \texttt{state}, and logs the transition if the state changed.
+
+  \item \texttt{\_get\_state()}: \texttt{void} $\rightarrow$ \texttt{string} \\
+  \textbf{Description:} Returns the current \texttt{state} under \texttt{state\_lock}.
+
+  \item \texttt{\_is\_speech(audio\_chunk: bytes)}: \texttt{bytes} $\rightarrow$ \texttt{bool} \\
+  \textbf{Description:} Returns \texttt{true} iff WebRTC VAD classifies the chunk as speech \emph{or} (when \texttt{energy\_threshold} $\neq$ None) the RMS energy of the chunk exceeds \texttt{energy\_threshold}.
+
+  \item \texttt{\_process\_audio\_chunk(audio\_chunk: bytes)}: \texttt{bytes} $\rightarrow$ \texttt{void} \\
+  \textbf{Description:} State machine dispatch — appends to pre-buffer or recording buffer, drives state transitions, and calls \texttt{\_end\_recording} when silence or duration limits are reached.
+
+  \item \texttt{\_start\_recording()}: \texttt{void} $\rightarrow$ \texttt{void} \\
+  \textbf{Description:} Seeds \texttt{recording\_buffer} from \texttt{pre\_buffer} and resets utterance counters.
+
+  \item \texttt{\_end\_recording()}: \texttt{void} $\rightarrow$ \texttt{void} \\
+  \textbf{Description:} Concatenates \texttt{recording\_buffer}, converts int16 PCM to float32, builds \texttt{AudioMetadata}, increments \texttt{stats}, invokes \texttt{on\_audio\_ready}, and resets utterance state.
+
+  \item \texttt{\_audio\_callback(indata, frames, time\_info, status)}: callback $\rightarrow$ \texttt{void} \\
+  \textbf{Description:} sounddevice stream callback; converts float32 block to int16 bytes and forwards to \texttt{\_process\_audio\_chunk}; increments \texttt{stream\_errors} on non-empty status.
+\end{itemize}
+
 
 \label{MIS:M17}
 
@@ -1349,51 +1429,165 @@ Ensures consistent phrasing across confirmations, errors, and system messages.
 
 \section{(M18) MIS of ModelTuner} \label{M18}
 
-\textbf{Module:} ModelTuner
+\textbf{Module:} ModelTuner (\texttt{whisper\_lora\_trainer.py} — \texttt{WhisperLoRATrainer})
 
 \subsection{Uses:}
 \begin{itemize}
-\item Data Management Layer (M9) for retrieving stored audio samples.
-\item ASR Engine (M4) for updating recognition parameters.
-\item AuditLogger (M11) for recording tuning events or failures.
+  \item Data Management Layer (M9) — source of labelled audio files and the seen-files ledger (\texttt{seen\_files.json}) stored in \texttt{output\_dir}.
+  \item ASR Engine (M4) — the LoRA adapter produced by \texttt{save()} is loaded by M4 on the next inference session, adapting recognition to the current user's speech patterns.
+  \item AuditLogger (M11) — per-epoch loss values, evaluation results, and save events may be forwarded via the \texttt{on\_epoch\_end} / \texttt{on\_batch\_end} callbacks for audit logging.
 \end{itemize}
 
 \subsection{Syntax:}
+
+\subsubsection{Exported Constants:}
+
+\begin{tabular}{|l|l|l|}
+\hline
+\textbf{Name} & \textbf{Type} & \textbf{Description} \\ \hline
+\texttt{\_SEEN\_FILES\_LEDGER} & string & Filename of the per-run training ledger (\texttt{"seen\_files.json"}) \\ \hline
+\texttt{\_ADAPTER\_SUBDIR}     & string & Subdirectory for the live LoRA adapter (\texttt{"./models/adapters"}) \\ \hline
+\end{tabular}
+
+\subsubsection{Exported Types:}
+
+\begin{itemize}
+  \item \textbf{WhisperLoRATrainer} — main trainer class; configuration parameters:
+  \begin{itemize}
+    \item \texttt{data\_dir: string} — directory containing labelled \texttt{.wav} files
+    \item \texttt{meta\_file: string} — path to JSONL metadata file (default \texttt{"metadata.json"})
+    \item \texttt{output\_dir: string} — root for checkpoints, adapter, and ledger (default \texttt{"./checkpoints"})
+    \item \texttt{epochs: $\mathbb{N}$} — training passes over new data per run (default 3)
+    \item \texttt{batch\_size: $\mathbb{N}$} — samples per gradient update (default 2)
+    \item \texttt{lr: $\mathbb{R}$} — AdamW learning rate (default $10^{-4}$)
+    \item \texttt{test\_split: $\mathbb{R} \in [0,1]$} — fraction of new data held out for evaluation (default 0.1)
+    \item \texttt{seed: $\mathbb{N}$} — random seed for reproducible splits (default 42)
+    \item \texttt{sampling\_rate: $\mathbb{N}$} — target PCM rate in Hz; must match Whisper's 16\,000 Hz expectation (default 16\,000)
+    \item \texttt{lora\_r: $\mathbb{N}$} — LoRA rank (default 16)
+    \item \texttt{lora\_alpha: $\mathbb{N}$} — LoRA scaling factor (default 32)
+    \item \texttt{lora\_dropout: $\mathbb{R}$} — dropout inside LoRA layers (default 0.1)
+    \item \texttt{replay\_ratio: $\mathbb{R} \geq 0$} — old-sample replay fraction relative to new-sample count (default 0.5; 0 disables replay)
+    \item \texttt{on\_batch\_end: Callable | None} — optional hook \texttt{fn(epoch, batch\_idx, step, loss)} fired after each batch
+    \item \texttt{on\_epoch\_end: Callable | None} — optional hook \texttt{fn(epoch, avg\_loss)} fired after each epoch
+  \end{itemize}
+\end{itemize}
 
 \subsubsection{Exported Access Programs:}
 
 \begin{tabular}{|l|l|l|l|}
 \hline
 \textbf{Name} & \textbf{In} & \textbf{Out} & \textbf{Exceptions} \\ \hline
-\texttt{scheduleTune} & userID, dataset & jobID & TunePolicyException \\ 
-\texttt{checkStatus} & jobID & status & NotFoundException \\ 
-\texttt{applyModel} & userID, jobID & \texttt{success: bool} & ModelLoadException \\ \hline
+\texttt{WhisperLoRATrainer} & (see type above) & \texttt{WhisperLoRATrainer} & -- \\ \hline
+\texttt{setup}    & --                       & \texttt{void}         & \texttt{FileNotFoundError} \\ \hline
+\texttt{train}    & --                       & \texttt{List[$\mathbb{R}$]} & \texttt{RuntimeError} \\ \hline
+\texttt{evaluate} & --                       & $\mathbb{R}$          & \texttt{RuntimeError} \\ \hline
+\texttt{save}     & \texttt{path: string | None} & \texttt{string}   & \texttt{RuntimeError} \\ \hline
+\texttt{has\_new\_data} & -- (property)       & \texttt{bool}         & -- \\ \hline
 \end{tabular}
 
 \subsection{Semantics}
 
-Supports Accuracy Requirements (PF-3) by enabling adaptive personalization for impaired speech.
-Updates the user's model profile upon successful tuning.
+Supports Accuracy Requirement (PF-3) by enabling incremental, user-specific fine-tuning of
+Whisper-small via Low-Rank Adaptation (LoRA). A seen-files ledger and experience-replay buffer
+prevent catastrophic forgetting as new audio data accumulates over time.
+
+\subsubsection{State Variables:}
+\begin{itemize}
+  \item \texttt{processor: WhisperProcessor | None} — Whisper feature extractor and tokenizer; set by \texttt{setup()}.
+  \item \texttt{model: PeftModel | None} — Whisper-small with LoRA adapter attached; set by \texttt{setup()}.
+  \item \texttt{optimizer: AdamW | None} — parameter optimizer; set by \texttt{setup()}.
+  \item \texttt{train\_loader: DataLoader | None} — batched training data for the current run; set by \texttt{setup()}.
+  \item \texttt{test\_loader: DataLoader | None} — batched evaluation data for the current run; set by \texttt{setup()}.
+  \item \texttt{\_current\_run\_files: List[string]} — basenames of new audio files selected for this run; populated by \texttt{setup()}.
+  \item \texttt{\_global\_step: $\mathbb{N}$} — cumulative batch count across all epochs in a run; used for mid-run checkpointing.
+\end{itemize}
+
+\subsubsection{Environment Variables:}
+\begin{itemize}
+  \item \texttt{output\_dir} filesystem path — must be writable; stores the LoRA adapter subdirectory (\texttt{\_ADAPTER\_SUBDIR}) and seen-files ledger (\texttt{\_SEEN\_FILES\_LEDGER}).
+  \item \texttt{data\_dir} filesystem path — must contain the \texttt{.wav} files listed in the metadata.
+  \item HuggingFace model cache — \texttt{openai/whisper-small} is downloaded on the first run.
+\end{itemize}
+
+\subsubsection{Assumptions:}
+\begin{itemize}
+  \item Audio files are mono or stereo PCM \texttt{.wav} at any sample rate (resampling to \texttt{sampling\_rate} is handled internally).
+  \item The metadata JSONL file contains objects with at least \texttt{"wav\_file"} and \texttt{"transcript"} fields.
+  \item The host machine provides sufficient RAM for CPU-based training of Whisper-small with LoRA (adapter-only parameters only; base model weights are frozen).
+  \item \texttt{setup()} is called before any of \texttt{train()}, \texttt{evaluate()}, or \texttt{save()}.
+\end{itemize}
 
 \subsubsection{Access Routine Semantics:}
 
-\noindent\texttt{scheduleTune(userID, dataset)}:
+\noindent\texttt{WhisperLoRATrainer(\ldots)}:
 \begin{itemize}
-\item \textbf{transition:} Registers a tuning job with the training backend.
+  \item \textbf{transition:} Store all configuration parameters; set \texttt{model}, \texttt{processor}, \texttt{optimizer}, \texttt{train\_loader}, \texttt{test\_loader} to \texttt{None}; initialise \texttt{\_current\_run\_files := []} and \texttt{\_global\_step := 0}; set \texttt{device := "cpu"}.
+  \item \textbf{output:} Uninitialised trainer instance (requires \texttt{setup()} before use).
+  \item \textbf{exception:} --
 \end{itemize}
 
-\noindent\texttt{applyModel(userID, jobID)}:
+\noindent\texttt{setup()}:
 \begin{itemize}
-\item \textbf{transition:} Loads and activates the newly tuned ASR parameters.
+  \item \textbf{transition:} Create \texttt{output\_dir} if absent; load all metadata via \texttt{\_load\_data()}; load seen-files ledger via \texttt{\_load\_seen\_files()}; partition into \texttt{new\_data} and \texttt{old\_data}; draw replay sample via \texttt{\_sample\_replay\_data()}; record \texttt{\_current\_run\_files := basenames(new\_data)}; load \texttt{WhisperProcessor}; build/resume model via \texttt{\_build\_model()}; construct \texttt{AdamW} optimizer; if \texttt{new\_data} is non-empty, split combined data and construct \texttt{train\_loader} and \texttt{test\_loader}.
+  \item \textbf{output:} \texttt{void}; side-effect: all state variables above are populated.
+  \item \textbf{exception:} \texttt{FileNotFoundError} if \texttt{meta\_file} or any referenced \texttt{wav\_file} is absent (missing \texttt{wav\_file} entries are skipped with a warning rather than raising).
 \end{itemize}
 
+\noindent\texttt{train()}:
+\begin{itemize}
+  \item \textbf{transition:} For each epoch $e \in [1 \ldots \texttt{epochs}]$: run \texttt{\_train\_epoch(e)}, record average loss, save per-epoch checkpoint, invoke \texttt{on\_epoch\_end} if set. Increment \texttt{\_global\_step} per batch; save mid-run checkpoint every \texttt{checkpoint\_every} steps.
+  \item \textbf{output:} \texttt{List[$\mathbb{R}$]} of per-epoch average training losses; empty list if \texttt{has\_new\_data = false}.
+  \item \textbf{exception:} \texttt{RuntimeError} if \texttt{setup()} has not been called (\texttt{model} is \texttt{None}).
+\end{itemize}
 
+\noindent\texttt{evaluate()}:
+\begin{itemize}
+  \item \textbf{transition:} Set \texttt{model} to eval mode; iterate \texttt{test\_loader} with \texttt{torch.no\_grad()}; accumulate cross-entropy loss; restore train mode.
+  \item \textbf{output:} Average loss $\in \mathbb{R}$ over the test set; \texttt{NaN} if no test data is available.
+  \item \textbf{exception:} \texttt{RuntimeError} if \texttt{setup()} has not been called.
+\end{itemize}
 
+\noindent\texttt{save(path)}:
+\begin{itemize}
+  \item \textbf{transition:} Call \texttt{model.save\_pretrained(path $\vee$ \{output\_dir\}/\{\_ADAPTER\_SUBDIR\})}; on success, call \texttt{\_update\_seen\_files(\_current\_run\_files)} to append this run's filenames to the ledger.
+  \item \textbf{output:} \texttt{string} — absolute path of the directory the adapter was saved to.
+  \item \textbf{exception:} \texttt{RuntimeError} if \texttt{setup()} has not been called.
+\end{itemize}
 
+\noindent\texttt{has\_new\_data} (read-only property):
+\begin{itemize}
+  \item \textbf{transition:} None (pure read).
+  \item \textbf{output:} \texttt{true} iff \texttt{len(\_current\_run\_files) > 0}.
+  \item \textbf{exception:} --
+\end{itemize}
 
+\subsubsection{Local Functions:}
 
+\begin{itemize}
+  \item \texttt{\_load\_data()}: \texttt{void} $\rightarrow$ \texttt{List[(string, string)]} \\
+  \textbf{Description:} Parses \texttt{meta\_file} (JSONL) and returns \texttt{(audio\_path, transcript)} pairs for all records whose \texttt{wav\_file} exists on disk; skips missing files with a warning.
 
+  \item \texttt{\_split(data)}: \texttt{List[(string, string)]} $\rightarrow$ \texttt{(List, List)} \\
+  \textbf{Description:} Shuffles \texttt{data} with \texttt{seed} and splits into train / test at the \texttt{test\_split} boundary.
 
+  \item \texttt{\_build\_model()}: \texttt{void} $\rightarrow$ \texttt{PeftModel} \\
+  \textbf{Description:} Loads \texttt{openai/whisper-small}. If \texttt{\_ADAPTER\_SUBDIR} exists inside \texttt{output\_dir}, resumes from the saved adapter (\texttt{PeftModel.from\_pretrained}); otherwise initialises a fresh \texttt{LoraConfig} targeting \texttt{q\_proj} and \texttt{v\_proj} in the decoder.
+
+  \item \texttt{\_sample\_replay\_data(old\_data, n\_new)}: \texttt{List} $\times$ $\mathbb{N}$ $\rightarrow$ \texttt{List} \\
+  \textbf{Description:} Returns a random sample of size $\min(\lfloor n\_\text{new} \times \texttt{replay\_ratio} \rfloor,\, |\texttt{old\_data}|)$ from \texttt{old\_data}; returns \texttt{[]} when \texttt{replay\_ratio} $\leq 0$ or \texttt{old\_data} is empty.
+
+  \item \texttt{\_load\_seen\_files()}: \texttt{void} $\rightarrow$ \texttt{Set[string]} \\
+  \textbf{Description:} Reads the JSON array in \texttt{\_SEEN\_FILES\_LEDGER}; returns an empty set if the ledger does not exist.
+
+  \item \texttt{\_update\_seen\_files(new\_filenames)}: \texttt{List[string]} $\rightarrow$ \texttt{void} \\
+  \textbf{Description:} Merges \texttt{new\_filenames} into the existing ledger set and writes the sorted result back to \texttt{\_SEEN\_FILES\_LEDGER}.
+
+  \item \texttt{\_train\_epoch(epoch)}: $\mathbb{N}$ $\rightarrow$ $\mathbb{R}$ \\
+  \textbf{Description:} Runs one full pass over \texttt{train\_loader}: forward pass, cross-entropy loss, \texttt{zero\_grad}, \texttt{backward}, \texttt{step}. Logs loss every \texttt{print\_every} batches, saves a checkpoint every \texttt{checkpoint\_every} global steps, fires \texttt{on\_batch\_end} after each batch. Returns average loss for the epoch.
+
+  \item \texttt{\_require\_setup()}: \texttt{void} $\rightarrow$ \texttt{void} \\
+  \textbf{Description:} Raises \texttt{RuntimeError} if \texttt{model} is \texttt{None}, guarding all public methods that depend on \texttt{setup()}.
+\end{itemize}
 
 
 \bibliographystyle {plainnat}
