@@ -1,5 +1,5 @@
 """
-FastAPI Server Entry Point - Improved Version
+FastAPI Server Entry Point 
 
 This version uses a simplified CommandOrchestrator that focuses solely on
 command clarification, not command generation. The orchestrator determines
@@ -8,11 +8,7 @@ if the user's intent is clear and asks clarifying questions when needed.
 The actual browser automation is handled by an LLM-powered browser controller
 that can understand natural language commands directly.
 
-Key improvements:
-1. Cleaner parse_and_execute_command function
-2. Better state management for conversation flow
-3. Clear separation: Orchestrator for clarification, Browser controller for execution
-4. WebSocket-based status push (replaces client polling)
+Authors: Rawan Mahdi, Luna Aljammal, Mazen Youssef, Kelvin Yu
 """
 
 import asyncio

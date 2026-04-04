@@ -1,6 +1,13 @@
 """
-Real-time Audio Capture Module with Voice Activity Detection for Whisper ASR
-Supports continuous listening, automatic speech detection, and audio buffering.
+Real-time Audio Capture Module with Voice Activity Detection for Whisper ASR.
+
+Responsibilities:
+- Captures microphone input as a continuous audio stream (M15 in the MG/MIS).
+- Detects speech boundaries using WebRTC VAD combined with an optional energy threshold.
+- Buffers audio before and during speech, then emits complete recordings to a callback.
+- Enforces configurable silence and maximum-duration limits to end recordings automatically.
+
+Author: Rawan Mahdi
 """
 
 import numpy as np

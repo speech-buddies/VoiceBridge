@@ -42,6 +42,8 @@ Expected metadata JSON format (list of objects):
         },
         ...
     ]
+
+Author: Rawan Mahdi
 """
 
 import os

@@ -2,6 +2,8 @@
 TrainingDataRecorder — saves confirmed voice command samples for training.
 Audio: data/training/audio/*.wav, Manifest: data/training/samples.jsonl
 Samples are only added when custom_training_enabled is True.
+
+Author: Luna Aljammal
 """
 
 import json
