@@ -42,6 +42,7 @@ Oct 27, 2025 & 1.0 & Added Sections 1,2, and 4.1\\
 Oct 27, 2025 & 1.0 & Added Sections 4.2, 4.3, and 4.4\\
 Dec 20, 2025 & 1.1 & Implemented TA feedback\\
 Dec 25, 2025 & 1.2 & Implemented Peer feedback in Sections 2.2 and 2.3\\
+Apr 5, 2026 & 2.0 & Added FR6, updated symbols table, corrected stretch-goal status for test-PF-3, fixed traceability table\\
 \bottomrule
 \end{tabularx}
 
@@ -64,6 +65,15 @@ Dec 25, 2025 & 1.2 & Implemented Peer feedback in Sections 2.2 and 2.3\\
   \toprule
   \textbf{Symbol / Acronym} & \textbf{Description}\\
   \midrule
+  T & Test\\
+  ASR & Automatic Speech Recognition\\
+  UI & User Interface\\
+  NFR & Non-Functional Requirement\\
+  FR & Functional Requirement\\
+  WER & Word Error Rate\\
+  SNR & Signal-to-Noise Ratio\\
+  WCAG & Web Content Accessibility Guidelines\\
+  LoRA & Low-Rank Adaptation\\
   OOD & Out-of-Domain: input or data that falls outside the system's trained or expected domain.\\
   V\&V & Verification and Validation: processes to ensure a system meets requirements and fulfills its intended purpose.\\
   \bottomrule
@@ -128,7 +138,7 @@ This section describes how the VoiceBridge team will verify and validate the sys
 
 \begin{itemize}
     \item \textbf{Kelvin Yu:} Lead Tester. Coordinates overall V\&V activities and integration testing across the ASR, intent mapping, and browser components.
-    \item \textbf{Mazen Youssef:} Functional Tester. Verifies core functional requirements (FR1--FR5) including audio capture, transcription, and command execution.
+    \item \textbf{Mazen Youssef:} Functional Tester. Verifies core functional requirements (FR1--FR6) including audio capture, transcription, command execution, and security software interference handling.
     \item \textbf{Rawan Mahdi:} UI and Usability Tester. Tests the front-end interface for accessibility, feedback clarity, and overall user experience.
     \item \textbf{Luna Aljammal:} Non-Functional Tester. Assesses performance, latency, and privacy compliance; maintains testing documentation and traceability.
     \item \textbf{Dr.~Christian Brodbeck (Supervisor):} Oversees the V\&V process, providing feedback on testing and alignment with project goals.
@@ -200,7 +210,7 @@ Design verification (including MIS and MG documents) confirms that the VoiceBrid
 
 \begin{itemize}
     \item Design Review Meeting: \\
-    Conduct a structured walkthrough of the Module Interface Specification with Dr.~Brodbeck. Each module will be checked against SRS FR1--FR5 and non-functional requirements. Findings will be documented and tracked in GitHub under \textit{Design Verification}.
+    Conduct a structured walkthrough of the Module Interface Specification with Dr.~Brodbeck. Each module will be checked against SRS FR1--FR6 and non-functional requirements. Findings will be documented and tracked in GitHub under \textit{Design Verification}.
     
     \item Checklist Inspection: \\
     Verify that data flows align with the SRS Data Dictionary and that control logic matches the Business Use Cases. Confirm consistency in naming, data handling, and error management.
@@ -267,7 +277,7 @@ Implementation verification ensures that VoiceBridge’s source code correctly i
 
 \begin{itemize}
     \item Unit and Integration Testing: \\
-    Automated tests will verify core functional requirements (SRS~§10, FR1--FR5), covering audio input, speech-to-text, intent mapping, and command execution. End-to-end PUC flows (SRS~§8.2) will be validated through CI pipelines with coverage tracking.
+    Automated tests will verify core functional requirements (SRS~§10, FR1--FR6), covering audio input, speech-to-text, intent mapping, command execution, and security software interference handling. End-to-end PUC flows (SRS~§8.2) will be validated through CI pipelines with coverage tracking.
 
     \item Static Analysis and Peer Review: \\
     Code reviews will check compliance with maintainability and security requirements (SRS~§15--16) and confirm mitigation of hazards listed in the Hazard Analysis (e.g., IR1, IMR1--IMR3). Issues will be tracked on GitHub for traceability.
@@ -333,7 +343,7 @@ Validation confirms that VoiceBridge meets user needs and operates as intended i
     Rev~0 and Rev~1 demos will be used to validate against user personas and supervisor expectations.
 
     \item User Testing: \\
-    Collect feedback from two to three target users (simulated or actual) performing core use cases (PUC-1 to PUC-5) with success metrics on accuracy and ease of use.
+    Collect feedback from two target users performing three core tasks (speak command, observe transcription, confirm command) with success metrics on accuracy and ease of use.
 
     \item Functional Testing: \\
     Validate VoiceBridge’s performance and behavior against comparable open-source Python speech-processing projects to confirm functional correctness.
@@ -349,7 +359,7 @@ This section defines the system-level tests for \emph{VoiceBridge}. It follows t
 
 \subsection{Tests for Functional Requirements}
 
-The subsections below outline tests corresponding to the SRS Functional Requirements (FR1--FR5).
+The subsections below outline tests corresponding to the SRS Functional Requirements (FR1--FR6).
 Each test has a unique ID and clear execution steps.
 
 \subsubsection{Tests for FR1 — Accept Speech Audio via Microphone}
@@ -550,7 +560,7 @@ Initial State: Known-good mappings for a 50-command set.
 
 Input: Trigger each command (text or speech $\rightarrow$ text).
 
-Output: Visible system action completes within $\leq$2 s in $\geq$95\% of runs (per command), across platforms.
+Output: Visible system action completes with an overall success rate of $\geq$90\% across the command set.
 
 Test Case Derivation: Direct Fit Criterion.
 
@@ -592,11 +602,19 @@ How test will be performed: Attempt action,
 • verify prompt appears and execution is blocked if canceled.
 \end{enumerate}
 
+\subsubsection{FR6 — Handle Security Software Interference}
+
+\textbf{Goal:} Verify that the system detects when browser, operating system, or antivirus security controls block or restrict automated actions and provides clear feedback to the user, including the affected command and available fallback options.
+
+No dedicated test cases are defined for FR6 in this plan. FR6 behavior is evaluated through scenario-based testing conducted during the FR5 execution tests (test-FR5-EXEC-1 through test-FR5-EXEC-3). Any blocking events observed during those tests are recorded and their feedback quality assessed. This approach is documented here to preserve traceability between the V\&V Plan and the V\&V Report.
+
 \subsection{Tests for Nonfunctional Requirements}
 
 This section covers system tests for the Non-Functional Requirements (NFR) in the SRS. Each test ties back to one or more NFRs (see “Covers” field). NFRs not explicitly tested here are covered by functional or unit tests and are referenced in the traceability matrix.
 
 \subsubsection{Look \& Feel}
+
+\noindent\textbf{Note:} The tests in this subsection (test-LF-1 and test-LF-2) were not conducted during the current project cycle and are deferred to future work. Usability and visual design were partially assessed through the user testing sessions documented in the Usability \& Humanity subsection.
 
 \paragraph{test-LF-1 UI Browser Overlay Coverage}
 
@@ -642,11 +660,11 @@ Type: User Testing, Instrumented
 
 Test Case Derivation: UHR-12.1
 
-Initial State: Tasks prepared (start/stop listening, confirm command, view transcript).
+Initial State: Tasks prepared (speak command, observe transcription, confirm command).
 
-Input/Condition: n$\geq$10 participants (target users).
+Input/Condition: $n=2$ participants (target users).
 
-Output/Result: $\geq$ 90\% complete each task in $\leq$ 4 interactions; success feedback observed within 1s of action.
+Output/Result: Both participants complete each task in $\leq$ 4 interactions; success feedback observed within 1s of action.
 
 How test will be performed: Users interact with the interface through their browser and go through the prepared tasks, observers verify timing/task success rate/feedback time.
 \end{enumerate}
@@ -659,9 +677,9 @@ Type: User Testing + Survey
 
 Test Case Derivation: UHR-12.3
 
-Initial State: Fresh profile; onboarding tutorial enabled.
+Initial State: Fresh profile; no dedicated onboarding tutorial. The UI provides instructional cues via labelled controls, status messages, and contextual prompts.
 
-Input/Condition: Participants complete first-run tutorial then perform core tasks.
+Input/Condition: Participants ($n=2$) are given only a general description of VoiceBridge's purpose and then complete the full core interaction sequence without any further guidance.
 
 Output/Result: $\geq$ 85\% complete all core tasks on first attempt; onboarding time $\leq$ 10 minutes on average.
 
@@ -693,30 +711,30 @@ Type: Survey-Based Language Review
 
 Test Case Derivation: UHR-12.4
 
-Initial State: Library of prompts/errors/confirmations.
+Initial State: Library of 8 representative system messages covering the full range of interaction states (listening, confirmation, error, clarification).
 
-Input/Condition: Participants rate clarity and politeness.
+Input/Condition: $n=2$ participants rate each message on two separate 1--5 Likert scales: clarity (1~=~very unclear, 5~=~very clear) and tone (1~=~impolite or unhelpful, 5~=~appropriate and supportive).
 
-Output/Result: $\geq$ 90\% rate $\geq$ 4/5 for clarity \& tone; comments reviewed.
+Output/Result: $\geq$ 90\% of clarity ratings $\geq$ 4/5; $\geq$ 90\% of tone ratings $\geq$ 4/5; comments reviewed.
 
-How test will be performed: Run a survey with participants rating the confirmation/errors/prompts out of 5, with an option to leave specific feedback at the end of the survey.
+How test will be performed: Run a survey with $n=2$ participants rating 8 system messages out of 5 on both clarity and tone scales, with an option to leave specific feedback at the end of the survey.
 \end{enumerate}
 
 \paragraph{test-UH-5 Assistive Navigation}
 
 \begin{enumerate}
 \item{test-UH-5\\}
-Type: Manual, User Testing
+Type: Manual Keyboard Testing
 
 Test Case Derivation: UHR-12.5
 
-Initial State: Screen reader \& keyboard nav enabled; color tokens set.
+Initial State: Keyboard navigation enabled; all currently accessible interactive elements available (light/dark mode toggle, visible confirmation toggle).
 
-Input/Condition: Navigate all primary flows via keyboard; screen reader announces roles/states; run contrast analyzer.
+Input/Condition: Navigate all present interactive elements via keyboard (Tab to reach, Enter/Space to activate); confirm visual focus is clearly indicated throughout.
 
-Output/Result: All interactive elements reachable and user is able to interact and fullfill their chosen task.
+Output/Result: All interactive elements reachable and operable via keyboard; visual focus indicator present on all elements.
 
-How test will be performed: User turns on their stand assistive tools and performs a task through the interface, observer checks if they are able to complete their tasks and how the program interacts with their assistive tools to ensure there are no issues.
+How test will be performed: Perform keyboard-only navigation following WCAG keyboard accessibility principles; verify each element is reachable via Tab and activatable with Enter or Space. No automated accessibility audit is required for the current scope.
 \end{enumerate}
 
 \subsubsection{Performance}
@@ -755,11 +773,13 @@ Output/Result: Average $\leq$ 15 s from transcript ready to command result.
 How test will be performed: Measure timestamps from End of Audio to command set being performed, repeat over 20 different audio samples and calculate average latency.
 \end{enumerate}
 
-\paragraph{test-PF-3 Accuracy \& Precision (Stationary Noise)}
+\paragraph{test-PF-3 Accuracy \& Precision (Stationary Noise) — Stretch Goal}
 
 \begin{enumerate}
 \item{test-PF-3\\}
 Type: Offline Evaluation
+
+\textbf{Note:} This test is classified as a \textbf{stretch goal} and is not required for the baseline validation of the system. It is deferred beyond the current project scope. Evaluation under stationary noise conditions remains future work.
 
 Test Case Derivation: PRF-13.1, PRF-13.2
 
@@ -1001,6 +1021,7 @@ test-FR4-MAP-4 & FR4 \\
 test-FR5-EXEC-1 & FR5 \\
 test-FR5-EXEC-2 & FR5 \\
 test-FR5-EXEC-3 & FR5 \\
+FR6 (Scenario-based, via FR5 tests) & FR6 \\
 test-LF-1 & LFR-11.1 \\
 test-LF-2 & LFR-11.1, LFR-11.2 \\
 test-UH-1 & UHR-12.1 \\
@@ -1061,7 +1082,7 @@ Note that though the modules in the presentation layer are core to the applicati
 The remaining modules not mentioned in the above list are considered out of scope for the current MVP phase of the project; therefore, we will not populate unit test descriptions for them. 
 \subsection{Tests for Functional Requirements}
 
-Most of the verification of functional behaviour is performed through automated unit tests using \texttt{pytest}. For each module, we define a small number of representative test groups that collectively exercise the normal path, error handling, and edge conditions. Below we summarise the implemented tests and how they relate to the MIS modules and SRS functional requirements (FR1--FR5). For full details, including exact inputs and assertions, see the test code under \texttt{test/}.
+Most of the verification of functional behaviour is performed through automated unit tests using \texttt{pytest}. For each module, we define a small number of representative test groups that collectively exercise the normal path, error handling, and edge conditions. Below we summarise the implemented tests and how they relate to the MIS modules and SRS functional requirements (FR1--FR6). For full details, including exact inputs and assertions, see the test code under \texttt{test/}.
 
 % \subsubsection{Module 1}
 

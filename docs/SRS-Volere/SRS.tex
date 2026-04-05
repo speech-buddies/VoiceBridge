@@ -48,13 +48,14 @@
 
 ~\newpage
 
-\pagenumbering{arabic}
+\pagenumbering{roman}
 
 \tableofcontents
 
 ~\newpage
 
 \section*{Revision History}
+This section summarizes the major revisions made to the SRS over time, including document completion, review cycles, and later feedback-driven updates.
 
 \begin{tabularx}{\textwidth}{p{3cm}p{2cm}X}
 \toprule {\textbf{Date}} & {\textbf{Version}} & {\textbf{Notes}}\\
@@ -67,7 +68,8 @@ December 19, 2025 & Rawan & Addressing peer feedback on caregivers as stakeholde
 December 19, 2025 & Rawan & Addressing TA feedback: adding section descriptions, figure/table descriptions, and clarification to varying TA questions, removing duplicate constraint (C1), UML description, and other minor fixes\\
 December 24, 2025 & Luna & Addressing TA feedback: adding requirement names, hyperlinks and minor fixes\\
 December 25, 2025 & Luna & Addressing Peer feedback: expanding rationale behind choice of 16Hz in FR1\\
-January 10, 2025 & Mazen & Linked SRS to Hazard Analysis Requirements for consistency\\
+January 10, 2026 & Mazen & Linked SRS to Hazard Analysis Requirements for consistency\\
+April 4, 2026 & Luna & Addressed final TA comments\\
 
 \bottomrule
 \caption{Revision History for SRS Document}
@@ -76,14 +78,18 @@ January 10, 2025 & Mazen & Linked SRS to Hazard Analysis Requirements for consis
 ~\\
 
 ~\newpage
+\pagenumbering{arabic}
+
 \section{Purpose of the Project}
+This section explains why VoiceBridge is being developed and what outcomes it aims to deliver. It outlines the core problem being addressed for users with speech impairments and summarizes the project goals that guide the system's design, implementation, and evaluation.
+
 \subsection{User Business}
 
 
-Individuals with speech impairments face significant barriers when interacting with digital devices. VoiceBridge addresses this gap by providing an accurate, inclusive, and accessible speech-to-control system that enables users to communicate with their devices using their speech, regardless of clarity of articulation. Building on familiar technology, such as personal computers and mobile devices, may be one of the most cost-effective and easily adoptable approaches for improving an individual with disability’s autonomy and access to the world around them. The rise of automatic speach recognition (ASR)  technology and Artificial Intelligence (AI) integrations in the industry provides a novel landscape of opportunities to improve accessibility interfaces. VoiceBridge exploits bleeding-edge technology for a practical and impactful application.
+Individuals with speech impairments face significant barriers when interacting with digital devices. VoiceBridge addresses this gap by providing an accurate, inclusive, and accessible speech-to-control system that enables users to communicate with their devices using their speech, regardless of clarity of articulation. Building on familiar technology, such as personal computers and mobile devices, may be one of the most cost-effective and easily adoptable approaches for improving an individual with disability’s autonomy and access to the world around them. The rise of Automatic Speech Recognition (ASR)  technology and Artificial Intelligence (AI) integrations in the industry provides a novel landscape of opportunities to improve accessibility interfaces. VoiceBridge exploits bleeding-edge technology for a practical and impactful application. For additional background and rationale, see the \href{https://github.com/speech-buddies/VoiceBridge/blob/main/docs/ProblemStatementAndGoals/ProblemStatement.pdf}{Problem Statement and Goals document}.
 
 \subsection{Goals of the Project}
-
+The primary objective of VoiceBridge is to provide a seamless, voice-controlled browsing experience for individuals with atypical speech. To achieve this, the project is guided by a set of core goals that prioritize technical accuracy, user autonomy, and system reliability. Table \ref{tab:project-goals} outlines these high-level objectives, which serve as the foundation for the functional and non-functional requirements detailed in subsequent sections of this document.
 \begin{table}[H]
 \centering
 \setcounter{table}{0}
@@ -102,10 +108,13 @@ G9 & \textbf{Scalable Architecture} & Design the system for future integration b
 \bottomrule
 \end{tabularx}
 \caption{Project Goals for VoiceBridge}
+\label{tab:project-goals}
 \end{table}
 
 
 \section{Stakeholders}
+This section identifies the groups and individuals who influence, use, fund, support, or are affected by VoiceBridge. It clarifies their roles and priorities to ensure project decisions remain aligned with user needs, accessibility goals, and long-term maintainability.
+
 \subsection{Client}
 The primary client for the VoiceBridge project is the organization or individual funding or commissioning the system. The client is primarily concerned with achieving the following goals: \textbf{\hyperref[tab:project-goals]{G1}}, \textbf{\hyperref[tab:project-goals]{G5}}, and \textbf{\hyperref[tab:project-goals]{G9}}, ensuring accurate speech transcription, cross-browser compatibility, and scalable architecture.
 
@@ -116,7 +125,7 @@ The primary customers are also the users of the project, them being individuals 
 \subsection{Other Stakeholders}
 Secondary stakeholders include experts in linguistics, speech processing, and healthcare domains:
 \begin{itemize}
-    \item Speech researchers and linguistics specialists, including the project supervisor, Dr. Christian Brodbeck, who provide insight toward \textbf{\hyperref[tab:project-goals]{G1}} and \textbf{\hyperref[tab:project-goals]{G6}}.
+    \item Speech researchers and linguistics specialists, including the project supervisor, Dr. Christian Brodbeck, who provide insight toward \textbf{\hyperref[tab:project-goals]{G1}}, \textbf{\hyperref[tab:project-goals]{G6}}, and \textbf{\hyperref[tab:project-goals]{G9}}.
     \item Healthcare professionals and speech therapists who advise on usability and accessibility, contributing to \textbf{\hyperref[tab:project-goals]{G3}} and \textbf{\hyperref[tab:project-goals]{G8}}.
     \item Accessibility advocates and organizations interested in promoting the application, aligned with \textbf{\hyperref[tab:project-goals]{G4}} and \textbf{\hyperref[tab:project-goals]{G5}}.
     \item Software developers who implement and maintain the system, supporting \textbf{\hyperref[tab:project-goals]{G9}} and \textbf{\hyperref[tab:project-goals]{G6}}.
@@ -128,8 +137,8 @@ Tertiary stakeholders include caregivers and professionals who interact with end
 
 Potential end users of VoiceBridge include:
 \begin{itemize}
-    \item \textbf{Amira}, a 45-year-old with Parkinson’s disease, uses the system to log into Gmail and send emails.
-    \item \textbf{David}, a stroke survivor, uses the system to browse the web and make purchases.
+  \item \textbf{Amira}, a 45-year-old with Parkinson’s disease, experiences fluctuating speech clarity and occasional motor fatigue that make typing difficult during long sessions. She uses VoiceBridge to log into Gmail, draft and send emails, and navigate between inbox folders with minimal manual input. Her priorities are accurate transcription, reliable command confirmation, and clear feedback that helps her recover quickly from recognition errors.
+  \item \textbf{David}, a stroke survivor, has mild dysarthria and reduced fine-motor control in one hand, which slows traditional mouse-and-keyboard interaction. He uses VoiceBridge to browse websites, search for products, compare options, and complete online purchases with greater independence. His priorities are simple command phrasing, low-latency responses, and safe guardrails for high-impact actions such as checkout or form submission.
 \end{itemize}
 
 
@@ -181,26 +190,29 @@ The system is designed to accommodate diverse speech patterns, dialects, and acc
 By reducing communication barriers, VoiceBridge fosters greater inclusion in workplaces, education, and online communities. The system thus contributes to both individual empowerment and collective social benefit.
 
 \section{Mandated Constraints}
+This section defines the non-negotiable constraints that bound VoiceBridge design and implementation, including technical environment, integration dependencies, schedule and budget limits, and compliance expectations. These constraints establish the operational limits within which all requirements must be satisfied.
+
 
 \subsection{Solution Constraints}
 
-\noindent\textbf{C1 — The product shall run on consumer-grade hardware using a personal computer microphone and support macOS, Windows, and Linux distributions.}\\
-\textbf{Rationale:} Requiring only consumer-grade hardware ensures broad accessibility for end users and avoids dependency on specialized equipment.\\
-\textbf{Fit Criterion:} The system must successfully be integrated onto browsers and run on laptops or desktops across the supported operating systems, using either built-in or external microphones.
-\par\noindent\rule{\textwidth}{0.4pt}
-
-\noindent\textbf{C2 — The product shall accept non-deterministic user input in the form of natural language speech.}\\
+\noindent\textbf{C1 — The product shall accept non-deterministic user input in the form of natural language speech.}\\
 \textbf{Rationale:} Individuals with speech impairments may produce varied speech patterns that cannot be handled by rigid or deterministic command structures.\\
 \textbf{Fit Criterion:} The system must be capable of processing and responding to variable natural language inputs without requiring a fixed set of commands.
 \par\noindent\rule{\textwidth}{0.4pt}
 
-\noindent\textbf{C3 — The product shall integrate with a browser control application to execute voice-based commands.}\\
+\noindent\textbf{C2 — The product shall integrate with a browser control application to execute voice-based commands.}\\
 \textbf{Rationale:} Browser interaction is a primary accessibility point for most digital services, and browser control is essential for practical use of the system.\\
 \textbf{Fit Criterion:} The system must successfully perform browser actions (e.g., opening tabs, navigating to URLs, scrolling) through the integrated control application.
 \par\noindent\rule{\textwidth}{0.4pt}
 
 
 \subsection{Implementation Environment of the Current System}
+This subsection defines constraints related to the baseline operating environment and platform support expected for VoiceBridge deployment.
+
+\noindent\textbf{C3 — The product shall run on consumer-grade hardware using a personal computer microphone and support macOS, Windows, and Linux distributions.}\\
+\textbf{Rationale:} Requiring only consumer-grade hardware ensures broad accessibility for end users and avoids dependency on specialized equipment.\\
+\textbf{Fit Criterion:} The system must successfully be integrated onto browsers and run on laptops or desktops across the supported operating systems, using either built-in or external microphones.
+\par\noindent\rule{\textwidth}{0.4pt}
 
 \noindent\textbf{C4 — The product will operate within a consumer computing environment consisting of personal computers equipped with microphones.}\\
 \textbf{Rationale:} This setup reflects the most common user hardware configuration, ensuring the solution is accessible without additional devices.\\
@@ -261,8 +273,8 @@ By reducing communication barriers, VoiceBridge fosters greater inclusion in wor
 \par\noindent\rule{\textwidth}{0.4pt}
 
 
-\section{Naming Conventions and Terminology}
 \section*{Glossary of Terms and Acronyms}
+This section defines the key terms, acronyms, and naming conventions used throughout the VoiceBridge SRS. It provides a shared vocabulary so stakeholders can interpret requirements, constraints, and design discussions consistently.
 
 \subsection*{General Project Terms}
 
@@ -383,7 +395,10 @@ WER     & Word Error Rate           & Metric for evaluating the accuracy of spee
 \end{table}
 
 \section{Relevant Facts And Assumptions}
+This section captures the key facts and assumptions that shape VoiceBridge requirements and design choices. It distinguishes validated context from expected operating conditions so requirements can be interpreted consistently throughout implementation and testing.
+
 \subsection{Relevant Facts}
+The facts in this subsection summarize the core user, environment, and usage realities that directly influence VoiceBridge requirements. Table \ref{tab:relevant-facts} consolidates these validated considerations so later functional, usability, and performance requirements remain grounded in the project context.
 
 
 \begin{table}[H]
@@ -405,12 +420,14 @@ F9 & \textbf{Users will vary in technical comfort.} & Onboarding should be minim
 F10 & \textbf{Users appreciate visual feedback and control.} & Feedback builds trust and reduces frustration (complements (\textbf{\hyperref[tab:project-goals]{G1}}), (\textbf{\hyperref[tab:project-goals]{G8}})). \\
 \bottomrule
 \caption{User-Centered Facts for VoiceBridge}
+\label{tab:relevant-facts}
 \end{tabularx}
 \end{table}
 
 
 
 \subsection{Business Rules}
+The business rules in this subsection define the operational policies that govern how VoiceBridge should behave during user interaction. Table \ref{tab:business-rules} summarizes the key rules that shape confirmation flows, personalization behavior, reliability expectations, and protection against unintended actions.
 
 \begin{table}[H]
 \centering
@@ -423,15 +440,17 @@ BR2 & Transcribed text must be displayed for user verification before executing 
 BR3 & Browser commands must not execute without user consent for actions with potential data impact (e.g., sending messages, closing tabs). & Protects user privacy and prevents accidental operations. (\hyperref[tab:project-goals]{G2}, \hyperref[tab:project-goals]{G7}) \\
 BR4 & The system should provide immediate visual feedback within 5 seconds of speech input. & Builds trust, transparency, and usability for impaired users. (\hyperref[tab:project-goals]{G6}, \hyperref[tab:project-goals]{G1}) \\
 BR5 & System must handle moderate background noise without significant degradation of performance. & Maintains reliability in real-world environments.(\hyperref[tab:project-goals]{G1}, \hyperref[tab:project-goals]{G6}) \\
-BR6 & Users should be able to configure simple command mappings for personalized tasks. & Supports individual preferences and improves user autonomy. (\hyperref[tab:project-goals]{G2}, \hyperref[tab:project-goals]{G3}, \hyperref[tab:project-goals]{G8}) \\
+BR6 & Users should be able to configure simple command mappings for personalized tasks. & Supports individual preferences and improves user autonomy. These personalized mappings will be stored locally on the user's device in user-specific files rather than in a remote database. (\hyperref[tab:project-goals]{G2}, \hyperref[tab:project-goals]{G3}, \hyperref[tab:project-goals]{G8}) \\
 \bottomrule
 \caption{Business Rules for VoiceBridge}
 \end{tabularx}
-% \label{tab:business-rules}
+\label{tab:business-rules}
 \end{table}
 
 
 \subsection{Assumptions}
+Table \ref{tab:assumptions} summarizes the main assumptions that shape the expected operating conditions for VoiceBridge and their implications for design decisions.
+
 \begin{table}[H]
 \centering
 \begin{tabularx}{\textwidth}{p{1cm}p{6cm}X}
@@ -446,10 +465,13 @@ A6 & \textbf{Users want emotional ease of use.} & Tone and interface language mu
 A7 & \textbf{Users will likely use the tool for daily web tasks.} & The feature set should prioritize essential browser actions (navigation, scrolling, typing, tab control) (see \hyperref[tab:project-goals]{G2}, \hyperref[tab:project-goals]{G3}, \hyperref[tab:project-goals]{G8}). \\
 \bottomrule
 \caption{Design Assumptions for VoiceBridge}
+\label{tab:assumptions}
 \end{tabularx}
 \end{table}
 
 \section{The Scope of the Work}
+This section outlines the current problem context, the operational setting in which VoiceBridge is introduced, and the major work activities the system must support. It clarifies how the project fits into existing user workflows and defines the boundaries of the work being addressed.
+
 \subsection{The Current Situation}
 
 Individuals with speech impairments currently rely on standard speech-to-text or manual input to use browsers and devices. Existing systems struggle with slurred or atypical speech, often requiring caregiver assistance.
@@ -462,6 +484,7 @@ User speaks → Standard recognition → Frequent errors → Manual/caregiver co
 VoiceBridge aims to replace this with accurate transcription, command mapping, and immediate feedback, enabling independent browser control.
 
 \subsection{The Context of the Work}
+Figure \ref{fig:voicebridge-context} shows the external context in which VoiceBridge operates, including the primary user, the system boundary, and the surrounding platforms and services it interacts with. This diagram helps clarify the main information and control flow between the user, VoiceBridge, and adjacent systems within the project scope.
 
 \begin{figure}[H]
 \centering
@@ -471,6 +494,8 @@ VoiceBridge aims to replace this with accurate transcription, command mapping, a
 \end{figure}
 
 \subsection{Work Partitioning}
+Table \ref{tab:work-partitioning} summarizes the major work events in VoiceBridge, along with their inputs, outputs, corresponding business use case summaries, and relevant data classes. It provides a high-level breakdown of how the system workflow is partitioned across the main stages of speech capture, interpretation, confirmation, and browser interaction.
+
 \begin{table}[H]
 \centering
 \begin{tabularx}{\textwidth}{X X X X X}
@@ -488,10 +513,12 @@ VoiceBridge aims to replace this with accurate transcription, command mapping, a
 \textbf{Browser Interaction Layer} & Actionable command & Executed browser action & Perform command in browser & Command data, page context, execution status \\
 \bottomrule
 \caption{VoiceBridge Events, Inputs, Outputs, and Data Classes}
+\label{tab:work-partitioning}
 \end{tabularx}
 \end{table}
 
 \subsection{Specifying a Business Use Case (BUC)} 
+Table \ref{tab:buc-summary} lists the primary business use cases that structure the VoiceBridge workflow, from capturing user speech to executing the resulting browser command. It provides a concise summary of the main user-system interactions that are elaborated further in the detailed BUC figures and descriptions that follow.
 
 
 \begin{table}[H]
@@ -509,6 +536,7 @@ BUC-3 & Interpret Intent & The system parses recognized text to determine the us
 BUC-4 & Execute Browser Command & The structured intent is mapped to a browser action, executed, and confirmed visually or audibly to the user. \\
 \bottomrule
 \caption{Business Use Cases (BUCs) for VoiceBridge}
+\label{tab:buc-summary}
 \end{tabularx}
 \end{table}
 
@@ -542,7 +570,11 @@ BUC-4 & Execute Browser Command & The structured intent is mapped to a browser a
 \end{figure}
 
 \section{Business Data Model and Data Dictionary}
+This section defines the core data objects, transformations, and relationships that support VoiceBridge functionality. It first presents the high-level business data model for how speech input moves through the system, then documents the main data elements used for transcription, intent interpretation, browser command execution, feedback, and optional local personalization.
+
 \subsection{Business Data Model}
+The business data model illustrated in Figure \ref{fig:voicebridge-usecase} defines the core VoiceBridge pipeline from raw audio input to browser command execution. To support a lightweight and accessible design (\hyperref[tab:project-goals]{G4}), the system processes atypical speech through the speech-to-text pipeline to produce a transcript, then passes that transcript to the intent and command-mapping components that generate a standardized browser action. This architecture keeps the main interaction flow simple and privacy-conscious by treating speech input as transient runtime data, while allowing optional personalization data to remain stored locally on the user's device in accordance with the project's privacy goals (\hyperref[tab:project-goals]{G7}).
+
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.7\textwidth]{..//imgs/VoiceBridge_uml.png}
@@ -551,6 +583,7 @@ BUC-4 & Execute Browser Command & The structured intent is mapped to a browser a
 \end{figure} 
 
 \subsection{Data Dictionary}
+Table \ref{tab:data-dictionary} defines the primary data elements used throughout the VoiceBridge pipeline, including speech input, intermediate recognition outputs, interpreted intents, executable commands, feedback messages, and locally stored personalization data. It serves as a reference for the meaning, source, type, and system usage of each core data object.
 
 \begin{table}[H]
 \centering
@@ -568,7 +601,7 @@ BUC-4 & Execute Browser Command & The structured intent is mapped to a browser a
 \hline
 \textbf{Error\_Code} & Status or error indicator for system response & Integer & ASR engine / Controller & 0 = Success, >0 = specific error type \\
 \hline
-\textbf{User\_Profile} & Speaker-specific data such as ID, preferences, and speech patterns & JSON object & User database & Enables personalized recognition and response \\
+\textbf{User\_Profile} & Speaker-specific data such as ID, preferences, speech patterns, and personalized command mappings & JSON object & Local user-specific JSON files on the host device & Enables personalized recognition and response without requiring a remote database \\
 \hline
 \textbf{Timestamp} & Time marker for recognition or command event & DateTime & System clock & Used for logging, debugging, and tracking \\
 \hline
@@ -583,18 +616,23 @@ BUC-4 & Execute Browser Command & The structured intent is mapped to a browser a
 \textbf{Session\_ID} & Unique identifier for a single user interaction session & UUID / String & System controller & Links data objects across a single speech-to-command event \\
 \bottomrule
 \caption{VoiceBridge Data Dictionary}
+\label{tab:data-dictionary}
 \end{tabularx}
 \end{table}
 
 \section{The Scope of the Product}
+This section defines the functional boundary of VoiceBridge as a product, identifying the major system capabilities it includes and the external interactions it depends on. It introduces the product boundary representation and the key product use cases that describe how users interact with the system to capture speech, confirm intent, execute commands, and receive feedback.
+
 \subsection{Product Boundary}
 \begin{figure}[H]
     \centering
     \includegraphics[width=1\textwidth]{..//imgs/VoiceBridge_use_case_diagram.png}
     \caption{VoiceBridge Use Case Diagram. Each ellipse represents a Product Use Case (PUC) corresponding to a major system function.}
-    \label{fig:voicebridge-usecase}
+  \label{fig:product-boundary}
 \end{figure} 
 \subsection{Product Use Case Table}
+Table \ref{tab:product-use-cases} summarizes the main product use cases supported by VoiceBridge and the key inputs, outputs, triggers, and outcomes associated with each one.
+
 \begin{table}[H]
 \centering
 \caption{Product Use Case (PUC) Table}
@@ -609,6 +647,7 @@ PUC-4 & Intent confirmed & Confirmed command text & Browser command execution & 
 PUC-5 & Command executed or error & System response & Success or error feedback to user & Provides feedback or prompts retry on failure. \\
 \bottomrule
 \end{tabularx}
+\label{tab:product-use-cases}
 \end{table}
 
 \subsubsection{Individual Product Use Cases (PUC's)}
@@ -721,6 +760,10 @@ This section defines the detailed Product Use Cases (PUCs) for the VoiceBridge s
 
 \bigskip
 \section{Undesired Event Handling}
+This section identifies common failure modes and abnormal operating conditions that may arise during VoiceBridge use. It outlines likely causes, expected system behavior, severity, and the feedback provided to users when these events occur.
+
+Table \ref{tab:undesired-events} summarizes the primary undesired events considered for VoiceBridge, along with their causes, handling strategies, severity levels, and user-facing notifications.
+
 \begin{table}[H]
 \centering
 \footnotesize
@@ -749,13 +792,14 @@ UE-9 & Latency Exceeds Threshold & Inference or browser response exceeds accepta
 UE-10 & User Cancels Ongoing Command & User says “cancel” or “stop.” & Immediately halts current command execution and clears pending queue. & Low & Confirmation sound or text “Cancelled.” \\
 \bottomrule
 \caption{VoiceBridge User Event Handling Scenarios}
+\label{tab:undesired-events}
 \end{tabularx}
 \end{table}
 
 
 
-\section{Functional Requirements}
-\subsection{Functional Requirements}
+\section{Functional Requirements}\label{sec:FR}
+This section specifies the core system behaviors VoiceBridge must provide to satisfy its primary purpose as an accessible speech-to-control product. The following functional requirements define how the system captures speech, converts it to text, presents it for verification, maps confirmed input to executable commands, performs those commands, and responds to execution constraints or failures.
 
 \subsection{FR1: Accept Speech Audio via Microphone}\label{fr:FR1}
 \textbf{Description:} The system must capture live speech input from the user through a standard built-in or external microphone.\\
@@ -766,7 +810,7 @@ UE-10 & User Cancels Ongoing Command & User says “cancel” or “stop.” & I
 \subsection{FR2: Convert Impaired Speech to Text with greater than or equal to 80\% Accuracy (MVP)}\label{fr:FR2}
 \textbf{Description:} The system must process the captured audio and output a textual representation of the spoken utterance.\\
 \textbf{Rationale:} Accurate transcription is the core functionality that enables communication and command execution. Without acceptable accuracy, the product fails its purpose.\\
-\textbf{Fit Criterion:} In evaluation on a test dataset of impaired speech, transcription accuracy must reach at least 80\% word error rate (WER) reduction compared to baseline models, and achieve greater than or equal to 80\% accuracy for common commands.
+\textbf{Fit Criterion:} In evaluation on a test dataset of impaired speech, transcription accuracy must reach at least 80\% Word Error Rate (WER) reduction compared to baseline models, and achieve greater than or equal to 80\% accuracy for common commands.
 
 \bigskip
 \subsection{FR3: Display Transcription for Verification}\label{fr:FR3}
@@ -793,6 +837,8 @@ UE-10 & User Cancels Ongoing Command & User says “cancel” or “stop.” & I
 \textbf{Fit Criterion:} In test scenarios where automation is blocked, the system correctly detects the restriction and notifies the user in greater than or equal to 95\% of cases within 2 seconds of the failed action.
 
 \section{Look and Feel Requirements}\label{sec:look-feel}
+This section describes the visual and stylistic expectations for the VoiceBridge interface. It focuses on clarity, minimal distraction, and presentation choices that support accessible and effective user interaction.
+
 \subsection{Appearance Requirements}\label{subsec:appearance}
 
 \textbf{AR1: Minimal and Non-Intrusive Interface}\label{req:AR1}
@@ -809,6 +855,8 @@ The system shall maintain a professional and neutral visual style suitable for g
 
 
 \section{Usability and Humanity Requirements}\label{sec:usability-humanity}
+This section defines the human-centered qualities VoiceBridge should exhibit in everyday use, including ease of use, learnability, personalization potential, clarity of communication, and accessibility support.
+
 \subsection{Ease of Use Requirements}\label{subsec:ease-of-use}
 \textbf{EU1: Low Interaction Effort}\label{req:EU1}
 
@@ -835,6 +883,7 @@ The system should use clear, direct, and neutral language in responses. Error me
 The interface should be navigable using standard assistive tools and offer clear text contrast and legible font sizes. Full accessibility compliance is not required at the PoC stage but should be feasible for future iterations.
 
 \section{Performance Requirements}\label{sec:performance}
+This section defines the performance expectations for VoiceBridge, including response time, accuracy, reliability under failure conditions, capacity, scalability, and long-term operability.
 
 \subsection{Speed and Latency Requirements}\label{subsec:speed-latency}
 
@@ -877,6 +926,8 @@ The system architecture shall allow horizontal scaling to handle increased traff
 The system shall be designed to operate reliably over a minimum of 5 years, with maintainable and updatable components to support long-term product evolution.
 
 \section{Operational and Environmental Requirements}\label{sec:operational}
+This section describes the environments in which VoiceBridge is expected to operate and the external systems it must work with. It covers physical conditions, deployment assumptions, integration boundaries, and release considerations.
+
 \subsection{Expected Physical Environment}\label{subsec:physical-env}
 
 \textbf{OE1: Operation in Typical Work Environments}\label{req:OE1}
@@ -911,6 +962,8 @@ The primary interface shall be web-based, accessible via standard web browsers, 
 The product shall follow a defined release cycle, providing minor updates quarterly and major updates semi-annually. Each release must maintain backward compatibility with user data, personalization settings, and existing features. Release planning will account for maintenance effort, compute resources, and compliance obligations.
 
 \section{Maintainability and Support Requirements}\label{sec:maintainability}
+This section defines the qualities needed to keep VoiceBridge maintainable, supportable, and adaptable over time. It addresses expectations for code quality, user support resources, and platform compatibility.
+
 \subsection{Maintenance Requirements}\label{subsec:maintenance}
 
 \textbf{MS1: Maintainable Codebase}\label{req:MS1}
@@ -976,6 +1029,8 @@ We group VoiceBridge’s security requirements into five categories—\textbf{Ac
 \end{description}
 
 \section{Cultural Requirements}
+This section defines cultural and ethical expectations for how VoiceBridge should communicate with users. It emphasizes respectful, inclusive, and non-discriminatory interaction across diverse user populations.
+
 \subsection{Cultural Requirements}\label{subsec:cultural}
 
 \textbf{CR1: Culturally Neutral Interaction}\label{req:CR1}
@@ -985,6 +1040,8 @@ The system shall maintain a culturally neutral and respectful tone when promptin
 It shall support inclusive and accessible design to serve users across diverse cultural backgrounds.
 
 \section{Compliance Requirements}
+This section identifies the legal and standards-based obligations that apply to VoiceBridge. It ensures that privacy handling and accessibility expectations remain aligned with recognized external requirements.
+
 \subsection{Legal Requirements}\label{subsec:legal}
 
 \textbf{CO1: Legal Compliance}\label{req:CO1}
@@ -998,6 +1055,7 @@ The project shall comply with the Personal Information Protection and Electronic
 The application must comply with the Web Content Accessibility Guidelines (WCAG) 2.0, Level AA guidelines to ensure usability by individuals with disabilities.
 
 \section{Requirements Likely and Unlikely to Change}
+This section distinguishes between requirements that are expected to evolve as the project matures and those that are considered stable foundations of the product. It helps communicate where future refinement is most likely.
 
 \subsection{Likely to Change}
 \begin{itemize}
@@ -1051,6 +1109,8 @@ The primary open issue is maintaining high ASR accuracy across the diverse and s
 
 
 \section{Off-the-Shelf Solutions}
+This section summarizes existing products and reusable components that may inform or support VoiceBridge development. It highlights candidate technologies that can serve as baselines, integrations, or implementation shortcuts.
+
 \subsection{Ready-Made Products}
 The project will evaluate existing, specialized speech recognition models and applications (e.g., Whisper model and Project Euphonia) as performance baselines.
 
@@ -1062,6 +1122,8 @@ Open-source browser automation agents (e.g., The AI browser agent) may be integr
 
 
 \section{New Problems}
+This section outlines new issues or limitations that VoiceBridge itself may introduce into the user or deployment environment. It highlights risks, tradeoffs, and follow-up concerns that should be considered during implementation and adoption.
+
 \subsection{Effects on the Current Environment}
 The product shall operate without modifying the user’s OS, browser, or network configuration. This separation prevents unintended impact from incorrect commands.
 
@@ -1081,6 +1143,8 @@ The local operation limits the ability to perform remote problem diagnosis if an
 
 
 \section{Tasks}
+This section summarizes the major categories of work required to deliver VoiceBridge. It provides a high-level view of planning, implementation, and development-phase organization.
+
 \subsection{Project Planning}
 Breakdown of major tasks:
 
@@ -1089,6 +1153,8 @@ Our main tasks are centered on preparing the system by training and tuning the d
 A detailed schedule of development phases, milestones, and dependencies is outlined in the PoC and Development Plan.
 
 \section{Migration to the New Product}
+This section describes how users and their data will transition to VoiceBridge from initial onboarding through broader adoption. It addresses migration support, account continuity, and access to previously associated data.
+
 \subsection{User Onboarding and Migration}
 The system shall support new users with no prior ASR and interpreter experience through an onboarding process. 
 
@@ -1100,10 +1166,12 @@ All previous transcripts, audio files, and personalization data shall be tied to
 Users shall be able to access their data from any supported device after logging in and authentication.
 
 \section{Costs}
-The primary costs for this product are related to machine learning computation and hosting. Development and training will initially leverage Compute Canada credits provided by the supervising research team, along with Colab Pro (CAD 13.99/month).
+The primary costs for this product are related to machine learning computation and hosting. The project budget is set by the department, and eligible expenses are reimbursed by the department according to its reimbursement process. Development and training will initially leverage Compute Canada credits provided by the supervising research team.
 
 No external hosting costs are anticipated for the initial release; however, optional hosting may be required for commercial distribution and deployments. If hosting is included, approximate costs for cloud-based deployment on Google Cloud Platform (GCP) include: training and inference on GPUs (~\$50 CAD/month for pilot use), storage (~\$3 CAD/month), and minimal networking (~\$2–5 CAD/month). Costs scale with the number of users and training frequency. All estimates are approximate and intended for planning purposes.
 \section{User Documentation and Training}
+This section defines the documentation and onboarding support that should accompany VoiceBridge. It clarifies expectations for self-directed learning materials and user-facing guidance.
+
 \subsection{User Documentation Requirements}
 The system shall provide clear, accessible documentation, including an instructional guide and FAQ. (As noted in Section 14b, supporting requirements already cover this in detail.)
 
@@ -1114,6 +1182,8 @@ Training shall not require formal instruction; the documentation and interface s
 The system shall display launch, loading, or processing pages during transitions to provide users with clear feedback and reduce confusion during waiting periods.
 
 \section{Ideas for Solution}
+
+This section captures candidate solution directions and future design possibilities that may support VoiceBridge development. These ideas are exploratory and complement, rather than replace, the formal requirements defined earlier in the document.
 
 \subsection{Browser-Based Extensions}
 The product is primarily web-based. Future considerations could include desktop or mobile apps to broaden the scope and accessibility (see Section 13 for environment and interface requirements).
@@ -1382,6 +1452,7 @@ This simplified formalization shows how user input moves through each stage of t
 
 \newpage{}
 \section*{Appendix --- Reflection}
+This appendix contains the project reflection material associated with the VoiceBridge SRS, including retrospective commentary and supporting reflections referenced by the course deliverables.
 
 \input{../Reflection.tex}
 

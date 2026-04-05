@@ -81,8 +81,11 @@ Feb 23, 2026 & 2.4 & Implemented advisor feedback on module classification and c
 Apr 01, 2026 & 2.5 & Updated M15 module description to match \texttt{audio\_capture.py} implementation \\
 Apr 01, 2026 & 2.6 & Updated M18 module description to match \texttt{whisper\_lora\_trainer.py} implementation \\
 April 1, 2026 & 3.0 & Updated module descriptions to reflect final architecture \\
+April 5, 2026 & 3.1 & Addressed final TA feedback \\
 \bottomrule
 \end{tabularx}
+
+\noindent\textit{Note: The template's traditional hardware-hiding hierarchy was reviewed during TA feedback resolution. VoiceBridge uses a layered software architecture, so that categorization was not applied directly where it did not map cleanly to the implemented modules.}
 
 \newpage
 
@@ -235,10 +238,6 @@ Enhancements aiming at more context-aware and confidence-driven user assistance 
 
 \end{description}
 
-
-% \wss{Anticipated changes relate to changes that would be made in requirements,
-% design or implementation choices.  They are not related to changes that are made
-% at run-time, like the values of parameters.}
 
 \subsection{Unlikely Changes} \label{SecUchange}
 
@@ -422,7 +421,7 @@ Provides user prompting, model fine-tuning, and creation of personalized shortcu
   \item Route feedback items
   \item Update keyboard and screen-reader focus
 \end{itemize}
-\textbf{Implemented By:} UserInterface module using the browser rendering engine and DOM/event APIs.
+\textbf{Implemented By:} UserInterface (VoiceBridge) module using the browser rendering engine and DOM/event APIs.
 
 \medskip
 \subsubsection*{M2: Accessibility Layer} \refstepcounter{mnum}\mthemnum\label{m2}
@@ -438,7 +437,7 @@ Provides user prompting, model fine-tuning, and creation of personalized shortcu
   \item Announce messages
   \item Check UI elements and report problems using ValidationReports
 \end{itemize}
-\textbf{Implemented By:} AccessibilityLayer module operating on UI elements exposed by UserInterface.
+\textbf{Implemented By:} AccessibilityLayer (VoiceBridge) module operating on UI elements exposed by UserInterface.
 
 \medskip
 \subsubsection*{M3: Feedback Display Module} \refstepcounter{mnum}\mthemnum\label{m3}
@@ -454,7 +453,7 @@ Provides user prompting, model fine-tuning, and creation of personalized shortcu
   \item Clear messages
   \item Create recovery options for feedback items
 \end{itemize}
-\textbf{Implemented By:} FeedbackDisplay module rendering via UserInterface and coordinating with AccessibilityLayer.
+\textbf{Implemented By:} FeedbackDisplay (VoiceBridge) module rendering via UserInterface and coordinating with AccessibilityLayer.
 
 % ---------- Application Processing Layer ----------
 \subsection*{Application (Processing) Modules} 
@@ -471,7 +470,7 @@ Provides user prompting, model fine-tuning, and creation of personalized shortcu
   \item Process audio to produce transcripts with confidence metadata
   \item Reset internal state
 \end{itemize}
-\textbf{Implemented By:} SpeechToTextEngine module wrapping acoustic and language models.
+\textbf{Implemented By:} SpeechToTextEngine (VoiceBridge) module wrapping acoustic and language models.
 
 
 \medskip
@@ -493,7 +492,7 @@ Provides user prompting, model fine-tuning, and creation of personalized shortcu
   \item Reset session context and clear conversation history.
   \item Accept supplemental user input when the recognized intent is incomplete, process it with the original transcript and session context, and generate an updated command.
 \end{itemize}
-\textbf{Implemented By:} CommandOrchestrator module using an external LLM API, dynamic context injection, and a JSON schema validation layer.
+\textbf{Implemented By:} CommandOrchestrator (VoiceBridge) module using an external LLM API, dynamic context injection, and a JSON schema validation layer.
 
 \medskip
 \subsubsection*{M6: Error Feedback} \refstepcounter{mnum}\mthemnum\label{m6}
@@ -513,7 +512,7 @@ Provides user prompting, model fine-tuning, and creation of personalized shortcu
   \item Log structured error events
   \item Normalize and map errors to UI messages and recovery actions
 \end{itemize}
-\textbf{Implemented By:} UI Notification Layer and Shared Error Handling Module (M11).
+\textbf{Implemented By:} UI Notification Layer (VoiceBridge) and Shared Error Handling Module (M11).
 
 % ---------- Control (Orchestration) ----------
 \subsection*{Control (Orchestration) Modules}
@@ -529,7 +528,7 @@ Provides user prompting, model fine-tuning, and creation of personalized shortcu
 \begin{itemize}
   \item Execute a natural-language browser command using an active \texttt{Browser} instance
 \end{itemize}
-\textbf{Implemented By:} \texttt{src/control/browser\_orchestrator.py}
+\textbf{Implemented By:} \texttt{src/control/browser\_orchestrator.py} (VoiceBridge).
 
 \medskip
 \subsubsection*{M8: Session Manager} \refstepcounter{mnum}\mthemnum\label{m8}
@@ -545,7 +544,7 @@ Provides user prompting, model fine-tuning, and creation of personalized shortcu
   \item Stop the shared browser session
   \item Provide access to the active \texttt{Browser} instance (or \texttt{None} if not running)
 \end{itemize}
-\textbf{Implemented By:} \texttt{src/control/session\_manager.py}
+\textbf{Implemented By:} \texttt{src/control/session\_manager.py} (VoiceBridge).
 
 \subsection*{Data Management Modules}
 \medskip
@@ -563,7 +562,7 @@ Provides user prompting, model fine-tuning, and creation of personalized shortcu
   \item DataRetrievalService: Provides indexed access to stored files for authorized modules.
   \item DataRetentionService: Enforces deletion and retention rules based on time or policy.
 \end{itemize}
-\textbf{Implemented By:} DataStorageManager.
+\textbf{Implemented By:} DataStorageManager (VoiceBridge).
 
 \medskip
 \subsubsection*{M10: User Profile Management Module} \refstepcounter{mnum}\mthemnum\label{m10}
@@ -579,7 +578,7 @@ Provides user prompting, model fine-tuning, and creation of personalized shortcu
   \item PreferenceService: Saves and retrieves user preferences and personalization data.
   \item ConsentManagementService: Records and verifies consent for data collection and personalization.
 \end{itemize}
-\textbf{Implemented By:} UserProfileManagerImpl.
+\textbf{Implemented By:} UserProfileManagerImpl (VoiceBridge).
 
 \medskip
 \subsubsection*{M11: Audit Logging Module} \refstepcounter{mnum}\mthemnum\label{m11}
@@ -595,7 +594,7 @@ Provides user prompting, model fine-tuning, and creation of personalized shortcu
   \item LogQueryService: Provides authorized access to query and review logs.
   \item AnomalyDetectionService: Detects suspicious activity and security anomalies.
 \end{itemize}
-\textbf{Implemented By:} AuditLoggerImpl.
+\textbf{Implemented By:} AuditLoggerImpl (VoiceBridge).
 
 \medskip
 \subsubsection*{M12: Credential Management Module} \refstepcounter{mnum}\mthemnum\label{m12}
@@ -611,7 +610,7 @@ Provides user prompting, model fine-tuning, and creation of personalized shortcu
   \item SessionTokenService: Issues and validates secure access tokens (JWT/OAuth).
   \item PasswordVaultService: Stores and retrieves hashed passwords securely.
 \end{itemize}
-\textbf{Implemented By:} CredentialManagerImpl.
+\textbf{Implemented By:} CredentialManagerImpl (VoiceBridge).
 
 \medskip
 \subsubsection*{M13: Encryption Management Module} \refstepcounter{mnum}\mthemnum\label{m13}
@@ -628,7 +627,7 @@ Provides user prompting, model fine-tuning, and creation of personalized shortcu
   \item AnonymizationService: Removes identifiable data prior to model training or storage.
   \item IntegrityVerificationService: Ensures stored or transmitted data has not been altered.
 \end{itemize}
-\textbf{Implemented By:} EncryptionManagerImpl.
+\textbf{Implemented By:} EncryptionManagerImpl (VoiceBridge).
 
 \medskip
 \subsubsection*{M14: Out-of-Scope Handling Module} \refstepcounter{mnum}\mthemnum\label{m14}
@@ -645,7 +644,7 @@ Provides user prompting, model fine-tuning, and creation of personalized shortcu
   \item RecoveryService: Rolls back partially executed or invalid operations.
   \item IncidentReportingService: Reports anomalies and unsafe commands to the AuditLogger.
 \end{itemize}
-\textbf{Implemented By:} OutOfScopeHandlerImpl.
+\textbf{Implemented By:} OutOfScopeHandlerImpl (VoiceBridge).
 
 \subsection*{Input Processing Layer Modules}
 
@@ -670,7 +669,7 @@ Provides user prompting, model fine-tuning, and creation of personalized shortcu
   \item Expose runtime diagnostics: total recordings, captured audio seconds, VAD errors, and stream errors (\texttt{get\_stats})
 \end{itemize}
 
-\textbf{Implemented By:} \texttt{audio\_capture.py} (\texttt{AudioConfig}, \texttt{AudioState}, \texttt{RealtimeAudioCapture}) using the \texttt{sounddevice} and \texttt{webrtcvad} libraries.
+\textbf{Implemented By:} \texttt{audio\_capture.py} (VoiceBridge) (\texttt{AudioConfig}, \texttt{AudioState}, \texttt{RealtimeAudioCapture}) using the \texttt{sounddevice} and \texttt{webrtcvad} libraries.
 
 \subsection*{Personalization Layer}
 \subsubsection*{M17: Prompting Module} \refstepcounter{mnum}\mthemnum\label{m17}
@@ -686,7 +685,7 @@ Provides user prompting, model fine-tuning, and creation of personalized shortcu
   \item Provide clarifying follow-ups when intent confidence is low
   \item Produce culturally inclusive and accessibility-enabled copy
 \end{itemize}
-\textbf{Implemented By:} Application prompt engine.
+\textbf{Implemented By:} Application prompt engine (VoiceBridge).
 
 \medskip
 \subsubsection*{M18: Model Tuner} \refstepcounter{mnum}\mthemnum\label{m18}
@@ -706,7 +705,7 @@ Provides user prompting, model fine-tuning, and creation of personalized shortcu
   \item Persist the updated adapter to disk and advance the seen-files ledger (\texttt{save})
   \item Expose whether unseen training data is available for the current run (\texttt{has\_new\_data})
 \end{itemize}
-\textbf{Implemented By:} \texttt{whisper\_lora\_trainer.py} (\texttt{WhisperLoRATrainer}) using HuggingFace \texttt{transformers}, \texttt{peft} (LoRA), and PyTorch.
+\textbf{Implemented By:} \texttt{whisper\_lora\_trainer.py} (VoiceBridge) (\texttt{WhisperLoRATrainer}) using HuggingFace \texttt{transformers}, \texttt{peft} (LoRA), and PyTorch.
 
 \medskip
 \subsubsection*{M19: Shortcut Manager} \refstepcounter{mnum}\mthemnum\label{m19}
@@ -726,7 +725,7 @@ Provides user prompting, model fine-tuning, and creation of personalized shortcu
   \item Report whether shortcut recording is currently active
   \item Cancel an in-progress recording without saving
 \end{itemize}
-\textbf{Implemented By:} \texttt{ShortcutManager} class in the control/runtime layer with JSON-backed file persistence.
+\textbf{Implemented By:} \texttt{ShortcutManager} (VoiceBridge) class in the control/runtime layer with JSON-backed file persistence.
 
 \section{Traceability Matrix} \label{SecTM}
 
