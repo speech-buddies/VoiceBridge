@@ -6,6 +6,8 @@ Responsibilities:
 - Detects speech boundaries using WebRTC VAD combined with an optional energy threshold.
 - Buffers audio before and during speech, then emits complete recordings to a callback.
 - Enforces configurable silence and maximum-duration limits to end recordings automatically.
+
+Author: Rawan Mahdi
 """
 
 import numpy as np

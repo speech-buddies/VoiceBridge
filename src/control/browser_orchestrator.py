@@ -1,3 +1,13 @@
+"""
+Async utility for executing natural language browser automation commands
+using the Browser Use agent framework.
+
+Initializes an agent with a language model and shared browser instance,
+executes the given task, and returns the interaction history. Includes
+environment setup for API key configuration and cross-platform event loop handling.
+
+Author: Mazen Youssef
+"""
 import os
 import sys
 from browser_use import Agent, Browser, ChatBrowserUse

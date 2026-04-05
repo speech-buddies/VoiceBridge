@@ -1,3 +1,11 @@
+"""
+Manages a single shared browser session for the application lifecycle.
+
+Provides async utilities to start and stop a persistent browser instance,
+ensuring reuse across commands, along with a getter to access the current session.
+
+Author: Mazen Youssef
+"""
 from browser_use import Browser
 
 # single shared browser instance for the whole app

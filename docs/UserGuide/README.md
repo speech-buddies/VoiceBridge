@@ -1,8 +1,10 @@
 # User Guide
 
-The user guide could also include video introductions and tutorials.
+Source for the **User Guide** — end-user oriented documentation for installing, configuring, and operating VoiceBridge (workflows, UI, troubleshooting, and similar material as appropriate).
 
-The folders and files for this folder are as follows:
+| File | Role |
+|------|------|
+| `UserGuide.tex` | Main LaTeX source. |
+| `Makefile` | Builds `UserGuide.pdf` when a LaTeX toolchain is available. |
 
-Describe ...
-
+You may also link or embed supplementary material (short videos, screenshots) from this folder or `docs/imgs/` as the project evolves.
