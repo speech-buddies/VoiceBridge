@@ -63,7 +63,171 @@ low.}
 
 \subsection{SRS and Hazard Analysis}
 
+Over the course of the project, we made several targeted updates to the SRS and
+Hazard Analysis in response to TA feedback, advisor guidance, and internal
+review. The main themes were (i)~improving precision/traceability of
+requirements, (ii)~clarifying assumptions and system boundaries for a
+privacy-preserving, local-first assistive tool, and (iii)~strengthening
+safety language around command execution and user confirmation.
+
+\begin{itemize}
+
+\item \textbf{Clarified system boundary and local-first assumptions}
+
+\textbf{Source:} TA/advisor feedback during Rev 0 review and demo discussions.
+
+\textbf{Feedback:} The system boundary (what runs locally vs.\ what is external)
+and the privacy assumptions were not sufficiently explicit, which made it
+difficult to judge feasibility and safety.
+
+\textbf{Response:} We revised the SRS to explicitly state VoiceBridge's
+local-first processing goal and to clarify what components are considered
+external dependencies (e.g., browser automation layer, any optional model
+services). We also tightened the terminology around ``data stored locally,''
+what constitutes ``user data,'' and what is not retained by default.
+
+\item \textbf{Improved requirement specificity and testability}
+
+\textbf{Source:} TA feedback on requirement quality.
+
+\textbf{Feedback:} Some requirements were written at too high a level or mixed
+multiple concerns, reducing testability and traceability to design/modules.
+
+\textbf{Response:} We reworded several functional and non-functional
+requirements to use more measurable language (e.g., clearer triggers, observable
+system outputs, and success criteria). Where requirements bundled multiple
+behaviors, we split them so each requirement maps cleanly to modules and can be
+verified in V\&V.
+
+\item \textbf{Strengthened traceability from requirements to design}
+
+\textbf{Source:} TA feedback emphasizing traceability.
+
+\textbf{Feedback:} Requirements needed clearer connections to architectural
+responsibilities so it was easier to see ``where'' in the system each
+requirement is satisfied.
+
+\textbf{Response:} We updated requirement wording and identifiers to better
+align with the architecture and added/verified requirement-to-module traceability
+(later reflected in the Module Guide traceability matrices). This reduced
+ambiguity when justifying design decisions and later when writing test cases.
+
+\item \textbf{Expanded hazards related to unintended/unsafe command execution}
+
+\textbf{Source:} TA feedback and internal risk review after implementing command
+execution flows.
+
+\textbf{Feedback:} The hazard analysis under-emphasized risks associated with
+misrecognition, ambiguous intent, and executing a harmful browser action.
+
+\textbf{Response:} We added/strengthened hazards covering: incorrect
+transcription leading to unintended actions; ambiguous commands; and risky
+actions being executed without sufficient user awareness. We also updated
+mitigations to include explicit confirmation steps, clear user feedback, and
+``safe fallback'' handling for out-of-scope or unsafe commands.
+
+\item \textbf{Made privacy and data retention hazards more concrete}
+
+\textbf{Source:} Advisor/TA feedback on privacy risk articulation.
+
+\textbf{Feedback:} Privacy hazards were present but too abstract; the document
+needed clearer statements of what data might be captured, stored, or logged, and
+what controls exist to minimize exposure.
+
+\textbf{Response:} We revised hazards and mitigations related to storage of
+transcripts, recordings, logs, and personalization artifacts. We clarified
+retention expectations and emphasized mitigations such as minimizing stored
+sensitive data, restricting access to logs, and protecting stored artifacts via
+encryption/credential controls (as reflected later in the design modules for
+credential/encryption/audit logging).
+
+\item \textbf{Addressed accessibility-related failure modes}
+
+\textbf{Source:} TA feedback and usability-oriented review.
+
+\textbf{Feedback:} Since the target users include individuals with dysarthric
+speech, the analysis should consider accessibility failure modes (e.g., unclear
+feedback, overwhelming prompts, or missing confirmations) as safety/usability
+risks.
+
+\textbf{Response:} We added or refined hazards that capture the risk of user
+confusion or loss of control due to insufficient feedback/confirmations, and we
+connected mitigations to UI/accessibility behaviors (clear state indications,
+explicit prompts, and consistent cancel/confirm affordances).
+
+\end{itemize}
+
 \subsection{Design and Design Documentation}
+
+Most of our feedback-driven changes were in the design documentation, where we
+focused on improving clarity, consistency, and alignment with the implemented
+system.
+
+\begin{itemize}
+
+\item \textbf{Improved module boundaries and responsibility descriptions}
+
+\textbf{Source:} TA feedback on ambiguity/overlap between components.
+
+\textbf{Feedback:} Some responsibilities were described in overlapping terms
+(e.g., session flow vs.\ command interpretation vs.\ browser execution), making
+it hard to understand component ownership.
+
+\textbf{Response:} We revised the Module Guide's module descriptions to better
+separate responsibilities (UI/feedback vs.\ transcription vs.\ command synthesis
+vs.\ execution/orchestration vs.\ storage/security). This made the architecture
+easier to understand and reduced ambiguity for implementation and testing.
+
+\item \textbf{Updated documentation to match the final implementation}
+
+\textbf{Source:} TA/advisor feedback plus internal consistency checks.
+
+\textbf{Feedback:} Some design text reflected earlier architecture drafts rather
+than the final code structure, creating ``documentation drift.''
+
+\textbf{Response:} We updated module descriptions and terminology so they
+accurately reflect the final architecture and how the system is implemented
+(including details of the audio capture flow and the model tuning workflow).
+This improved the MG's usefulness as a maintenance reference.
+
+\item \textbf{Strengthened traceability matrices and requirement coverage}
+
+\textbf{Source:} TA feedback emphasizing traceability and completeness.
+
+\textbf{Feedback:} The design needed clearer evidence that requirements
+(functional, usability, performance, security, etc.) were mapped to concrete
+parts of the system.
+
+\textbf{Response:} We revised and validated the traceability matrices so each
+requirement category maps to the relevant modules, and we checked for
+gaps/duplicates. This also helped ensure the V\&V work could be planned directly
+against the design.
+
+\item \textbf{Clarified inter-module communication and error handling}
+
+\textbf{Source:} Advisor/TA feedback requesting clearer interaction details.
+
+\textbf{Feedback:} The documents needed clearer description of how modules
+exchange information and how errors propagate to user-facing feedback.
+
+\textbf{Response:} We expanded the design documentation to describe the
+message/data flow at a high level (what data types are passed, where session
+state is tracked, and how failures are turned into user-facing feedback and
+logs). This made the design more actionable and easier to verify.
+
+\item \textbf{Refined UI and accessibility documentation based on feedback}
+
+\textbf{Source:} TA feedback and informal user-focused review.
+
+\textbf{Feedback:} The UI story needed clearer user-state feedback (listening,
+processing, confirm/cancel) and accessibility justification.
+
+\textbf{Response:} We improved UI-related sections and figures/descriptions to
+emphasize predictable state transitions, clear confirmations, and accessible
+feedback. These changes were motivated by the needs of users with dysarthric
+speech, where system confidence and clarity directly affect usability.
+
+\end{itemize}
 
 \subsection{VnV Plan and Report}
 
