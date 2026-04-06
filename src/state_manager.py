@@ -3,6 +3,8 @@ State Manager for VoiceBridge Application
 
 Manages application state and coordinates between audio capture, stt, 
 and browser control modules.
+
+Author: Rawan Mahdi, Luna Aljammal
 """
 
 from enum import Enum

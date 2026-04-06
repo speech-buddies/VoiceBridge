@@ -28,11 +28,11 @@
 %
 % and set <dim> to something 5cm or larger.
 
-\title{ML Report:\\My Group's Project Name}
+\title{ML Report:\\ VoiceBridge}
 
 
-\author{First Author, Second Author, Third Author \\
-  \texttt{\{macid1,macid2,macid3\}@mcmaster.ca} }
+\author{Rawan Mahdi, Luna Aljammal
+  \texttt{\{mahdir3,aljammal}@mcmaster.ca} }
 
 %\author{
 %  \textbf{First Author\textsuperscript{1}},
@@ -79,8 +79,9 @@
 
 \section{Introduction}
 
-Here, write a brief introduction to the problem you are solving. This can be adapted from your problem description and motivation from the original proposal. This should be around 0.25-0.5 pages.
+The VoiceBridge project addresses the digital accessibility gap faced by individuals with speech impairments resulting from neurological conditions like Parkinson’s disease, stroke, or cerebral palsy. While modern Automatic Speech Recognition (ASR) models have advanced significantly, flagship architectures such as Whisper and wav2vec often exhibit drastically reduced performance when processing atypical or dysarthric speech. This creates significant barriers to independence, preventing users from performing everyday digital tasks like messaging or browsing the internet. The goal of this initiative is to bridge this gap by fine-tuning a machine learning model to reliably interpret impaired speech and map it to actionable digital commands.
 
+The system's objective is to capture impaired audio through a standard microphone and process it via a custom-trained machine learning model. The resulting text output is not merely for transcription but is designed to be mapped into actionable commands. By transforming these inputs into device-level controls—such as sending messages or operating applications—VoiceBridge aims to restore autonomy to users in everyday environments, including homes and clinics. This objective heightens the need for an accurate model to provide transcripts, as commands are often only a couple words in length. Due to the lack of context available to the model when processing short phrases, high recognition accuracy and low word error rate (WER) are vital for the systems relying on these model's performance.
 \section{Related Work}
 
 Here, talk about the related work you encountered for your approach. Cite at least 5 references. Refer to item 2. No one has done exactly your task? Write about the most similar thing you can find. This should be around 0.25-0.5 pages.
