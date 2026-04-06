@@ -1,3 +1,13 @@
+"""
+Thread-safe feedback logging utility that records user responses to commands
+in JSONL format.
+
+Captures structured feedback data (e.g., type, value, source, timestamp),
+with automatic source inference and resilient error handling to ensure
+logging failures do not impact application stability.
+
+Author: Luna Aljammal
+"""
 import threading
 import uuid
 import json

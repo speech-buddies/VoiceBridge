@@ -14,6 +14,8 @@ Thread safety
 Atomic writes
     preferences.json is written via temp-file + os.replace, matching the
     pattern used by CommandCache._flush().
+
+Author: Luna Aljammal
 """
 
 import json

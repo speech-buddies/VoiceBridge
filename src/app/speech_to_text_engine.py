@@ -1,3 +1,17 @@
+"""
+Modular speech-to-text engine built around a Whisper-based ASR model, with
+support for audio validation, optional noise filtering, and user-specific
+personalization.
+
+Handles conversion of raw audio bytes into model-compatible formats,
+performs transcription, and provides utilities for processing individual
+streams or batches of audio files. Includes validation, error handling,
+and extensibility via pluggable interfaces.
+
+Author: Luna Aljammal & Rawan Mahdi
+"""
+
+
 from __future__ import annotations
 from typing import List, Optional, Protocol
 

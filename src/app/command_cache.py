@@ -19,6 +19,8 @@ Collision handling
 Durability
     - Atomic writes (temp file + os.replace)
     - threading.Lock protects concurrent access (e.g., VAD thread / FastAPI)
+
+Author: Luna Aljammal 
 """
 
 import json

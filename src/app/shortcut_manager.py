@@ -1,3 +1,12 @@
+"""
+Thread-safe manager for recording, storing, and managing reusable command shortcuts.
+
+Shortcuts are sequences of commands captured during a recording session and
+persisted to a JSON file. Provides functionality to start/stop recording,
+append commands, list existing shortcuts, and delete them.
+
+Author: Mazen Youssef
+"""
 import json
 import logging
 from pathlib import Path

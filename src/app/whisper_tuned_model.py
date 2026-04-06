@@ -1,3 +1,14 @@
+"""
+Whisper-based ASR model wrapper with LoRA fine-tuned adapters, supporting
+local caching, dynamic loading, and optimized inference.
+
+Handles processor/model initialization, adapter merging, optional CPU
+quantization, feature extraction, and decoding with confidence scoring,
+providing efficient and reusable speech recognition capabilities.
+
+Author: Luna Aljammal
+"""
+
 import torch
 import os
 from transformers import WhisperProcessor, WhisperForConditionalGeneration
