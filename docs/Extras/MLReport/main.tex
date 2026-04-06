@@ -88,19 +88,42 @@ Here, talk about the related work you encountered for your approach. Cite at lea
 
 \section{Dataset}
 
-You should write about your dataset here, following the guidelines regarding item 1. This section may be 0.5-1 pages. Depending on your specific dataset, you may want to include subsections for the preprocessing, annotation, etc.
+Training and evaluation data are drawn from the Speech Accessibility Project (SAP), a large-scale corpus of atypical speech collected to support ASR research for individuals with dysarthria and related conditions. SAP is well-suited to this work because it captures the acoustic characteristics, such as breathiness, irregular timing, and strained phonation, which cause performance degradation in general-purpose speech recognition systems.
+
+A subset of 400 labeled utterances was used for fine-tuning, with an 80/20 train/validation split (320 and 80 samples respectively). A fully disjoint held-out set was reserved for evaluation; each utterance is paired with a ground-truth transcript and structured ratings covering the speaker's diagnosed condition and symptom severity across multiple dimensions. Training was conducted on SHARCNET H100 GPUs. As shown in Figure~\ref{fig:dataset-composition}, the subset is dominated by Parkinson's Disease (59.4\%) and ALS (26.1\%), with Cerebral Palsy (10.1\%), Down Syndrome (2.6\%), and Ataxic Dysarthria (1.8\%) providing coverage of acoustically distinct profiles.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\columnwidth]{figures/dataset-composition.png}
+  \caption{Condition distribution of the SAP training subset.}
+  \label{fig:dataset-composition}
+\end{figure}
 
 \section{Features}
 
-Describe any features you used for your model, or how your data was input to your model. Are you doing feature engineering or feature selection? Are you learning embeddings? Is it all part of one neural network? Refer to item 3. This may range from 0.25 pages to 0.5 pages.
+The input representation follows the standard Whisper preprocessing pipeline: all audio is resampled to 16\,kHz and converted to log-Mel spectrograms via \texttt{WhisperProcessor}. 
+Domain adaptation is achieved through Low-Rank Adaptation (LoRA), which augments the frozen pretrained model with trainable low-rank matrices injected into the attention layers. Rather than modifying the base weights, LoRA allows the model to acquire task-specific adjustments within a compact parameter space, learning the acoustic characteristics of dysarthric and command-style speech. Adapters are applied to the query and value projection matrices (\texttt{q\_proj}, \texttt{v\_proj}); training configuration and hyperparameters are detailed in Section~\ref{sec:implementation}.
 
 \section{Implementation}
+\label{sec:implementation}
 
 Describe your model and implementation here. Refer to item 4. This may take around a page.
 
 \section{Results and Evaluation}
 
-How are you evaluating your model? What results do you have so far? What are your baselines? Refer to item 5. This may take around 0.5 pages.
+Transcription quality is measured using Word Error Rate (WER), defined as
+\[
+  \mathrm{WER} = \frac{S + D + I}{N},
+\]
+where $S$, $D$, and $I$ denote substitutions, deletions, and insertions, and $N$ is the reference word count. For short commands, WER is a particularly consequential metric: a single error on a one- or two-word utterance constitutes a complete transcription failure and prevents command execution. All predictions and references are lowercased prior to scoring.
+
+\paragraph{Baseline vs.\ fine-tuned.}
+An unmodified \texttt{openai/whisper-small} model serves as the baseline. Both models are evaluated on the same 52-sample held-out set under identical decoding conditions. The baseline achieves an average WER of 0.813; the LoRA-adapted model reduces this to 0.558, an absolute reduction of 0.255 corresponding to approximately a 31\% relative improvement across the test conditions.
+
+\paragraph{Per-condition analysis.}
+Performance improvements are distributed across diagnostic groups but vary in magnitude. For Parkinson's Disease and ALS, fine-tuning substantially increases the proportion of near-zero WER samples and reduces high-error outliers. For Cerebral Palsy, WER decreases from approximately 0.75 to 0.45; for Ataxic Dysarthria, from approximately 0.65 to 0.35. Symptom-level analysis confirms that error distributions shift toward lower values across severity levels, indicating more consistent performance rather than selective gains on lower-severity speakers.
+
+
 
 \section{Feedback and Plans}
 
@@ -112,8 +135,8 @@ You can remove this section or comment it out, as it only contains instructions 
 
 \subsection{Tables and figures}
 
-See Table~\ref{citation-guide} for an example of a table and its caption.
-See Figure~\ref{fig:experiments} for an example of a figure and its caption.
+% See Table~\ref{citation-guide} for an example of a table and its caption.
+% See Figure~\ref{fig:experiments} for an example of a figure and its caption.
 
 
 \begin{figure}[t]
@@ -152,15 +175,15 @@ See Figure~\ref{fig:experiments} for an example of a figure and its caption.
   }
 \end{table*}
 
-Table~\ref{citation-guide} shows the syntax supported by the style files.
-We encourage you to use the natbib styles.
-You can use the command \verb|\citet| (cite in text) to get ``author (year)'' citations, like this citation to a paper by \citet{Gusfield:97}.
-You can use the command \verb|\citep| (cite in parentheses) to get ``(author, year)'' citations \citep{Gusfield:97}.
-You can use the command \verb|\citealp| (alternative cite without parentheses) to get ``author, year'' citations, which is useful for using citations within parentheses (e.g. \citealp{Gusfield:97}).
+% Table~\ref{citation-guide} shows the syntax supported by the style files.
+% We encourage you to use the natbib styles.
+% You can use the command \verb|\citet| (cite in text) to get ``author (year)'' citations, like this citation to a paper by \citet{Gusfield:97}.
+% You can use the command \verb|\citep| (cite in parentheses) to get ``(author, year)'' citations \citep{Gusfield:97}.
+% You can use the command \verb|\citealp| (alternative cite without parentheses) to get ``author, year'' citations, which is useful for using citations within parentheses (e.g. \citealp{Gusfield:97}).
 
-\subsection{References}
+% \subsection{References}
 
-\nocite{Ando2005,andrew2007scalable,rasooli-tetrault-2015}
+% \nocite{Ando2005,andrew2007scalable,rasooli-tetrault-2015}
 
 Many websites where you can find academic papers also allow you to export a bib file for citation or bib formatted entry. Copy this into the \texttt{custom.bib} and you will be able to cite the paper in the \LaTeX{}. You can remove the example entries.
 
@@ -188,7 +211,7 @@ Write in this section a few sentences describing the contributions of each team 
 %\bibliography{custom,anthology-overleaf-1,anthology-overleaf-2}
 
 % Custom bibliography entries only
-\bibliography{custom}
+% \bibliography{custom}
 
 % \appendix
 
