@@ -9,6 +9,8 @@ Responsibilities:
 4. Enforce safety guardrails
 5. Use a persistent CommandCache so repeated commands (including those
    previously clarified) bypass the LLM
+
+Author: Rawan Mahdi & Luna Aljammal
 """
 
 import json

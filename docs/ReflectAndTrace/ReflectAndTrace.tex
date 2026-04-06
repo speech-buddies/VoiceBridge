@@ -2,6 +2,7 @@
 
 \usepackage{tabularx}
 \usepackage{booktabs}
+\usepackage{float}
 
 \title{Reflection and Traceability Report on \progname}
 
@@ -66,6 +67,58 @@ low.}
 \subsection{Design and Design Documentation}
 
 \subsection{VnV Plan and Report}
+
+The VnV Plan and associated report were revised to incorporate feedback from peer reviews and formal TA review. The changes focused on improving traceability, making nonfunctional tests more specific, clarifying the scope of extras, and refining document language for readability.
+
+\begin{table}[H]
+\caption{VnV Report}
+\begin{tabularx}{\textwidth}{p{4cm}X}
+  \toprule
+  \textbf{Issue} & \textbf{Response and Change} \\
+  \midrule
+  \href{https://github.com/speech-buddies/VoiceBridge/issues/91}{Peer Review \#91} & Expanded the VnV Plan traceability matrix so every nonfunctional test case is explicitly linked to the corresponding SRS nonfunctional requirement. This made the relationship between look-and-feel tests, usability/humanity tests, and the SRS clear. \\
+  \midrule
+  \href{https://github.com/speech-buddies/VoiceBridge/issues/92}{Peer Review \#92} & Proofread and corrected grammar and structure throughout the VnV documents. We simplified long sentences, improved section flow, and made the VnV Plan easier to follow. \\
+  \midrule
+  \href{https://github.com/speech-buddies/VoiceBridge/issues/93}{Peer Review \#93} & Added concrete test details for nonfunctional cases. In particular, the ASR latency benchmark now includes the source and selection method for audio samples, the measurement procedure, and the expected results. \\
+  \midrule
+  \href{https://github.com/speech-buddies/VoiceBridge/issues/94}{Peer Review \#94} & Clarified extras feasibility and marked as wont fix per TA/instructor instructions. \\
+  \midrule
+  \href{https://github.com/speech-buddies/VoiceBridge/issues/95}{Peer Review \#95} & Added detailed nondynamic testing plans, including roles for code inspections, document reviews, and static analysis in Sections 3.6 and 3.7. \\
+  \midrule
+  \href{https://github.com/speech-buddies/VoiceBridge/issues/96}{Peer Review \#96} & Expanded Section 2.2 with testable objectives linked to critical qualities. Revised Section 2.3 to identify extra verification activities and their feasibility. \\
+  \midrule
+  \href{https://github.com/speech-buddies/VoiceBridge/issues/116}{TA Review \#116} & Addressed TA comments on the VnV Plan and report by refining the document structure, improving traceability, and tightening wording to better align with the review feedback. \\
+  \bottomrule
+\end{tabularx}
+\end{table}
+
+
+
+The VnV Report was revised to incorporate feedback from peer reviews. The changes focused on improving traceability and providing explanations for test results.
+
+\begin{table}[H]
+\caption{VnV Report}
+\begin{tabularx}{\textwidth}{p{4cm}X}
+  \toprule
+  \textbf{Issue} & \textbf{Response and Change} \\
+  \midrule
+  \href{https://github.com/speech-buddies/VoiceBridge/issues/286}{Peer Review \#286} & Clarified changes made due to testing by directly linking them to specific test results and outcomes. \\
+  \midrule
+  \href{https://github.com/speech-buddies/VoiceBridge/issues/287}{Peer Review \#287} & Updated test results to show actual quantitative data and align with VnV Plan pass criteria. \\
+  \midrule
+  \href{https://github.com/speech-buddies/VoiceBridge/issues/288}{Peer Review \#288} & Added missing test cases (test-LF-1, test-LF-2, test-OER-1, test-OER-2) to the VnV Report. \\
+  \midrule
+  \href{https://github.com/speech-buddies/VoiceBridge/issues/289}{Peer Review \#289} & Added test FR6 to the VnV Plan to maintain traceability between the plan and report documents. \\
+  \midrule
+  \href{https://github.com/speech-buddies/VoiceBridge/issues/290}{Peer Review \#290} & Explained the deferral of test-PF-3 as a stretch goal and updated the VnV Plan accordingly. \\
+  \midrule
+  \href{https://github.com/speech-buddies/VoiceBridge/issues/291}{Peer Review \#291} & Provided explanation for the failing result of test-PF-1, including next steps to resolve the issue and clarify the non-functional requirement. \\
+  \midrule
+  \href{https://github.com/speech-buddies/VoiceBridge/issues/320}{TA Review \#320} & Addressed TA comments on the VnV Report by refining structure, results presentation, and alignment with the VnV Plan. \\
+  \bottomrule
+\end{tabularx}
+\end{table}
 
 \section{Extras}
 
