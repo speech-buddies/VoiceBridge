@@ -1,67 +1,284 @@
+
 \documentclass{article}
 
+\usepackage[margin=1in]{geometry}
 \usepackage{booktabs}
 \usepackage{tabularx}
+\usepackage{longtable}
+\usepackage{array}
 \usepackage{comment}
 \usepackage{hyperref}
-
+\usepackage{xurl}
 
 \title{Literature Review | VoiceBridge: \textbf{Semi-Systematic Review of ASR Approaches for Impaired Speech}}
-
 \author{\\ Team 13, Speech Buddies}
-
 \date{}
 
-\input{../../Comments}
-\input{../../Common}
 \setlength{\parindent}{0pt}
-
-\setlength{\parskip}{\baselineskip}
+\setlength{\parskip}{0.75\baselineskip}
 
 \begin{document}
 
 \maketitle
 
-\begin{table}[hp]
-\caption{Revision History} \label{TblRevisionHistory}
+\begin{table}[h]
+\caption{Revision History}
+\label{TblRevisionHistory}
 \begin{tabularx}{\textwidth}{llX}
 \toprule
 \textbf{Date} & \textbf{Developer(s)} & \textbf{Change}\\
 \midrule
-September 30, 2025 & Rawan Mahdi & Created template\\ 
+September 30, 2025 & Rawan Mahdi & Created template\\
+April 2, 2026 & Mazen Youssef & Transferred Notion draft content into the LaTeX literature review template and reformatted sections/tables\\
 \bottomrule
 \end{tabularx}
 \end{table}
 
-\newpage{}
+\newpage
 
 \section*{Abstract}
 
+This literature review surveys automatic speech recognition (ASR) approaches relevant to VoiceBridge, with a focus on impaired and atypical speech such as dysarthric, Parkinsonian, aphasic, stuttered, and slurred speech. The review was conducted as a semi-systematic synthesis of recent papers, technical reports, and implementation-oriented resources referenced in the team's working notes. Across the literature, fine-tuning large pre-trained ASR models consistently outperforms models trained only on typical speech, while parameter-efficient methods such as LoRA and adapters offer a practical trade-off between accuracy and compute cost. Personalized speaker-dependent adaptation also shows strong gains for severe impairment cases, although it does not generalize well to unseen users. In addition to model adaptation, the literature highlights the importance of preprocessing and feature engineering, especially denoising, phoneme-aware representations, and temporal normalization for dysarthric speech. Overall, the evidence suggests that VoiceBridge should prioritize a fine-tuned foundation model pipeline with targeted preprocessing and consider lightweight personalization where feasible.
+
 \section{Introduction}
+
 \subsection{Background}
+
+VoiceBridge is an accessibility-focused browser control system that relies on accurate speech recognition for short, high-impact commands. Unlike general dictation, command-driven interaction is highly sensitive to transcription errors because a single incorrect word can change or invalidate an action. This challenge becomes significantly harder when the user has impaired or atypical speech, where existing off-the-shelf ASR systems often produce elevated word error rates (WERs).
+
+Recent advances in speech foundation models and self-supervised learning have improved ASR performance on typical speech, but the literature shows that these gains do not directly transfer to dysarthric or otherwise impaired speech. Performance remains limited by domain shift, data scarcity, variation in severity across speakers, and environmental noise. Because of this, adapting the ASR pipeline for impaired speech is central to the success of VoiceBridge.
+
 \subsection{Research Questions}
+
+This review is organized around the following research questions:
+
+\begin{enumerate}
+    \item Which ASR fine-tuning and transfer learning approaches are most effective for impaired or atypical speech?
+    \item Which model families appear most practical for VoiceBridge given accuracy, compute cost, and limited training data?
+    \item What preprocessing and feature engineering steps are most useful for improving recognition of dysarthric or slurred speech?
+    \item What limitations, failure modes, and open challenges remain in the literature?
+\end{enumerate}
+
 \subsection{Scope}
 
+The scope of this review is limited to ASR approaches that are relevant to impaired speech recognition and feasible for an applied capstone system. The review emphasizes:
+\begin{itemize}
+    \item fine-tuning and parameter-efficient adaptation methods,
+    \item personalized and severity-aware ASR strategies,
+    \item model families that could realistically be integrated into VoiceBridge, and
+    \item preprocessing and feature engineering methods that improve robustness to dysarthria, slurring, and noisy recording conditions.
+\end{itemize}
+
+The review does not attempt to exhaustively cover all speech recognition literature, all medical speech disorders, or all deployment frameworks.
+
 \section{Methodology}
-% Briefly describe how search was conducted i.e. how recent the papers were, keywords, and inclusion/exclusion criteria
+
+This literature review was conducted as a semi-systematic review using sources gathered in the project's literature tracking notes. The collected material included recent papers, challenge submissions, technical documentation, and implementation-oriented summaries related to:
+\begin{itemize}
+    \item impaired speech ASR,
+    \item dysarthric speech recognition,
+    \item Parkinson's-related speech recognition,
+    \item fine-tuning of foundation ASR models such as Whisper and wav2vec 2.0,
+    \item parameter-efficient tuning methods such as LoRA and adapters, and
+    \item preprocessing, denoising, phoneme modeling, and temporal normalization.
+\end{itemize}
+
+The search process was driven by project questions rather than by a rigid database protocol. Keywords reflected the team's implementation interests and included phrases such as \emph{dysarthric speech ASR}, \emph{impaired speech fine-tuning}, \emph{LoRA speech recognition}, \emph{Whisper dysarthria}, \emph{wav2vec phoneme}, and \emph{speech feature engineering}.
+
+Sources were included if they met one or more of the following criteria:
+\begin{itemize}
+    \item presented empirical findings on ASR for impaired or atypical speech,
+    \item compared adaptation or fine-tuning strategies,
+    \item discussed practical model families or toolchains relevant to implementation, or
+    \item described preprocessing/feature extraction methods applicable to impaired speech pipelines.
+\end{itemize}
+
+Sources were excluded if they were unrelated to ASR adaptation, not relevant to impaired speech, or too general to inform a design decision for VoiceBridge.
 
 \section{Results}
-% For each research question, include a table summarizing the findings from the papers reviewed
+
+\subsection*{RQ1: Which fine-tuning approaches are most effective for impaired speech?}
+
+The literature consistently reports that adapting large pre-trained ASR models to impaired speech substantially improves recognition compared to using generic models alone. Full fine-tuning often yields the best raw accuracy, but parameter-efficient methods such as LoRA and adapters are attractive when data and compute are limited. Personalized adaptation performs especially well for highly impaired speakers, while multitask and severity-aware approaches can further improve outcomes when severity labels are available.
+
+\begin{longtable}{p{2.7cm} p{3.0cm} p{2.3cm} p{3.0cm} p{3.5cm}}
+\caption{Summary of fine-tuning optimization approaches} \\
+\toprule
+\textbf{Method} & \textbf{Approach Description} & \textbf{Data Requirements} & \textbf{Reported WER Reduction} & \textbf{Notes / Outcomes} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Method} & \textbf{Approach Description} & \textbf{Data Requirements} & \textbf{Reported WER Reduction} & \textbf{Notes / Outcomes} \\
+\midrule
+\endhead
+Full Fine-Tuning & All model layers updated with impaired speech & Medium--High & 30--60\% in several reported impaired-speech settings & Highest accuracy in many cases, but prone to overfitting and computationally expensive \\
+LoRA / Adapters & Parameter-efficient tuning of selected layers & Low--Medium & Roughly 7--40\% across studies & Good balance of efficiency and accuracy; still vulnerable to overfitting when data is extremely scarce \\
+Bayesian / VI-LoRA & LoRA augmented with uncertainty modeling & Low & Roughly 15--30\% for low-intelligibility cases & More robust and data-efficient; greater implementation complexity \\
+Personalized Fine-Tuning & Speaker-dependent model or adaptation per user & Few utterances per user & Approximately 8--15\% absolute improvement in some stuttered/impaired speech settings & Strongest for severe or idiosyncratic speech, but not robust to unseen users \\
+Model Ensembling / Merging & Merge multiple fine-tuned models or checkpoints & Varies & Additional 10--20\% gains beyond standard fine-tuning in some settings & Improves robustness for dysarthric speech, but increases system complexity \\
+Multitask / Severity-Cluster & Joint ASR and impairment severity learning & Medium & 26--38\% depending on severity group & Useful when severity annotations exist; cluster assignment and generalization remain challenging \\
+\bottomrule
+\end{longtable}
+
+\subsection*{RQ2: Which approaches are most practical for VoiceBridge?}
+
+The literature suggests that the most practical choice depends on the trade-off between accuracy, compute, and deployment constraints. Full fine-tuning has the highest computational burden. LoRA and adapter-based methods are more feasible under limited hardware budgets. Personalized approaches are promising for individual accessibility use cases, while ensemble and severity-aware methods may be too complex for an initial deployment.
+
+\begin{longtable}{p{3.0cm} p{2.7cm} p{3.2cm} p{2.4cm} p{3.0cm}}
+\caption{Comparison of adaptation approaches for constrained deployment} \\
+\toprule
+\textbf{Technique} & \textbf{Approximate WER on Impaired Speech} & \textbf{Limitations / Failures} & \textbf{Computational Load} & \textbf{Feasibility Under Constrained Resources} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Technique} & \textbf{Approximate WER on Impaired Speech} & \textbf{Limitations / Failures} & \textbf{Computational Load} & \textbf{Feasibility Under Constrained Resources} \\
+\midrule
+\endhead
+Full Fine-Tuning & 20--35\% after adaptation & Overfits with limited data; costly; not scalable & High & Low; heavy GPU and memory requirements with longer training time \\
+LoRA / Adapter & 23--31\% & Slight accuracy drop versus full fine-tuning; some remaining overfitting risk & Low--Medium & High; suitable for most practical hardware setups \\
+Bayesian / Uncertainty LoRA & 22--28\% & Requires Bayesian infrastructure and added complexity & Medium & Moderate; more robust, but harder to implement \\
+Personalized Fine-Tuning & 9--15\% per user & Does not generalize; requires speaker-specific data collection & Low--Medium per speaker & Moderate; attractive for clinic-like or individual-use settings \\
+Model Ensembling / Merging & 17--25\% & Needs multiple models; more overhead and tuning complexity & Medium--High & Moderate; useful for robustness, but heavier operationally \\
+Multitask / Severity-Cluster & 24--32\% & Needs severity labels and more complex training design & Medium & Moderate; practical only if severity annotation is available \\
+\bottomrule
+\end{longtable}
+
+\subsection*{RQ3: Which model families are worth considering?}
+
+The team's notes identified several model families that recur across the literature and tooling ecosystem. Whisper is attractive because of its strong out-of-the-box robustness and widespread fine-tuning support. wav2vec 2.0 with Conformer rescoring achieves some of the strongest benchmarked results on dysarthric speech. NVIDIA NeMo provides practical training and deployment tooling. Personalized Euphonia-style systems are especially relevant when the target is a small set of recurring users.
+
+\begin{longtable}{p{3.1cm} p{2.1cm} p{2.6cm} p{3.2cm} p{2.5cm} p{2.7cm}}
+\caption{Model families relevant to VoiceBridge} \\
+\toprule
+\textbf{Model / Approach} & \textbf{Fine-Tuning?} & \textbf{Base Training Data} & \textbf{Evidence on Atypical Speech} & \textbf{Why Consider It} & \textbf{Trade-offs / Notes} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Model / Approach} & \textbf{Fine-Tuning?} & \textbf{Base Training Data} & \textbf{Evidence on Atypical Speech} & \textbf{Why Consider It} & \textbf{Trade-offs / Notes} \\
+\midrule
+\endhead
+Whisper (OpenAI, open-source checkpoints) & Yes & Large multilingual web/audio corpus & Fine-tuned Whisper on UASpeech/TORGO shows clear gains on dysarthric speech & Strong baseline, robust pipeline, large community support & Generic checkpoints are not specialized for disordered speech and benefit significantly from targeted fine-tuning \\
+wav2vec 2.0 + Conformer rescorers & Yes & Self-supervised pretraining on large unlabeled speech then fine-tuned on target data & Reported strong speaker-independent dysarthric ASR results when combined with severity-aware methods & High benchmark performance with limited labeled data & More moving parts to reproduce, including rescoring and specialized dysarthric datasets \\
+Conformer / CTC family via NVIDIA NeMo & Yes & Large generic speech corpora depending on checkpoint & Practical recipes and active tooling for domain- or speaker-specific fine-tuning & Good tooling and deployment options; attractive for engineering workflows & Generic baselines still require atypical-speech tuning for best results \\
+Personalized / Idiosyncratic ASR (Euphonia-style) & Yes & Large disordered-speech collections plus user-specific adaptation & Personalized models show substantial gains for ALS and atypical speech & Very strong for repeated users with individual adaptation & Requires user recording effort and does not transfer well to unknown speakers \\
+\bottomrule
+\end{longtable}
+
+\subsection*{RQ4: What preprocessing and feature engineering steps matter most?}
+
+The literature emphasizes that model choice alone is not sufficient. Dysarthric and slurred speech often occurs in low-resource, noisy conditions, so preprocessing and representation learning are essential. The review identified three consistent themes:
+\begin{enumerate}
+    \item remove non-stationary environmental noise,
+    \item normalize temporal distortion caused by irregular articulation, and
+    \item extract compact and informative speech representations, especially phoneme-aware features.
+\end{enumerate}
+
+\begin{longtable}{p{3.0cm} p{2.4cm} p{4.0cm} p{4.1cm}}
+\caption{Preprocessing and feature-engineering techniques for impaired speech ASR} \\
+\toprule
+\textbf{Approach} & \textbf{Stage} & \textbf{Description} & \textbf{Usefulness for VoiceBridge} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Approach} & \textbf{Stage} & \textbf{Description} & \textbf{Usefulness for VoiceBridge} \\
+\midrule
+\endhead
+STFT to Log Power Spectrum (LPS) & Initial transformation & Converts raw audio into a spectral representation in the frequency domain & Useful foundation for later denoising and feature extraction \\
+Cepstral Mean / Variance Normalization and amplitude scaling & Signal normalization & Removes microphone/channel bias and standardizes loudness & Improves consistency across recordings and devices \\
+DFT-domain subspace decomposition & Robust denoising & Separates speech and noise energy per frame, especially for changing noise conditions & More suitable than stationary denoising for uncontrolled user environments \\
+Minimum statistics & Noise estimation & Tracks lower-bound noise power over time without waiting for long pauses & Helpful in low-SNR settings, though still limited if speech is very low energy \\
+Temporal Structure Normalization (TSN) & Temporal normalization & Matches irregular temporal structure to a more regular reference & Directly targets dysarthria-related timing distortion \\
+Dynamic Time Warping (DTW) & Sequence alignment & Finds non-linear alignments between utterances and expected transcript timing & Useful when articulation rate is inconsistent \\
+Late-stage VAD segmentation & Segmentation & Removes silence after denoising and normalization stages & Safer than early trimming because impaired speech may contain low-energy segments \\
+MFCCs & Feature extraction & Compact, perceptually motivated summary of speech spectrum & Strong traditional baseline representation, but sensitive to noise \\
+Spectrograms & Feature extraction & Detailed frequency-over-time representation & Rich representation, but higher dimensional than MFCCs \\
+Phoneme-aware modeling (e.g., Wav2Vec2-Phoneme) & Modeling / representation & Predicts phoneme sequences from waveforms using learned speech representations & Especially relevant for short command phrases where phonetic precision matters \\
+\bottomrule
+\end{longtable}
 
 \section{Discussion}
+
 \subsection{Comparison of Findings}
-% Include tables for each research question here comparing the approaches based on metrics relevant to our project/research questions
+
+Several patterns were consistent across the reviewed sources.
+
+First, impaired speech ASR benefits strongly from transfer learning. Models trained broadly on typical speech do not perform well enough on dysarthric or otherwise atypical speech without domain adaptation. This makes fine-tuning essential rather than optional for VoiceBridge.
+
+Second, parameter-efficient tuning is especially attractive for our context. While full fine-tuning often gives the best reported gains, LoRA and related lightweight approaches offer a more realistic balance between performance and engineering cost. For a capstone system with limited compute and time, this is important.
+
+Third, personalization is one of the most promising directions when the same user interacts with the system repeatedly. This aligns well with the accessibility setting of VoiceBridge, where a user may be willing to provide a small amount of adaptation data in exchange for a much more reliable command interface.
+
+Fourth, preprocessing matters more in this domain than it does in many typical-speech pipelines. Several sources emphasized that dysarthric speech errors are caused not only by the recognition model itself, but also by noisy input, non-stationary recording conditions, and timing irregularities in articulation. This suggests that improved denoising and temporal normalization can complement model adaptation rather than compete with it.
+
+Finally, the most advanced methods in the literature, such as severity-aware multitask learning, clustering, and model merging, appear promising but may be too complex for an initial deployment. They are better framed as future extensions once a stable fine-tuned baseline has been established.
 
 \subsection{Limitations}
-% Discuss any limitations of the approaches reviewed, as well as limitations of our review process
+
+This review has several limitations.
+
+It is semi-systematic rather than fully systematic. The source collection was guided by project needs and literature notes rather than a formal database protocol with reproducible screening counts. As a result, the review is best interpreted as a design-oriented synthesis rather than an exhaustive survey.
+
+Some sources were technical summaries, documentation pages, or project notes rather than peer-reviewed papers. These were still useful for implementation decisions, but they do not provide the same level of evidence as benchmarked academic studies.
+
+Reported performance values are not always directly comparable. Datasets, impairment types, evaluation conditions, and severity distributions differ widely across studies. Therefore, WER ranges should be interpreted as directional rather than as strictly controlled head-to-head results.
+
+In addition, some methods that appear strong in the literature may be difficult to reproduce within the constraints of a capstone project because they assume access to curated dysarthric datasets, severity labels, multi-stage rescoring pipelines, or more extensive compute than is available to the team.
 
 \section{Conclusion}
-% Summary of which approaches worked best for each research question, relating back to our project 
+
+The literature shows that a generic ASR system is unlikely to be sufficient for impaired speech recognition in VoiceBridge. Fine-tuning foundation ASR models on atypical-speech data consistently improves recognition, and parameter-efficient techniques such as LoRA and adapters provide the best balance between performance and feasibility for our project. Personalized adaptation is especially promising for repeated users and severe impairment cases, although it comes with generalization trade-offs.
+
+The review also shows that preprocessing and feature engineering remain important, particularly for denoising, temporal normalization, and phoneme-sensitive representations. Taken together, the strongest practical direction for VoiceBridge is to begin with a fine-tuned foundation model pipeline, support lightweight adaptation where possible, and incorporate preprocessing steps that address the specific challenges of dysarthric and slurred speech.
 
 \section{References}
-% Uncomment the following lines once \citations are added 
-% \bibliographystyle{IEEEtran}
-% \bibliography{../../../refs/References}
 
+\begin{thebibliography}{99}
+
+\bibitem{mujtaba2025}
+Mujtaba et al., ``Robust fine-tuning of speech recognition models via model merging: application to disordered speech,'' Interspeech 2025. Available: \url{https://www.isca-archive.org/interspeech_2025/mujtaba25_interspeech.pdf}
+
+\bibitem{park2025}
+Park et al., ``Fine-tuning automatic speech recognition for people with Parkinson's: an effective strategy for enhancing speech technology accessibility,'' review summary and linked paper notes. Available: \url{https://www.themoonlight.io/en/review/fine-tuning-automatic-speech-recognition-for-people-with-parkinsons-an-effective-strategy-for-enhancing-speech-technology-accessibility}
+
+\bibitem{arxiv250920397}
+``Severity-aware and multitask approaches for impaired speech ASR,'' arXiv preprint 2509.20397v1. Available: \url{https://arxiv.org/html/2509.20397v1}
+
+\bibitem{arxiv250520477}
+``Robust fine-tuning of speech recognition models via model merging,'' arXiv preprint 2505.20477v1. Available: \url{https://arxiv.org/html/2505.20477v1}
+
+\bibitem{geng2023}
+Geng et al., ``Personalized / idiosyncratic speech recognition for atypical speech,'' Interspeech 2023. Available: \url{https://www.isca-archive.org/interspeech_2023/geng23b_interspeech.pdf}
+
+\bibitem{featureguide}
+Barrisambaris, ``Feature engineering in speech recognition: a guide into selecting relevant audio for accurate recognition,'' Medium. Available: \url{https://barrisambaris.medium.com/feature-engineering-in-speech-recognition-a-guide-into-selecting-relevant-audio-for-accurate-f383377126ea}
+
+\bibitem{mfcc}
+IEEE reference on MFCC-based speech representation. Available: \url{https://ieeexplore.ieee.org/document/9955539}
+
+\bibitem{wav2vecphoneme}
+HuggingFace Transformers Documentation, ``Wav2Vec2-Phoneme.'' Available: \url{https://huggingface.co/docs/transformers/en/model_doc/wav2vec2_phoneme}
+
+\bibitem{wav2vecnorm}
+``Normalization through fine-tuning: understanding Wav2Vec 2.0 embeddings for phonetic analysis,'' arXiv 2503.04814. Available: \url{https://arxiv.org/pdf/2503.04814}
+
+\bibitem{dysarthricssl}
+``Self-Supervised Speech Representations for Improved Dysarthric Speech Recognition,'' arXiv 2204.01670. Available: \url{https://arxiv.org/pdf/2204.01670}
+
+\bibitem{featureextractreview}
+``Feature Extraction Techniques for Speech Processing: A Review,'' IJATCSE. Available: \url{https://www.warse.org/IJATCSE/static/pdf/file/ijatcse54813sl2019.pdf}
+
+\bibitem{nonstationary}
+ScienceDirect article on dysarthric speech preprocessing under low-resource/noisy conditions. Available: \url{https://www.sciencedirect.com/science/article/pii/S0167639324001225}
+
+\bibitem{stftnorm}
+IEEE reference on initial spectral transformation and normalization. Available: \url{https://ieeexplore.ieee.org/document/9871531}
+
+\bibitem{ampscaling}
+IEEE reference on amplitude scaling and signal standardization. Available: \url{https://ieeexplore.ieee.org/document/7177994}
+
+\bibitem{tsn}
+IEEE reference on temporal structure normalization. Available: \url{https://ieeexplore.ieee.org/document/4244502}
+
+\end{thebibliography}
 
 \end{document}

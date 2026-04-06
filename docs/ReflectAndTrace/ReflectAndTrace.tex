@@ -2,6 +2,7 @@
 
 \usepackage{tabularx}
 \usepackage{booktabs}
+\usepackage{float}
 
 \title{Reflection and Traceability Report on \progname}
 
@@ -67,6 +68,58 @@ low.}
 
 \subsection{VnV Plan and Report}
 
+The VnV Plan and associated report were revised to incorporate feedback from peer reviews and formal TA review. The changes focused on improving traceability, making nonfunctional tests more specific, clarifying the scope of extras, and refining document language for readability.
+
+\begin{table}[H]
+\caption{VnV Report}
+\begin{tabularx}{\textwidth}{p{4cm}X}
+  \toprule
+  \textbf{Issue} & \textbf{Response and Change} \\
+  \midrule
+  \href{https://github.com/speech-buddies/VoiceBridge/issues/91}{Peer Review \#91} & Expanded the VnV Plan traceability matrix so every nonfunctional test case is explicitly linked to the corresponding SRS nonfunctional requirement. This made the relationship between look-and-feel tests, usability/humanity tests, and the SRS clear. \\
+  \midrule
+  \href{https://github.com/speech-buddies/VoiceBridge/issues/92}{Peer Review \#92} & Proofread and corrected grammar and structure throughout the VnV documents. We simplified long sentences, improved section flow, and made the VnV Plan easier to follow. \\
+  \midrule
+  \href{https://github.com/speech-buddies/VoiceBridge/issues/93}{Peer Review \#93} & Added concrete test details for nonfunctional cases. In particular, the ASR latency benchmark now includes the source and selection method for audio samples, the measurement procedure, and the expected results. \\
+  \midrule
+  \href{https://github.com/speech-buddies/VoiceBridge/issues/94}{Peer Review \#94} & Clarified extras feasibility and marked as wont fix per TA/instructor instructions. \\
+  \midrule
+  \href{https://github.com/speech-buddies/VoiceBridge/issues/95}{Peer Review \#95} & Added detailed nondynamic testing plans, including roles for code inspections, document reviews, and static analysis in Sections 3.6 and 3.7. \\
+  \midrule
+  \href{https://github.com/speech-buddies/VoiceBridge/issues/96}{Peer Review \#96} & Expanded Section 2.2 with testable objectives linked to critical qualities. Revised Section 2.3 to identify extra verification activities and their feasibility. \\
+  \midrule
+  \href{https://github.com/speech-buddies/VoiceBridge/issues/116}{TA Review \#116} & Addressed TA comments on the VnV Plan and report by refining the document structure, improving traceability, and tightening wording to better align with the review feedback. \\
+  \bottomrule
+\end{tabularx}
+\end{table}
+
+
+
+The VnV Report was revised to incorporate feedback from peer reviews. The changes focused on improving traceability and providing explanations for test results.
+
+\begin{table}[H]
+\caption{VnV Report}
+\begin{tabularx}{\textwidth}{p{4cm}X}
+  \toprule
+  \textbf{Issue} & \textbf{Response and Change} \\
+  \midrule
+  \href{https://github.com/speech-buddies/VoiceBridge/issues/286}{Peer Review \#286} & Clarified changes made due to testing by directly linking them to specific test results and outcomes. \\
+  \midrule
+  \href{https://github.com/speech-buddies/VoiceBridge/issues/287}{Peer Review \#287} & Updated test results to show actual quantitative data and align with VnV Plan pass criteria. \\
+  \midrule
+  \href{https://github.com/speech-buddies/VoiceBridge/issues/288}{Peer Review \#288} & Added missing test cases (test-LF-1, test-LF-2, test-OER-1, test-OER-2) to the VnV Report. \\
+  \midrule
+  \href{https://github.com/speech-buddies/VoiceBridge/issues/289}{Peer Review \#289} & Added test FR6 to the VnV Plan to maintain traceability between the plan and report documents. \\
+  \midrule
+  \href{https://github.com/speech-buddies/VoiceBridge/issues/290}{Peer Review \#290} & Explained the deferral of test-PF-3 as a stretch goal and updated the VnV Plan accordingly. \\
+  \midrule
+  \href{https://github.com/speech-buddies/VoiceBridge/issues/291}{Peer Review \#291} & Provided explanation for the failing result of test-PF-1, including next steps to resolve the issue and clarify the non-functional requirement. \\
+  \midrule
+  \href{https://github.com/speech-buddies/VoiceBridge/issues/320}{TA Review \#320} & Addressed TA comments on the VnV Report by refining structure, results presentation, and alignment with the VnV Plan. \\
+  \bottomrule
+\end{tabularx}
+\end{table}
+
 \section{Extras}
 
 \plt{Summarize the extras that were tackled by this project.  Extras
@@ -83,6 +136,66 @@ the design evolve from the first version to the final version?}
 client should be part of the explanation.  For example, if you made changes in
 response to usability testing, explain what the testing found and what changes
 it led to.}
+
+\subsection{Shortcut Manager Iteration}
+
+One important design iteration in VoiceBridge was the development of the
+\texttt{ShortcutManager}. In the earlier versions of the system, commands were
+handled one at a time with no persistent way to record, save, and replay common
+action sequences. While this was enough to demonstrate basic browser control, it
+did not match the client need for efficiency and accessibility in repeated
+everyday tasks. For a user with impaired speech, repeatedly issuing the same
+sequence of voice commands can increase fatigue and reduce the overall usability
+of the system. Because of this, we introduced shortcuts as a way to reduce the
+number of spoken interactions required for frequent tasks.
+
+Our first idea was relatively simple: store a shortcut as a sequence of recorded
+commands and replay them later. However, once we integrated this into the live
+system, we found that shortcut behavior could conflict with the runtime state
+machine. For example, the user could try to begin a shortcut recording while the
+system was still processing another command, or multiple parts of the backend
+could attempt to modify shortcut state at the same time. This was especially
+important because VoiceBridge is a real-time system with asynchronous events,
+including speech capture, transcription, intent resolution, and browser
+execution. As a result, we revised the design so that shortcut recording became
+an explicitly managed subsystem rather than just an added list of commands.
+
+The final design introduced a dedicated \texttt{ShortcutManager} module with a
+clear internal state, persistent storage, and locking for safe concurrent
+access. Instead of scattering shortcut logic across the codebase, the manager
+became responsible for starting and stopping recordings, storing recorded
+commands, validating shortcut names, and loading/saving shortcuts from disk.
+This design was chosen to improve maintainability and prevent race conditions in
+cases where multiple backend events happen close together. The use of a lock was
+an important iteration because testing showed that shortcut actions could overlap
+with other command-processing flows in unpredictable ways if the state was not
+protected.
+
+We also changed how shortcuts were represented. In earlier thinking, shortcuts
+were treated mainly as temporary in-memory recordings for the active session.
+This was limiting, because a user would lose their shortcuts between runs of the
+application. Since one of the client goals was to make the system practical for
+daily use, we moved to persistent storage using a local JSON-based approach.
+This allowed shortcuts to survive application restarts and made the feature more
+realistic as an assistive tool rather than just a demo feature. The trade-off
+was that we now needed validation and structured file handling, but this was
+worth it because it supported a more reliable user experience.
+
+Another design change was motivated by usability. Initially, shortcut support was
+focused only on storing the raw sequence of actions. As the design matured, we
+recognized that the feature also needed clear start/stop control and user
+feedback so that recording would feel predictable. Without this, a user could be
+unsure whether the system was actively recording commands into a shortcut or just
+executing them normally. This was especially important given our client focus on
+accessibility and confidence in system behavior. We therefore refined the design
+so that shortcut recording had explicit transitions, clear prompts, and tighter
+integration with the system state flow.
+
+Overall, the \texttt{ShortcutManager} evolved from a simple convenience idea
+into a more structured subsystem designed around accessibility, predictability,
+and safe execution. The main reason for these changes was not just technical
+cleanup, but the need to better support users who benefit from reducing repeated
+speech effort while still being able to trust what the system is doing.
 
 \section{Design Decisions (LO12)}
 
