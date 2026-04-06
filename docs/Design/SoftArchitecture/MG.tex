@@ -69,7 +69,7 @@
 \midrule
 Nov 11, 2025 & 1.0 & Added modules and Traceability Matrix\\
 Nov 12, 2025 & 1.1 & Added Modules M6-M11\\
-Nov 12, 2025 & 1.2 & Added Modules M15-M19\\
+Nov 12, 2025 & 1.2 & Added Modules M15-M18\\
 Nov 26, 2025 & 1.3 & Added Modules M1-M6\\
 Jan 10, 2026 & 1.4 & Implemented TA Feedback for M7-M11\\
 Jan 10, 2026 & 1.4 & Implemented TA and Peer Feedback for AC/UC distinctions\\
@@ -79,7 +79,7 @@ Feb 10, 2026 & 2.2 & Implemented advisor feedback on structure, clarity and term
 Feb 16, 2026 & 2.3 & Updated module descriptions to resemble rev0 architecture \\
 Feb 23, 2026 & 2.4 & Implemented advisor feedback on module classification and command refinement \\
 Apr 01, 2026 & 2.5 & Updated M15 module description to match \texttt{audio\_capture.py} implementation \\
-Apr 01, 2026 & 2.6 & Updated M18 module description to match \texttt{whisper\_lora\_trainer.py} implementation \\
+Apr 01, 2026 & 2.6 & Updated M17 module description to match \texttt{whisper\_lora\_trainer.py} implementation \\
 April 1, 2026 & 3.0 & Updated module descriptions to reflect final architecture \\
 April 5, 2026 & 3.1 & Addressed final TA feedback \\
 \bottomrule
@@ -283,7 +283,7 @@ To clarify the structural organization of this system, we distinguish between th
 
 \textbf{Module:} A module is a self-contained software component that encapsulates a specific set of secrets (design decisions) and provides a well-defined set of services through its interface. Each module is the fundamental unit of implementation and change—modifications to a module's internal implementation should not require changes to other modules, provided its interface remains stable. Modules represent how specific responsibilities are implemented and hidden behind abstractions.
 
-\textbf{Orchestrator:} An orchestrator is a specialized type of module whose primary responsibility is coordinating the interactions between other modules to accomplish complex workflows. Unlike standard modules that focus on a single domain-specific task, orchestrators manage sequencing, decision-making, and data flow across module boundaries. In this system, M5 (Command Orchestrator) exemplifies this pattern by synthesizing speech transcripts into browser commands through coordination with M4, M17 (Prompting Module), M7 (Browser Orchestrator), and M8 (Session Manager). Orchestrators represent when modules interact and why certain sequences occur.
+\textbf{Orchestrator:} An orchestrator is a specialized type of module whose primary responsibility is coordinating the interactions between other modules to accomplish complex workflows. Unlike standard modules that focus on a single domain-specific task, orchestrators manage sequencing, decision-making, and data flow across module boundaries. In this system, M5 (Command Orchestrator) exemplifies this pattern by synthesizing speech transcripts into browser commands through coordination with M4, M16 (Prompting Module), M7 (Browser Orchestrator), and M8 (Session Manager). Orchestrators represent when modules interact and why certain sequences occur.
 
 \subsubsection*{Module Classification}
 
@@ -293,7 +293,7 @@ Modules are classified as either user-facing or internal,based on their role in 
 
 \subsection{Design Rationale}
 
-\textbf{Separation of Concerns:} The architecture strictly separates presentation (M1-M3), processing (M4-M6), control (M7-M8), data (M9-M14), input (M15-M16), and personalization (M17-M18). This ensures that changes in one layer (e.g., switching STT engines) do not cascade across unrelated modules.
+\textbf{Separation of Concerns:} The architecture strictly separates presentation (M1-M3), processing (M4-M6), control (M7-M8), data (M9-M14), input (M15-M16), and personalization (M16-M17). This ensures that changes in one layer (e.g., switching STT engines) do not cascade across unrelated modules.
 
 \textbf{Security by Design:} Security-critical functions are isolated in dedicated modules (M11-M14) with restricted access patterns. Credentials, encryption keys, and audit logs are managed independently to support defense-in-depth.
 
@@ -301,7 +301,7 @@ Modules are classified as either user-facing or internal,based on their role in 
 
 \textbf{LLM-Driven Command Synthesis:} Unlike traditional intent-based systems with fixed command registries, the Command Orchestrator (M5) uses prompt engineering and schema validation to synthesize commands dynamically, enabling flexible natural language understanding without hardcoded mappings.
 
-\textbf{Personalization Without Privacy Trade-offs:} The Model Tuner (M18) and User Profile Manager (M10) work in tandem with Encryption (M13) to enable user-specific adaptations while maintaining data anonymization for model training.
+\textbf{Personalization Without Privacy Trade-offs:} The Model Tuner (M17) and User Profile Manager (M10) work in tandem with Encryption (M13) to enable user-specific adaptations while maintaining data anonymization for model training.
 
 \subsection{Module Listing}
 The following 18 modules represent the leaf nodes in the architectural decomposition and will be implemented as distinct software components:
@@ -672,7 +672,7 @@ Provides user prompting, model fine-tuning, and creation of personalized shortcu
 \textbf{Implemented By:} \texttt{audio\_capture.py} (VoiceBridge) (\texttt{AudioConfig}, \texttt{AudioState}, \texttt{RealtimeAudioCapture}) using the \texttt{sounddevice} and \texttt{webrtcvad} libraries.
 
 \subsection*{Personalization Layer}
-\subsubsection*{M17: Prompting Module} \refstepcounter{mnum}\mthemnum\label{m17}
+\subsubsection*{M16: Prompting Module} \refstepcounter{mnum}\mthemnum\label{M16}
 \textbf{Secrets:} 
 \begin{itemize}
   \item Prompt templates and personalization rules
@@ -688,7 +688,7 @@ Provides user prompting, model fine-tuning, and creation of personalized shortcu
 \textbf{Implemented By:} Application prompt engine (VoiceBridge).
 
 \medskip
-\subsubsection*{M18: Model Tuner} \refstepcounter{mnum}\mthemnum\label{m18}
+\subsubsection*{M17: Model Tuner} \refstepcounter{mnum}\mthemnum\label{M17}
 \textbf{Secrets:}
 \begin{itemize}
   \item Incremental fine-tuning strategy: only LoRA adapter weights (targeting Whisper-small decoder \texttt{q\_proj}/\texttt{v\_proj} layers) are trained; the base model is frozen
@@ -708,7 +708,7 @@ Provides user prompting, model fine-tuning, and creation of personalized shortcu
 \textbf{Implemented By:} \texttt{whisper\_lora\_trainer.py} (VoiceBridge) (\texttt{WhisperLoRATrainer}) using HuggingFace \texttt{transformers}, \texttt{peft} (LoRA), and PyTorch.
 
 \medskip
-\subsubsection*{M19: Shortcut Manager} \refstepcounter{mnum}\mthemnum\label{m19}
+\subsubsection*{M18: Shortcut Manager} \refstepcounter{mnum}\mthemnum\label{M18}
 \textbf{Secrets:} 
 \begin{itemize}
   \item Internal mapping of shortcut IDs to recorded command sequences
@@ -742,7 +742,7 @@ within a single module.
 \textbf{Req.} & \textbf{Modules}\\
 \midrule
 \hyperref[fr:FR1]{FR1} & \mref{m15}, \mref{m4}, \mref{m8}\\
-\hyperref[fr:FR2]{FR2} & \mref{m4}, \mref{m18}, \mref{m9}\\
+\hyperref[fr:FR2]{FR2} & \mref{m4}, \mref{M17}, \mref{m9}\\
 \hyperref[fr:FR3]{FR3} & \mref{m1}, \mref{m2}, \mref{m3}, \mref{m6}\\
 \hyperref[fr:FR4]{FR4} & \mref{m5}, \mref{m6}\\
 \hyperref[fr:FR5]{FR5} & \mref{m7}, \mref{m7}, \mref{m11}, \mref{m6}\\
@@ -759,7 +759,7 @@ within a single module.
 \textbf{Req.} & \textbf{Modules}\\
 \midrule
 \hyperref[req:AR1]{LF1} & \mref{m1}, \mref{m2}, \mref{m3}, \mref{m6}\\
-\hyperref[req:SR1]{LF2} & \mref{m1}, \mref{m2}, \mref{m17}, \mref{m3}\\
+\hyperref[req:SR1]{LF2} & \mref{m1}, \mref{m2}, \mref{M16}, \mref{m3}\\
 \bottomrule
 \end{tabular}
 \caption{Trace Between Look \& Feel Requirements and Modules}
@@ -774,8 +774,8 @@ within a single module.
 \midrule
 \hyperref[req:EU1]{UH1} & \mref{m1}, \mref{m2}, \mref{m3}, \mref{m6}\\
 \hyperref[req:PI1]{UH2} & \mref{m10}, \mref{m9}, \mref{m5}, \mref{m6}\\
-\hyperref[req:LR1]{UH3} & \mref{m1}, \mref{m2}, \mref{m17}, \mref{m8}\\
-\hyperref[req:UP1]{UH4} & \mref{m6}, \mref{m3}, \mref{m2}, \mref{m17}\\
+\hyperref[req:LR1]{UH3} & \mref{m1}, \mref{m2}, \mref{M16}, \mref{m8}\\
+\hyperref[req:UP1]{UH4} & \mref{m6}, \mref{m3}, \mref{m2}, \mref{M16}\\
 \hyperref[req:AC1]{UH5} & \mref{m2}, \mref{m1}, \mref{m3}, \mref{m6}\\
 \bottomrule
 \end{tabular}
@@ -791,7 +791,7 @@ within a single module.
 \midrule
 \hyperref[req:PR1]{PF1} & \mref{m4}, \mref{m5}, \mref{m6}, \mref{m7}, \mref{m7}\\
 \hyperref[req:PR2]{PF2} & \mref{m5}, \mref{m6}, \mref{m7}, \mref{m6}, \mref{m11}\\
-\hyperref[req:PR3]{PF3} & \mref{m4}, \mref{m18}, \mref{m5}\\
+\hyperref[req:PR3]{PF3} & \mref{m4}, \mref{M17}, \mref{m5}\\
 \hyperref[req:PR4]{PF4} & \mref{m11}, \mref{m8}, \mref{m6}, \mref{m7}\\
 \hyperref[req:PR5]{PF5} & \mref{m8}, \mref{m9}, \mref{m10}\\
 \hyperref[req:PR6]{PF6} & \mref{m8}, \mref{m9}, \mref{m7}\\
@@ -826,7 +826,7 @@ within a single module.
 \textbf{Req.} & \textbf{Modules}\\
 \midrule
 \hyperref[req:MS1]{MS1} & \mref{m8}, \mref{m9}, \mref{m10}, \mref{m11}, \mref{m12}\\
-\hyperref[req:MS2]{MS2} & \mref{m1}, \mref{m2}, \mref{m3}, \mref{m6}, \mref{m17}\\
+\hyperref[req:MS2]{MS2} & \mref{m1}, \mref{m2}, \mref{m3}, \mref{m6}, \mref{M16}\\
 \hyperref[req:MS3]{MS3} & \mref{m1}, \mref{m2}, \mref{m7}, \mref{m8}, \mref{m11}\\
 \bottomrule
 \end{tabular}
@@ -857,7 +857,7 @@ within a single module.
 \toprule
 \textbf{Req.} & \textbf{Modules}\\
 \midrule
-\hyperref[req:CR1]{CUL1} & \mref{m2}, \mref{m3}, \mref{m6}, \mref{m17}, \mref{m5}\\
+\hyperref[req:CR1]{CUL1} & \mref{m2}, \mref{m3}, \mref{m6}, \mref{M16}, \mref{m5}\\
 \bottomrule
 \end{tabular}
 \caption{Trace Between Cultural Requirements and Modules}
