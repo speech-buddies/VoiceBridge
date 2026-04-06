@@ -74,8 +74,10 @@
 
 \begin{document}
 \maketitle
-% \begin{abstract}
-% \end{abstract}
+\begin{abstract}
+Individuals with speech impairments resulting from neurological conditions, such as Parkinson’s disease, stroke, or cerebral palsy, face significant barriers when interacting with modern digital ecosystems. While flagship Automatic Speech Recognition (ASR) models have achieved high benchmarks for typical speech, their performance degrades sharply when processing dysarthric or atypical vocal patterns, limiting user independence. This paper presents VoiceBridge, an assistive software solution designed to bridge this accessibility gap.
+\end{abstract}
+
 
 \section{Introduction}
 
@@ -84,8 +86,7 @@ The VoiceBridge project addresses the digital accessibility gap faced by individ
 The system's objective is to capture impaired audio through a standard microphone and process it via a custom-trained machine learning model. The resulting text output is not merely for transcription but is designed to be mapped into actionable commands. By transforming these inputs into device-level controls—such as sending messages or operating applications—VoiceBridge aims to restore autonomy to users in everyday environments, including homes and clinics. This objective heightens the need for an accurate model to provide transcripts, as commands are often only a couple words in length. Due to the lack of context available to the model when processing short phrases, high recognition accuracy and low word error rate (WER) are vital for the systems relying on these model's performance.
 \section{Related Work}
 
-Gemini said
-A semi-systematic review of ASR approaches for impaired speech indicates that fine-tuning large, pre-trained foundation models consistently outperforms models trained solely on typical speech \citep{voicebridge_litreview}. Research suggests that while full fine-tuning of all model layers can reduce WER by 30–60\%, it is computationally expensive and prone to overfitting when data is scarce \citep{voicebridge_litreview}. Consequently, parameter-efficient adaptation methods, such as Low-Rank Adaptation (LoRA) and adapters, have emerged as practical alternatives. As noted by \citet{pokel2025variational}, LoRA provides a reported WER reduction of 7–40% while significantly lowering the computational load, making it suitable for deployment on standard hardware. Model families like Whisper are particularly attractive due to their out-of-the-box robustness and strong community support for fine-tuning on specialized datasets like UASpeech and TORGO.
+A semi-systematic review of ASR approaches for impaired speech indicates that fine-tuning large, pre-trained foundation models consistently outperforms models trained solely on typical speech \citep{voicebridge_litreview}. Research suggests that while full fine-tuning of all model layers can reduce WER by 30–60\%, it is computationally expensive and prone to overfitting when data is scarce \citep{voicebridge_litreview}. Consequently, parameter-efficient adaptation methods, such as Low-Rank Adaptation (LoRA) and adapters, have emerged as practical alternatives. As noted by \citet{pokel2025variational}, LoRA provides a reported WER reduction of 7–40\% while significantly lowering the computational load, making it suitable for deployment on standard hardware. Model families like Whisper are particularly attractive due to their out-of-the-box robustness and strong community support for fine-tuning on specialized datasets like UASpeech and TORGO.
 
 Beyond model architecture, the literature emphasizes that preprocessing and feature engineering are critical for handling the irregular articulation and non-stationary noise often found in impaired speech recordings \citep{voicebridge_litreview}. Essential techniques include:
 
@@ -97,14 +98,26 @@ Beyond model architecture, the literature emphasizes that preprocessing and feat
 
 \section{Dataset}
 
-You should write about your dataset here, following the guidelines regarding item 1. This section may be 0.5-1 pages. Depending on your specific dataset, you may want to include subsections for the preprocessing, annotation, etc.
+Training and evaluation data are drawn from the Speech Accessibility Project (SAP), a large-scale corpus of atypical speech collected to support ASR research for individuals with dysarthria and related conditions. SAP is well-suited to this work because it captures the acoustic characteristics, such as breathiness, irregular timing, and strained phonation, which cause performance degradation in general-purpose speech recognition systems.
+
+A subset of 400 labeled utterances was used for fine-tuning, with an 80/20 train/validation split (320 and 80 samples respectively). A fully disjoint held-out set was reserved for evaluation; each utterance is paired with a ground-truth transcript and structured ratings covering the speaker's diagnosed condition and symptom severity across multiple dimensions. Training was conducted on SHARCNET H100 GPUs. As shown in Figure~\ref{fig:dataset-composition}, the subset is dominated by Parkinson's Disease (59.4\%) and ALS (26.1\%), with Cerebral Palsy (10.1\%), Down Syndrome (2.6\%), and Ataxic Dysarthria (1.8\%) providing coverage of acoustically distinct profiles.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\columnwidth]{figures/dataset-composition.png}
+  \caption{Condition distribution of the SAP training subset.}
+  \label{fig:dataset-composition}
+\end{figure}
 
 \section{Features}
 
-Describe any features you used for your model, or how your data was input to your model. Are you doing feature engineering or feature selection? Are you learning embeddings? Is it all part of one neural network? Refer to item 3. This may range from 0.25 pages to 0.5 pages.
+The input representation follows the standard Whisper preprocessing pipeline: all audio is resampled to 16\,kHz and converted to log-Mel spectrograms via \texttt{WhisperProcessor}. 
+Domain adaptation is achieved through Low-Rank Adaptation (LoRA), which augments the frozen pretrained model with trainable low-rank matrices injected into the attention layers. Rather than modifying the base weights, LoRA allows the model to acquire task-specific adjustments within a compact parameter space, learning the acoustic characteristics of dysarthric and command-style speech. Adapters are applied to the query and value projection matrices (\texttt{q\_proj}, \texttt{v\_proj}); training configuration and hyperparameters are detailed in Section~\ref{sec:implementation}.
 
 
 \section{Implementation}
+\label{sec:implementation}
+
 
 The VoiceBridge implementation focuses on a parameter-efficient fine-tuning pipeline using Whisper-small as the foundation. 
 
@@ -142,7 +155,20 @@ Training is conducted over 3 epochs using the \texttt{AdamW} optimizer.
 
 \section{Results and Evaluation}
 
-How are you evaluating your model? What results do you have so far? What are your baselines? Refer to item 5. This may take around 0.5 pages.
+Transcription quality is measured using Word Error Rate (WER), defined as
+\[
+  \mathrm{WER} = \frac{S + D + I}{N},
+\]
+where $S$, $D$, and $I$ denote substitutions, deletions, and insertions, and $N$ is the reference word count. For short commands, WER is a particularly consequential metric: a single error on a one- or two-word utterance constitutes a complete transcription failure and prevents command execution. All predictions and references are lowercased prior to scoring.
+
+\paragraph{Baseline vs.\ fine-tuned.}
+An unmodified \texttt{openai/whisper-small} model serves as the baseline. Both models are evaluated on the same 52-sample held-out set under identical decoding conditions. The baseline achieves an average WER of 0.813; the LoRA-adapted model reduces this to 0.558, an absolute reduction of 0.255 corresponding to approximately a 31\% relative improvement across the test conditions.
+
+\paragraph{Per-condition analysis.}
+Performance improvements are distributed across diagnostic groups but vary in magnitude. For Parkinson's Disease and ALS, fine-tuning substantially increases the proportion of near-zero WER samples and reduces high-error outliers. For Cerebral Palsy, WER decreases from approximately 0.75 to 0.45; for Ataxic Dysarthria, from approximately 0.65 to 0.35. Symptom-level analysis confirms that error distributions shift toward lower values across severity levels, indicating more consistent performance rather than selective gains on lower-severity speakers.
+
+
+
 \section{Feedback and Plans}
 
 The VoiceBridge project roadmap is strategically bifurcated into a \textbf{Minimum Viable Product (MVP)} and a set of \textbf{Stretch Goals} to ensure technical feasibility within the Capstone timeline while maintaining a path toward a comprehensive accessibility solution.
@@ -172,26 +198,26 @@ The project is currently in the data collection and architectural refinement pha
     \item \textbf{Phase 3 (Winter 2027):} The project is slated for official completion. In accordance with established ethics protocols, all raw research data will be permanently purged to protect participant privacy and comply with data retention agreements.
 \end{itemize}
 
-\subsection{Tables and figures}
+% \subsection{Tables and figures}
 
-See Table~\ref{citation-guide} for an example of a table and its caption.
-See Figure~\ref{fig:experiments} for an example of a figure and its caption.
+% % See Table~\ref{citation-guide} for an example of a table and its caption.
+% % See Figure~\ref{fig:experiments} for an example of a figure and its caption.
 
 
-\begin{figure}[t]
-  \includegraphics[width=\columnwidth]{example-image-golden}
-  \caption{A figure with a caption that runs for more than one line.
-    Example image is usually available through the \texttt{mwe} package
-    without even mentioning it in the preamble.}
-  \label{fig:experiments}
-\end{figure}
+% \begin{figure}[t]
+%   \includegraphics[width=\columnwidth]{example-image-golden}
+%   \caption{A figure with a caption that runs for more than one line.
+%     Example image is usually available through the \texttt{mwe} package
+%     without even mentioning it in the preamble.}
+%   \label{fig:experiments}
+% \end{figure}
 
-\begin{figure*}[t]
-  \includegraphics[width=0.48\linewidth]{example-image-a} \hfill
-  \includegraphics[width=0.48\linewidth]{example-image-b}
-  \caption {A minimal working example to demonstrate how to place
-    two images side-by-side.}
-\end{figure*}
+% \begin{figure*}[t]
+%   \includegraphics[width=0.48\linewidth]{example-image-a} \hfill
+%   \includegraphics[width=0.48\linewidth]{example-image-b}
+%   \caption {A minimal working example to demonstrate how to place
+%     two images side-by-side.}
+% \end{figure*}
 
 
 % \subsection{Citations}
@@ -220,14 +246,6 @@ See Figure~\ref{fig:experiments} for an example of a figure and its caption.
 % You can use the command \verb|\citep| (cite in parentheses) to get ``(author, year)'' citations \citep{Gusfield:97}.
 % You can use the command \verb|\citealp| (alternative cite without parentheses) to get ``author, year'' citations, which is useful for using citations within parentheses (e.g. \citealp{Gusfield:97}).
 
-% \subsection{References}
-
-% \nocite{Ando2005,andrew2007scalable,rasooli-tetrault-2015}
-
-% % Many websites where you can find academic papers also allow you to export a bib file for citation or bib formatted entry. Copy this into the \texttt{custom.bib} and you will be able to cite the paper in the \LaTeX{}. You can remove the example entries.
-
-\section{References}
-
 % \subsection{Equations}
 
 % An example equation is shown below:
@@ -245,8 +263,8 @@ See Figure~\ref{fig:experiments} for an example of a figure and its caption.
 % \section*{Limitations}
 
 \section*{Team Contributions}
-
-Write in this section a few sentences describing the contributions of each team member. What did each member work on? Refer to item 7.
+Rawan Mahdi Sections 1,2,5,7
+Luna Aljammal: Sections 3,4,6
 
 % Bibliography entries for the entire Anthology, followed by custom entries
 %\bibliography{custom,anthology-overleaf-1,anthology-overleaf-2}
