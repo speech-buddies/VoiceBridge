@@ -60,100 +60,94 @@ response separately for each deliverable in the sections that follow.}
 be able to grade your response to feedback.  In that case your grade on this
 document, and likely the Revision 1 versions of the other documents will be
 low.} 
-
 \subsection{SRS and Hazard Analysis}
 
-Over the course of the project, we made several targeted updates to the SRS and
-Hazard Analysis in response to TA feedback, advisor guidance, and internal
-review. The main themes were (i)~improving precision/traceability of
-requirements, (ii)~clarifying assumptions and system boundaries for a
-privacy-preserving, local-first assistive tool, and (iii)~strengthening
-safety language around command execution and user confirmation.
+Over the course of the project, we made targeted updates to the SRS and Hazard
+Analysis in response to TA feedback, advisor guidance, and internal review. The
+main themes were: (i) improving requirement precision and testability, (ii)
+clarifying system boundaries and privacy assumptions for a local-first assistive
+tool, and (iii) strengthening safety language around command execution and user
+confirmation.
 
 \begin{itemize}
 
-\item \textbf{Clarified system boundary and local-first assumptions}
+\item \textbf{Clarified system boundary and privacy assumptions}
 
-\textbf{Source:} TA/advisor feedback during Rev 0 review and demo discussions.
+\textbf{Source:} TA/advisor feedback during Revision 0 review and demo discussions.
 
-\textbf{Feedback:} The system boundary (what runs locally vs.\ what is external)
-and the privacy assumptions were not sufficiently explicit, which made it
-difficult to judge feasibility and safety.
+\textbf{Feedback:} The boundary between what runs locally vs.\ what relies on
+external components was not explicit enough, which made feasibility and privacy
+risk harder to assess.
 
-\textbf{Response:} We revised the SRS to explicitly state VoiceBridge's
-local-first processing goal and to clarify what components are considered
-external dependencies (e.g., browser automation layer, any optional model
-services). We also tightened the terminology around ``data stored locally,''
-what constitutes ``user data,'' and what is not retained by default.
+\textbf{Response:} We revised the SRS to state the local-first intent more
+clearly, identify external dependencies where applicable, and tighten definitions
+around what user data exists, where it can be stored, and what is not retained by
+default.
 
 \item \textbf{Improved requirement specificity and testability}
 
 \textbf{Source:} TA feedback on requirement quality.
 
-\textbf{Feedback:} Some requirements were written at too high a level or mixed
-multiple concerns, reducing testability and traceability to design/modules.
+\textbf{Feedback:} Some requirements were too high-level or combined multiple
+behaviours, reducing testability and traceability.
 
-\textbf{Response:} We reworded several functional and non-functional
-requirements to use more measurable language (e.g., clearer triggers, observable
-system outputs, and success criteria). Where requirements bundled multiple
-behaviors, we split them so each requirement maps cleanly to modules and can be
-verified in V\&V.
+\textbf{Response:} We reworded several requirements to be more measurable (clear
+triggers, observable outputs, and success criteria) and split bundled
+requirements so each one maps cleanly to design elements and V\&V tests.
 
-\item \textbf{Strengthened traceability from requirements to design}
+\item \textbf{Strengthened traceability between SRS/HA and the design docs}
 
-\textbf{Source:} TA feedback emphasizing traceability.
+\textbf{Source:} TA feedback emphasizing traceability, including the design
+documentation review
+(\href{https://github.com/speech-buddies/VoiceBridge/issues/235}{TA Review \#235}).
 
-\textbf{Feedback:} Requirements needed clearer connections to architectural
-responsibilities so it was easier to see ``where'' in the system each
-requirement is satisfied.
+\textbf{Feedback:} The design documentation needed clearer, more consistent
+module responsibilities and mappings, and the project artifacts needed to remain
+traceable across documents.
 
-\textbf{Response:} We updated requirement wording and identifiers to better
-align with the architecture and added/verified requirement-to-module traceability
-(later reflected in the Module Guide traceability matrices). This reduced
-ambiguity when justifying design decisions and later when writing test cases.
+\textbf{Response:} While \#235 primarily drove updates to the design documents,
+addressing it required us to cross-check the design against the SRS and Hazard
+Analysis. We verified and tightened SRS-to-module and hazard/mitigation-to-module
+traceability to reduce drift and ensure that safety and privacy assumptions in
+the SRS/HA were reflected in the architecture.
 
-\item \textbf{Expanded hazards related to unintended/unsafe command execution}
+\item \textbf{Expanded hazards related to unintended command execution}
 
 \textbf{Source:} TA feedback and internal risk review after implementing command
 execution flows.
 
-\textbf{Feedback:} The hazard analysis under-emphasized risks associated with
-misrecognition, ambiguous intent, and executing a harmful browser action.
+\textbf{Feedback:} The hazard analysis under-emphasized risks from
+misrecognition, ambiguous intent, and executing harmful browser actions.
 
-\textbf{Response:} We added/strengthened hazards covering: incorrect
-transcription leading to unintended actions; ambiguous commands; and risky
-actions being executed without sufficient user awareness. We also updated
-mitigations to include explicit confirmation steps, clear user feedback, and
-``safe fallback'' handling for out-of-scope or unsafe commands.
+\textbf{Response:} We strengthened hazards and mitigations around incorrect
+transcriptions and ambiguous commands leading to unintended actions. Mitigations
+were updated to emphasize explicit confirmation for higher-risk actions, clear
+user feedback during execution, and safe fallback behaviour when commands are
+out-of-scope or low-confidence.
 
-\item \textbf{Made privacy and data retention hazards more concrete}
+\item \textbf{Made privacy and data-retention hazards more concrete}
 
-\textbf{Source:} Advisor/TA feedback on privacy risk articulation.
+\textbf{Source:} TA/advisor feedback on privacy risk articulation.
 
-\textbf{Feedback:} Privacy hazards were present but too abstract; the document
-needed clearer statements of what data might be captured, stored, or logged, and
-what controls exist to minimize exposure.
+\textbf{Feedback:} Privacy hazards were present but too abstract, making it
+unclear what data might be logged or retained and what controls exist.
 
-\textbf{Response:} We revised hazards and mitigations related to storage of
-transcripts, recordings, logs, and personalization artifacts. We clarified
-retention expectations and emphasized mitigations such as minimizing stored
-sensitive data, restricting access to logs, and protecting stored artifacts via
-encryption/credential controls (as reflected later in the design modules for
-credential/encryption/audit logging).
+\textbf{Response:} We clarified which artifacts (e.g., transcripts, recordings,
+logs, and user settings) might exist and refined mitigations to emphasize
+minimizing stored sensitive data, limiting log exposure, and treating stored
+artifacts as sensitive by default.
 
-\item \textbf{Addressed accessibility-related failure modes}
+\item \textbf{Addressed accessibility-related failure modes as safety/usability risks}
 
 \textbf{Source:} TA feedback and usability-oriented review.
 
 \textbf{Feedback:} Since the target users include individuals with dysarthric
-speech, the analysis should consider accessibility failure modes (e.g., unclear
-feedback, overwhelming prompts, or missing confirmations) as safety/usability
-risks.
+speech, the analysis should consider failure modes such as unclear prompts,
+missing confirmations, or confusing system state.
 
-\textbf{Response:} We added or refined hazards that capture the risk of user
-confusion or loss of control due to insufficient feedback/confirmations, and we
-connected mitigations to UI/accessibility behaviors (clear state indications,
-explicit prompts, and consistent cancel/confirm affordances).
+\textbf{Response:} We added/refined hazards capturing user confusion and loss of
+control due to insufficient feedback, and we connected mitigations to clearer
+state indications and consistent confirm/cancel interactions.
 
 \end{itemize}
 
@@ -325,43 +319,105 @@ users currently exist?}
 
 \section{Reflection on Project Management (LO24)}
 
-\plt{This question focuses on processes and tools used for project management.}
-
 \subsection{How Does Your Project Management Compare to Your Development Plan}
 
-\plt{Did you follow your Development plan, with respect to the team meeting plan, 
-team communication plan, team member roles and workflow plan.  Did you use the 
-technology you planned on using?}
+Our project management aligned well with our Development Plan. We maintained a
+consistent meeting rhythm to coordinate priorities and remove blockers, and we
+used asynchronous communication between meetings to keep work moving. We used
+GitHub Issues and pull requests to plan tasks, record feedback, and track progress
+across deliverables. Team roles were clear and helped us work efficiently, while
+still allowing collaboration across areas when needed. We also used the
+technologies we planned on using (GitHub for version control and coordination,
+and LaTeX for documentation), and we kept our workflow structured around
+reviewable changes and traceability.
 
 \subsection{What Went Well?}
 
-\plt{What went well for your project management in terms of processes and 
-technology?}
+\begin{itemize}
+  \item \textbf{Issue tracking and traceability:} Capturing peer and TA feedback
+  as GitHub Issues made it easy to plan changes and clearly demonstrate
+  traceability from comments to updates.
+  \item \textbf{Clear ownership with collaboration:} Assigning primary owners for
+  major deliverables improved consistency and helped each document progress
+  steadily, while collaboration ensured quality and shared understanding.
+  \item \textbf{Review and iteration:} Regular internal review cycles improved
+  clarity, consistency, and alignment across the SRS/HA, design documentation,
+  and V\&V artifacts.
+  \item \textbf{Coordination across implementation and documentation:} Keeping
+  documentation connected to the implementation helped ensure design decisions
+  were well-justified and supported by the final system.
+\end{itemize}
 
 \subsection{What Went Wrong?}
 
-\plt{What went wrong in terms of processes and technology?}
+\begin{itemize}
+  \item \textbf{Continuous alignment effort:} Maintaining alignment between
+  requirements, design, and V\&V artifacts required ongoing attention, and the
+  experience reinforced the value of regularly revisiting traceability links as
+  the system evolves.
+  \item \textbf{Nonfunctional evaluation planning:} Defining measurable
+  nonfunctional tests and presenting quantitative results clearly was a valuable
+  learning area that strengthened the quality of our V\&V work.
+  \item \textbf{Estimating integration work:} Coordinating integration across
+  components highlighted the importance of explicitly planning interface details
+  and test hooks early, which improved the final system robustness.
+\end{itemize}
 
 \subsection{What Would you Do Differently Next Time?}
 
-\plt{What will you do differently for your next project?}
+\begin{itemize}
+  \item \textbf{Make traceability updates routine:} Update traceability matrices
+  on a regular schedule so cross-document consistency is maintained continuously.
+  \item \textbf{Define acceptance criteria for issues:} Add short, explicit
+  acceptance criteria to issues to keep scope clear and improve verification.
+  \item \textbf{Plan earlier nonfunctional baselines:} Establish performance and
+  usability baselines earlier so evaluation is repeatable and comparisons across
+  iterations are straightforward.
+\end{itemize}
 
 \section{Ethics and Equity (LO18)}
 
-\plt{Describe how your team applied the principle of equity and universal design
-to ensure equitable treatment of all stakeholders.}
+Equity and universal design were central to VoiceBridge because the system is
+intended to support individuals with dysarthric speech. We designed for clarity,
+predictability, and user control by emphasizing clear system-state feedback
+(listening, processing, executing), confirmation for higher-risk actions, and
+safe handling of low-confidence or out-of-scope commands. We also treated privacy
+as part of equitable design by documenting data assumptions and encouraging
+local-first handling where feasible, so users can understand and trust how their
+information is processed. Across the project, we aimed to reduce unnecessary
+cognitive load and promote confidence by keeping interactions consistent and
+transparent.
 
 \section{Reflection on Capstone}
 
-\plt{This question focuses on what you learned during the course of the capstone project.}
-
 \subsection{Which Courses Were Relevant}
 
-\plt{Which of the courses you have taken were relevant for the capstone project?}
+\begin{itemize}
+  \item \textbf{SFWRENG 4HC3 (Human-Computer Interaction):} Informed our focus on
+  usable, predictable interactions, user feedback, and accessibility-oriented
+  design decisions.
+  \item \textbf{SFWRENG 3A04 (Software Architecture):} Supported our approach to
+  module decomposition, clear responsibility assignment, and documenting
+  interfaces and system structure.
+  \item \textbf{SFWRENG 4AL3 (Applied Machine Learning):} Helped us reason about
+  ASR-related considerations such as evaluation, error modes, and performance
+  tradeoffs in practical settings.
+\end{itemize}
 
 \subsection{Knowledge/Skills Outside of Courses}
 
-\plt{What skills/knowledge did you need to acquire for your capstone project
-that was outside of the courses you took?}
+\begin{itemize}
+  \item \textbf{End-to-end ASR pipeline integration:} Building and integrating a
+  real-time flow from audio capture to transcription to command execution.
+  \item \textbf{Practical evaluation:} Designing repeatable procedures and
+  metrics (e.g., latency and error characterization) that reflect real usage.
+  \item \textbf{Privacy-aware engineering:} Translating privacy expectations into
+  concrete requirements, hazards, and mitigations for an assistive tool.
+  \item \textbf{Documentation and maintenance discipline:} Keeping requirements,
+  design, and V\&V artifacts consistent through traceability as the project
+  evolved.
+  \item \textbf{Collaborative workflow:} Applying issue tracking, pull requests,
+  and structured reviews to coordinate work and justify changes.
+\end{itemize}
 
 \end{document}
