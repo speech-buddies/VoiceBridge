@@ -3,6 +3,7 @@
 \usepackage{tabularx}
 \usepackage{booktabs}
 \usepackage{float}
+\usepackage{booktabs}
 
 \title{Reflection and Traceability Report on \progname}
 
@@ -17,50 +18,43 @@
 
 \maketitle
 
-\plt{Reflection is an important component of getting the full benefits from a
-learning experience.  Besides the intrinsic benefits of reflection, this
-document will be used to help the TAs grade how well your team responded to
-feedback.  Therefore, traceability between Revision 0 and Revision 1 is and
-important part of the reflection exercise.  In addition, several CEAB (Canadian
-Engineering Accreditation Board) Learning Outcomes (LOs) will be assessed based
-on your reflections.}
-
+This report provides a comprehensive reflection on the development and evolution of the VoiceBridge system from Revision 0 to Revision 1. The primary objective of this document is to demonstrate traceability between external feedback—received from teaching assistants, faculty advisors, and peer reviewers—and the subsequent refinements made to the system's requirements, design, and verification protocols. This Document serves as a critical assessment of the engineering learning outcomes achieved throughout the Capstone project, including design iteration, project management efficiency, and the ethical considerations of developing assistive technologies.
 \section{Changes in Response to Feedback}
 
-\plt{Summarize the changes made over the course of the project in response to
-feedback from TAs, the instructor, teammates, other teams, the project
-supervisor (if present), and from user testers.}
+% \plt{Summarize the changes made over the course of the project in response to
+% feedback from TAs, the instructor, teammates, other teams, the project
+% supervisor (if present), and from user testers.}
 
-\plt{For those teams with an external supervisor, please highlight how the feedback 
-from the supervisor shaped your project.  In particular, you should highlight the 
-supervisor's response to your Rev 0 demonstration to them.}
+% \plt{For those teams with an external supervisor, please highlight how the feedback 
+% from the supervisor shaped your project.  In particular, you should highlight the 
+% supervisor's response to your Rev 0 demonstration to them.}
 
-\plt{Version control can make the summary relatively easy, if you used issues
-and meaningful commits.  If you feedback is in an issue, and you responded in
-the issue tracker, you can point to the issue as part of explaining your
-changes.  If addressing the issue required changes to code or documentation, you
-can point to the specific commit that made the changes.  Although the links are
-helpful for the details, you should include a label for each item of feedback so
-that the reader has an idea of what each item is about without the need to click
-on everything to find out.}
+% \plt{Version control can make the summary relatively easy, if you used issues
+% and meaningful commits.  If you feedback is in an issue, and you responded in
+% the issue tracker, you can point to the issue as part of explaining your
+% changes.  If addressing the issue required changes to code or documentation, you
+% can point to the specific commit that made the changes.  Although the links are
+% helpful for the details, you should include a label for each item of feedback so
+% that the reader has an idea of what each item is about without the need to click
+% on everything to find out.}
 
-\plt{If you were not organized with your commits, traceability between feedback
-and commits will not be feasible to capture after the fact.  You will instead
-need to spend time writing down a summary of the changes made in response to
-each item of feedback.}
+% \plt{If you were not organized with your commits, traceability between feedback
+% and commits will not be feasible to capture after the fact.  You will instead
+% need to spend time writing down a summary of the changes made in response to
+% each item of feedback.}
 
-\plt{You should address EVERY item of feedback.  A table or itemized list is
-recommended.  You should record every item of feedback, along with the source of
-that feedback and the change you made in response to that feedback.  The
-response can be a change to your documentation, code, or development process.
-The response can also be the reason why no changes were made in response to the
-feedback.  To make this information manageable, you will record the feedback and
-response separately for each deliverable in the sections that follow.}
+% \plt{You should address EVERY item of feedback.  A table or itemized list is
+% recommended.  You should record every item of feedback, along with the source of
+% that feedback and the change you made in response to that feedback.  The
+% response can be a change to your documentation, code, or development process.
+% The response can also be the reason why no changes were made in response to the
+% feedback.  To make this information manageable, you will record the feedback and
+% response separately for each deliverable in the sections that follow.}
 
-\plt{If the feedback is general or incomplete, the TA (or instructor) will not
-be able to grade your response to feedback.  In that case your grade on this
-document, and likely the Revision 1 versions of the other documents will be
-low.} 
+% \plt{If the feedback is general or incomplete, the TA (or instructor) will not
+% be able to grade your response to feedback.  In that case your grade on this
+% document, and likely the Revision 1 versions of the other documents will be
+% low.} 
 \subsection{SRS and Hazard Analysis}
 
 Over the course of the project, we made targeted updates to the SRS and Hazard
@@ -280,20 +274,51 @@ The VnV Report was revised to incorporate feedback from peer reviews. The change
 
 \section{Extras}
 
-\plt{Summarize the extras that were tackled by this project.  Extras
-can include usability testing, code walkthroughs, user documentation, formal
-proof, GenderMag personas, Design Thinking, etc.  Extras should have already
-been approved by the course instructor as included in your problem statement.}
+% \plt{Summarize the extras that were tackled by this project.  Extras
+% can include usability testing, code walkthroughs, user documentation, formal
+% proof, GenderMag personas, Design Thinking, etc.  Extras should have already
+% been approved by the course instructor as included in your problem statement.}
+Our team completed the two following extras:
+
+\begin{table}[H]
+\centering
+\renewcommand{\arraystretch}{1.5}
+\begin{tabularx}{\textwidth}{l p{4.5cm} X}
+\hline
+\textbf{Document} & \textbf{Methodology} & \textbf{Key Focus Area} \\ \hline
+\textbf{Literature Review} & Semi-systematic synthesis of recent ASR research, technical reports, and working notes. & Evaluation of fine-tuning strategies, parameter-efficient methods (LoRA), and specialized preprocessing for dysarthric speech. \\
+\textbf{ML Report} & Technical implementation and parameter-efficient fine-tuning (PEFT) using Whisper-small. & On-device adaptation, local privacy-preserving workflows, and mitigating catastrophic forgetting via replay buffers. \\ \hline
+\end{tabularx}
+\caption{Summary of VoiceBridge Research and Technical Documentation}
+\label{tab:doc_summary}
+\end{table}
 
 \section{Design Iteration (LO11 (PrototypeIterate))}
 
-\plt{Explain how you arrived at your final design and implementation.  How did
-the design evolve from the first version to the final version?} 
+% \plt{Explain how you arrived at your final design and implementation.  How did
+% the design evolve from the first version to the final version?} 
 
-\plt{Don't just say what you changed, say why you changed it.  The needs of the
-client should be part of the explanation.  For example, if you made changes in
-response to usability testing, explain what the testing found and what changes
-it led to.}
+% \plt{Don't just say what you changed, say why you changed it.  The needs of the
+% client should be part of the explanation.  For example, if you made changes in
+% response to usability testing, explain what the testing found and what changes
+% it led to.}
+\subsection{Audio Capture Modules}
+A key iteration in our system design was consolidating the modules related to audio capture, including the former MicrophoneManager, VADCapture, etc. into one master module. The reason for this is that our team came across pre-existing open source solutions in the form of python packages that could simplify our design. The packages were the following:
+
+\begin{table}[h]
+\centering
+\renewcommand{\arraystretch}{1.5}
+\begin{tabular}{lp{5cm}p{6cm}}
+\hline
+\textbf{Library} & \textbf{Primary Function} & \textbf{Key Features} \\ \hline
+\texttt{sounddevice} & Real-time audio I/O and hardware interfacing. & Provides bindings for the PortAudio library; handles multi-channel recording, low-latency streaming, and device selection. \\
+\texttt{webrtcvad} & Voice Activity Detection (VAD). & Specifically designed to distinguish between human speech and background noise; uses the high-performance WebRTC VAD engine. \\ \hline
+\end{tabular}
+\caption{Core Audio Processing Libraries for VoiceBridge}
+\label{tab:audio_libraries}
+\end{table}
+
+Given these two libraries covered microphone/audio device management as well as VAD filtering, we were able to depend on them entirely rather than creating our own modules. Thus, we were able to create a single consolidated class for collecting audio data, simplifying our design and process.
 
 \subsection{Shortcut Manager Iteration}
 
@@ -357,18 +382,39 @@ speech effort while still being able to trust what the system is doing.
 
 \section{Design Decisions (LO12)}
 
-\plt{Reflect and justify your design decisions.  How did limitations,
- assumptions, and constraints influence your decisions?  Discuss each of these
- separately.}
+% \plt{Reflect and justify your design decisions.  How did limitations,
+%  assumptions, and constraints influence your decisions?  Discuss each of these
+%  separately.}
+
+\subsection{Iterative Model Improvements}
+A key feature of VoiceBridge was developed after our Rev0 version, that being the gradual model customization and improvements through on device training. This feature introduced a set of novel challenges for our project.
+\subsubsection{Privacy-Preserving Local Adaptation}
+The primary challenge was leveraging user-specific data while maintaining strict privacy standards. To resolve this, we adopted an \textbf{on-device processing architecture}. No raw audio recordings or transcripts are transmitted to external servers; instead, all fine-tuning and inference tasks are executed locally on the user's hardware.
+
+\subsubsection{Computational Efficiency on Consumer Hardware}
+While the chosen base model is relatively compact, executing machine learning training remains resource-intensive for standard consumer-grade CPUs. We addressed this through a three-fold optimization strategy:
+\begin{itemize}
+    \item \textbf{Low-Rank Adaptation (LoRA):} As previously detailed, LoRA is utilized to drastically reduce the number of trainable parameters.
+    \item \textbf{Targeted Decoupling:} Training is restricted exclusively to the \textbf{decoder} portion of the Whisper architecture—where language and vocabulary adaptation occur—while the \textbf{encoder} remains frozen. This focuses the computational effort on user-specific linguistic patterns while preserving general acoustic features.
+    \item \textbf{Incremental Batching:} Rather than retraining on the entire accumulated dataset, the system performs small, incremental updates. Training is triggered after collecting several hundred new samples and is designed to complete within a short window (typically under 20 minutes), allowing for gradual improvement without intensive resource sessions.
+\end{itemize}
+
+\subsubsection{System Responsiveness and Latency}
+Executing local retraining on consumer hardware poses a risk of system instability or "bogging down" the primary interface. To maintain a fluid user experience, the application isolates the training pipeline within a **background thread**. This asynchronous execution ensures that the main application logic and user interface remain responsive and uninterupted during the adaptation process.
+
+\subsubsection{Mitigating Catastrophic Forgetting}
+A final challenge involves maintaining the model’s general accuracy during iterative updates. In machine learning, repeated training on limited new data can lead to \textbf{Catastrophic Forgetting}, where the model loses previously acquired patterns. To mitigate this, we implemented a \textbf{replay buffer system}. A subset of historically relevant samples is retained and interleaved with new data during each training cycle. This ensures the model effectively incorporates new user-specific patterns while preserving its foundational knowledge and overall transcription stability.
 
 \section{Economic Considerations (LO23)}
 
-\plt{Is there a market for your product? What would be involved in marketing your 
-product? What is your estimate of the cost to produce a version that you could 
-sell?  What would you charge for your product?  How many units would you have to 
-sell to make money? If your product isn't something that would be sold, like an 
-open source project, how would you go about attracting users?  How many potential 
-users currently exist?}
+% \plt{Is there a market for your product? What would be involved in marketing your 
+% product? What is your estimate of the cost to produce a version that you could 
+% sell?  What would you charge for your product?  How many units would you have to 
+% sell to make money? If your product isn't something that would be sold, like an 
+% open source project, how would you go about attracting users?  How many potential 
+% users currently exist?}
+
+Given our product is open source, there are limited economic considerations. Marketing our product would involve community outreach and promotion on public forums that can reach individuals with dysarthria. This may include getting it touch with organizations that are specialized in speech accessibility, or simply online forums like reddit. These initiatives would be done with the goal of recruiting participants and open source developers to further the research and development of the product rather than to sell it or generate profit.  
 
 \section{Reflection on Project Management (LO24)}
 
