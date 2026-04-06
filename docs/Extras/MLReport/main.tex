@@ -9,6 +9,7 @@
 \usepackage[]{acl}
 \usepackage{times}
 \usepackage{latexsym}
+\usepackage{natbib}
 
 % For proper rendering and hyphenation of words containing Latin characters (including in bib files)
 \usepackage[T1]{fontenc}
@@ -31,8 +32,7 @@
 \title{ML Report:\\ VoiceBridge}
 
 
-\author{Rawan Mahdi, Luna Aljammal
-  \texttt{\{mahdir3,aljammal}@mcmaster.ca} }
+\author{Rawan Mahdi, Luna Aljammal \texttt{\{mahdir3, aljammal\}@mcmaster.ca}}
 
 %\author{
 %  \textbf{First Author\textsuperscript{1}},
@@ -74,8 +74,10 @@
 
 \begin{document}
 \maketitle
-% \begin{abstract}
-% \end{abstract}
+\begin{abstract}
+Individuals with speech impairments resulting from neurological conditions, such as Parkinson’s disease, stroke, or cerebral palsy, face significant barriers when interacting with modern digital ecosystems. While flagship Automatic Speech Recognition (ASR) models have achieved high benchmarks for typical speech, their performance degrades sharply when processing dysarthric or atypical vocal patterns, limiting user independence. This paper presents VoiceBridge, an assistive software solution designed to bridge this accessibility gap.
+\end{abstract}
+
 
 \section{Introduction}
 
@@ -84,7 +86,15 @@ The VoiceBridge project addresses the digital accessibility gap faced by individ
 The system's objective is to capture impaired audio through a standard microphone and process it via a custom-trained machine learning model. The resulting text output is not merely for transcription but is designed to be mapped into actionable commands. By transforming these inputs into device-level controls—such as sending messages or operating applications—VoiceBridge aims to restore autonomy to users in everyday environments, including homes and clinics. This objective heightens the need for an accurate model to provide transcripts, as commands are often only a couple words in length. Due to the lack of context available to the model when processing short phrases, high recognition accuracy and low word error rate (WER) are vital for the systems relying on these model's performance.
 \section{Related Work}
 
-Here, talk about the related work you encountered for your approach. Cite at least 5 references. Refer to item 2. No one has done exactly your task? Write about the most similar thing you can find. This should be around 0.25-0.5 pages.
+A semi-systematic review of ASR approaches for impaired speech indicates that fine-tuning large, pre-trained foundation models consistently outperforms models trained solely on typical speech \citep{voicebridge_litreview}. Research suggests that while full fine-tuning of all model layers can reduce WER by 30–60\%, it is computationally expensive and prone to overfitting when data is scarce \citep{voicebridge_litreview}. Consequently, parameter-efficient adaptation methods, such as Low-Rank Adaptation (LoRA) and adapters, have emerged as practical alternatives. As noted by \citet{pokel2025variational}, LoRA provides a reported WER reduction of 7–40\% while significantly lowering the computational load, making it suitable for deployment on standard hardware. Model families like Whisper are particularly attractive due to their out-of-the-box robustness and strong community support for fine-tuning on specialized datasets like UASpeech and TORGO.
+
+Beyond model architecture, the literature emphasizes that preprocessing and feature engineering are critical for handling the irregular articulation and non-stationary noise often found in impaired speech recordings \citep{voicebridge_litreview}. Essential techniques include:
+
+\begin{itemize}
+\item \textbf{Temporal Normalization:} Methods such as Dynamic Time Warping (DTW) and Temporal Structure Normalization (TSN) address timing irregularities in dysarthric speech \citep{normalization_wav2vec}.
+\item \textbf{Denoising:} DFT-domain subspace decomposition helps separate speech from background noise in uncontrolled environments \citep{sciencedirect_dysarthric}.
+\item \textbf{Phoneme-aware Modeling:} Extracting phonetic representations (e.g., via Wav2Vec2-Phoneme) improves the precision of short command-based interactions \citep{huggingface_wav2vec2}.
+\end{itemize}
 
 \section{Dataset}
 
@@ -104,10 +114,44 @@ A subset of 400 labeled utterances was used for fine-tuning, with an 80/20 train
 The input representation follows the standard Whisper preprocessing pipeline: all audio is resampled to 16\,kHz and converted to log-Mel spectrograms via \texttt{WhisperProcessor}. 
 Domain adaptation is achieved through Low-Rank Adaptation (LoRA), which augments the frozen pretrained model with trainable low-rank matrices injected into the attention layers. Rather than modifying the base weights, LoRA allows the model to acquire task-specific adjustments within a compact parameter space, learning the acoustic characteristics of dysarthric and command-style speech. Adapters are applied to the query and value projection matrices (\texttt{q\_proj}, \texttt{v\_proj}); training configuration and hyperparameters are detailed in Section~\ref{sec:implementation}.
 
+
 \section{Implementation}
 \label{sec:implementation}
 
-Describe your model and implementation here. Refer to item 4. This may take around a page.
+
+The VoiceBridge implementation focuses on a parameter-efficient fine-tuning pipeline using Whisper-small as the foundation. 
+
+\subsection{Data Preparation and Preprocessing}
+The system processes audio samples standardized to a sampling rate of 16,000 Hz. A custom \texttt{AudioTextDataset} class manages the data pipeline:
+
+\begin{itemize}
+    \item \textbf{Audio Standardization:} Stereo signals are converted to mono by averaging channels to ensure consistency across different recording hardware.
+    \item \textbf{Feature Extraction:} The \texttt{WhisperProcessor} extracts spectral features from the waveforms, while the associated tokenizer processes transcripts into input IDs.
+    \item \textbf{Batching:} A \texttt{DataCollatorSpeechSeq2SeqWithPadding} handles dynamic padding for both input features and labels. Padding in labels is masked with a value of -100 to ensure it does not contribute to the loss calculation during training.
+\end{itemize}
+
+\subsection{Fine-Tuning with Low-Rank Adaptation (LoRA)}
+To adapt the model to atypical speech patterns without retraining all 244 million parameters, the project utilizes the \texttt{peft} library to implement LoRA.
+
+\begin{itemize}
+    \item \textbf{Target Modules:} Adapters are applied specifically to the Query (\texttt{q\_proj}) and Value (\texttt{v\_proj}) projection matrices within the transformer's attention mechanism \citep{pokel2025variational}.
+    \item \textbf{Hyperparameters:}
+    \begin{itemize}
+        \item \textbf{Rank ($r$):} Set to 16, providing a balance between model capacity and efficiency.
+        \item \textbf{Alpha ($\alpha$):} Set to 32 as a scaling factor for the low-rank updates.
+        \item \textbf{Dropout:} A rate of 0.1 is applied to the LoRA layers to prevent overfitting on the relatively small impaired speech datasets.
+    \end{itemize}
+    \item \textbf{Architecture Patching:} A \texttt{patched\_forward} method is used to wrap the base model, ensuring that the \texttt{peft} model correctly handles \texttt{input\_features} during the training pass.
+\end{itemize}
+
+\subsection{Training Configuration}
+Training is conducted over 3 epochs using the \texttt{AdamW} optimizer.
+
+\begin{itemize}
+    \item \textbf{Learning Rate:} A stable rate of $1 \times 10^{-4}$ is maintained.
+    \item \textbf{Checkpointing:} The system saves the model state dict to a \texttt{./checkpoints} directory every 100 batches, facilitating recovery and performance tracking across the training lifecycle.
+    \item \textbf{Batch Size:} A batch size of 4 is utilized to fit within the memory constraints of standard GPU environments.
+\end{itemize}
 
 \section{Results and Evaluation}
 
@@ -127,53 +171,74 @@ Performance improvements are distributed across diagnostic groups but vary in ma
 
 \section{Feedback and Plans}
 
-Write about your plans for the remainder of the project. This should include a discussion of the feedback you received from your TA, and how you plan to improve your approach. Reflect on your implementation and areas for improvement. Refer to item 6. This may be around 0.5 pages.
+The VoiceBridge project roadmap is strategically bifurcated into a \textbf{Minimum Viable Product (MVP)} and a set of \textbf{Stretch Goals} to ensure technical feasibility within the Capstone timeline while maintaining a path toward a comprehensive accessibility solution.
+ 
+\subsection{Core Performance Benchmarks}
+Success for the initial deployment is defined by two primary technical metrics:
+\begin{itemize}
+    \item \textbf{Transcription Accuracy:} A target of \textbf{70\%+ accuracy} on dysarthric speech. This represents a significant improvement over baseline Whisper-small performance for impaired speech.
+    \item \textbf{Real-Time Latency:} Processing delay must remain \textbf{under 1 second}. This threshold is critical for interactive digital tasks, ensuring that the feedback loop between speech and device action feels natural and responsive for the user.
+\end{itemize}
 
-\section{Template Notes}
+\subsection{User Experience and Feedback Loops}
+To build user trust and mitigate the impact of ASR errors, the system incorporates a \textbf{non-disruptive feedback mechanism}. Transcribed text is displayed in a dedicated interface, allowing for immediate user verification. If a command is misinterpreted, the system provides clear pathways for manual correction, which not only assists the user but also provides potential data points for future iterative model refinement.
 
-You can remove this section or comment it out, as it only contains instructions for how to use this template. You may use subsections in your document as you find appropriate.
+\subsection{Future Personalization and Environmental Robustness}
+Expanding beyond the MVP, the team has identified several high-impact stretch goals:
+\begin{itemize}
+    \item \textbf{Custom Command Mapping:} Users will be able to define personalized "vocal shortcuts." For instance, a user with specific slurred phonemes can map a consistent distinct phrase to a high-level digital trigger, such as ``Open Browser'' or ``Emergency Alert''
+    \item \textbf{Acoustic Robustness:} Current research focuses on enhancing ``Robustness to Noise'' \citep{sciencedirect_dysarthric}. This ensures the model remains functional in non-idealized environments, such as busy public clinics or domestic settings with ambient background noise.
+\end{itemize}
 
-\subsection{Tables and figures}
+\subsection{Project Timeline and Ethical Data Lifecycle}
+The project is currently in the data collection and architectural refinement phase. 
+\begin{itemize}
+    \item \textbf{Phase 1 (Summer 2026):} Participant recruitment and audio data collection for fine-tuning will continue, coordinated with high-speed network support via ORION for large-scale data transfer.
+    \item \textbf{Phase 2 (Fall 2026):} Detailed architectural reviews with technical advisors, including Pavel, will guide the final system integration and performance audit.
+    \item \textbf{Phase 3 (Winter 2027):} The project is slated for official completion. In accordance with established ethics protocols, all raw research data will be permanently purged to protect participant privacy and comply with data retention agreements.
+\end{itemize}
 
-% See Table~\ref{citation-guide} for an example of a table and its caption.
-% See Figure~\ref{fig:experiments} for an example of a figure and its caption.
+% \subsection{Tables and figures}
 
-
-\begin{figure}[t]
-  \includegraphics[width=\columnwidth]{example-image-golden}
-  \caption{A figure with a caption that runs for more than one line.
-    Example image is usually available through the \texttt{mwe} package
-    without even mentioning it in the preamble.}
-  \label{fig:experiments}
-\end{figure}
-
-\begin{figure*}[t]
-  \includegraphics[width=0.48\linewidth]{example-image-a} \hfill
-  \includegraphics[width=0.48\linewidth]{example-image-b}
-  \caption {A minimal working example to demonstrate how to place
-    two images side-by-side.}
-\end{figure*}
+% % See Table~\ref{citation-guide} for an example of a table and its caption.
+% % See Figure~\ref{fig:experiments} for an example of a figure and its caption.
 
 
-\subsection{Citations}
+% \begin{figure}[t]
+%   \includegraphics[width=\columnwidth]{example-image-golden}
+%   \caption{A figure with a caption that runs for more than one line.
+%     Example image is usually available through the \texttt{mwe} package
+%     without even mentioning it in the preamble.}
+%   \label{fig:experiments}
+% \end{figure}
 
-\begin{table*}
-  \centering
-  \begin{tabular}{lll}
-    \hline
-    \textbf{Output}           & \textbf{natbib command} & \textbf{ACL only command} \\
-    \hline
-    \citep{Gusfield:97}       & \verb|\citep|           &                           \\
-    \citealp{Gusfield:97}     & \verb|\citealp|         &                           \\
-    \citet{Gusfield:97}       & \verb|\citet|           &                           \\
-    \citeyearpar{Gusfield:97} & \verb|\citeyearpar|     &                           \\
-    \citeposs{Gusfield:97}    &                         & \verb|\citeposs|          \\
-    \hline
-  \end{tabular}
-  \caption{\label{citation-guide}
-    Citation commands supported by the style file.
-  }
-\end{table*}
+% \begin{figure*}[t]
+%   \includegraphics[width=0.48\linewidth]{example-image-a} \hfill
+%   \includegraphics[width=0.48\linewidth]{example-image-b}
+%   \caption {A minimal working example to demonstrate how to place
+%     two images side-by-side.}
+% \end{figure*}
+
+
+% \subsection{Citations}
+
+% \begin{table*}
+%   \centering
+%   \begin{tabular}{lll}
+%     \hline
+%     \textbf{Output}           & \textbf{natbib command} & \textbf{ACL only command} \\
+%     \hline
+%     \citep{Gusfield:97}       & \verb|\citep|           &                           \\
+%     \citealp{Gusfield:97}     & \verb|\citealp|         &                           \\
+%     \citet{Gusfield:97}       & \verb|\citet|           &                           \\
+%     \citeyearpar{Gusfield:97} & \verb|\citeyearpar|     &                           \\
+%     \citeposs{Gusfield:97}    &                         & \verb|\citeposs|          \\
+%     \hline
+%   \end{tabular}
+%   \caption{\label{citation-guide}
+%     Citation commands supported by the style file.
+%   }
+% \end{table*}
 
 % Table~\ref{citation-guide} shows the syntax supported by the style files.
 % We encourage you to use the natbib styles.
@@ -181,37 +246,31 @@ You can remove this section or comment it out, as it only contains instructions 
 % You can use the command \verb|\citep| (cite in parentheses) to get ``(author, year)'' citations \citep{Gusfield:97}.
 % You can use the command \verb|\citealp| (alternative cite without parentheses) to get ``author, year'' citations, which is useful for using citations within parentheses (e.g. \citealp{Gusfield:97}).
 
-% \subsection{References}
+% \subsection{Equations}
 
-% \nocite{Ando2005,andrew2007scalable,rasooli-tetrault-2015}
+% An example equation is shown below:
+% \begin{equation}
+%   \label{eq:example}
+%   A = \pi r^2
+% \end{equation}
 
-Many websites where you can find academic papers also allow you to export a bib file for citation or bib formatted entry. Copy this into the \texttt{custom.bib} and you will be able to cite the paper in the \LaTeX{}. You can remove the example entries.
-
-\subsection{Equations}
-
-An example equation is shown below:
-\begin{equation}
-  \label{eq:example}
-  A = \pi r^2
-\end{equation}
-
-Labels for equation numbers, sections, subsections, figures and tables
-are all defined with the \verb|\label{label}| command and cross references
-to them are made with the \verb|\ref{label}| command.
-This an example cross-reference to Equation~\ref{eq:example}. You can also write equations inline, like this: $A=\pi r^2$.
+% Labels for equation numbers, sections, subsections, figures and tables
+% are all defined with the \verb|\label{label}| command and cross references
+% to them are made with the \verb|\ref{label}| command.
+% This an example cross-reference to Equation~\ref{eq:example}. You can also write equations inline, like this: $A=\pi r^2$.
 
 
 % \section*{Limitations}
 
 \section*{Team Contributions}
-
-Write in this section a few sentences describing the contributions of each team member. What did each member work on? Refer to item 7.
+Rawan Mahdi Sections 1,2,5,7
+Luna Aljammal: Sections 3,4,6
 
 % Bibliography entries for the entire Anthology, followed by custom entries
 %\bibliography{custom,anthology-overleaf-1,anthology-overleaf-2}
 
 % Custom bibliography entries only
-% \bibliography{custom}
+\bibliography{custom}
 
 % \appendix
 
