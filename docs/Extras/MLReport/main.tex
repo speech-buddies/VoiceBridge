@@ -88,7 +88,7 @@ Here, talk about the related work you encountered for your approach. Cite at lea
 
 \section{Dataset}
 
-Training and evaluation data are drawn from the Speech Accessibility Project (SAP), a large-scale corpus of atypical speech collected to support ASR research for individuals with dysarthria and related conditions. SAP is well-suited to this work because it captures the acoustic characteristics---breathiness, irregular timing, strained phonation---that cause performance degradation in general-purpose speech recognition systems.
+Training and evaluation data are drawn from the Speech Accessibility Project (SAP), a large-scale corpus of atypical speech collected to support ASR research for individuals with dysarthria and related conditions. SAP is well-suited to this work because it captures the acoustic characteristics, such as breathiness, irregular timing, and strained phonation, which cause performance degradation in general-purpose speech recognition systems.
 
 A subset of 400 labeled utterances was used for fine-tuning, with an 80/20 train/validation split (320 and 80 samples respectively). A fully disjoint held-out set was reserved for evaluation; each utterance is paired with a ground-truth transcript and structured ratings covering the speaker's diagnosed condition and symptom severity across multiple dimensions. Training was conducted on SHARCNET H100 GPUs. As shown in Figure~\ref{fig:dataset-composition}, the subset is dominated by Parkinson's Disease (59.4\%) and ALS (26.1\%), with Cerebral Palsy (10.1\%), Down Syndrome (2.6\%), and Ataxic Dysarthria (1.8\%) providing coverage of acoustically distinct profiles.
 
@@ -102,7 +102,7 @@ A subset of 400 labeled utterances was used for fine-tuning, with an 80/20 train
 \section{Features}
 
 The input representation follows the standard Whisper preprocessing pipeline: all audio is resampled to 16\,kHz and converted to log-Mel spectrograms via \texttt{WhisperProcessor}. 
-Domain adaptation is achieved through Low-Rank Adaptation (LoRA), which augments the frozen pretrained model with trainable low-rank matrices injected into the attention layers. Rather than modifying the base weights, LoRA allows the model to acquire task-specific adjustments within a compact parameter space---here, learning the acoustic characteristics of dysarthric and command-style speech. Adapters are applied to the query and value projection matrices (\texttt{q\_proj}, \texttt{v\_proj}); training configuration and hyperparameters are detailed in Section~\ref{sec:implementation}.
+Domain adaptation is achieved through Low-Rank Adaptation (LoRA), which augments the frozen pretrained model with trainable low-rank matrices injected into the attention layers. Rather than modifying the base weights, LoRA allows the model to acquire task-specific adjustments within a compact parameter space, learning the acoustic characteristics of dysarthric and command-style speech. Adapters are applied to the query and value projection matrices (\texttt{q\_proj}, \texttt{v\_proj}); training configuration and hyperparameters are detailed in Section~\ref{sec:implementation}.
 
 \section{Implementation}
 \label{sec:implementation}
@@ -123,8 +123,7 @@ An unmodified \texttt{openai/whisper-small} model serves as the baseline. Both m
 \paragraph{Per-condition analysis.}
 Performance improvements are distributed across diagnostic groups but vary in magnitude. For Parkinson's Disease and ALS, fine-tuning substantially increases the proportion of near-zero WER samples and reduces high-error outliers. For Cerebral Palsy, WER decreases from approximately 0.75 to 0.45; for Ataxic Dysarthria, from approximately 0.65 to 0.35. Symptom-level analysis confirms that error distributions shift toward lower values across severity levels, indicating more consistent performance rather than selective gains on lower-severity speakers.
 
-% TODO: Insert WER comparison table (baseline vs. fine-tuned, per condition)
-% TODO: Insert subgroup WER figures
+
 
 \section{Feedback and Plans}
 
@@ -136,8 +135,8 @@ You can remove this section or comment it out, as it only contains instructions 
 
 \subsection{Tables and figures}
 
-See Table~\ref{citation-guide} for an example of a table and its caption.
-See Figure~\ref{fig:experiments} for an example of a figure and its caption.
+% See Table~\ref{citation-guide} for an example of a table and its caption.
+% See Figure~\ref{fig:experiments} for an example of a figure and its caption.
 
 
 \begin{figure}[t]
