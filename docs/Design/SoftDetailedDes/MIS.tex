@@ -57,14 +57,14 @@ urlcolor=cyan          % color of external links
 \begin{tabularx}{\textwidth}{p{3cm}p{2cm}X}
 \toprule {\bf Date} & {\bf Version} & {\bf Notes}\\
 \midrule
-Nov 12, 2025 & 1.0 & Added Modules M1-M19\\
+Nov 12, 2025 & 1.0 & Added Modules M1-M18\\
 Jan 11, 2026 & 1.1 & Updated local functions\\
 Jan 21, 2026 & 2.0 & Merged modules in application layer\\
 Jan 28, 2026 & 2.1 & Added reflection for peer module implementation\\
 Feb 16, 2026 & 2.2 & Updated module specifications to resemble rev0 implementation\\
 April 1, 2026 & 3.0 & Updated module descriptions to reflect final architecture \\
 Apr 01, 2026 & 3.1 & Updated M15 interface specification to match \texttt{audio\_capture.py} \\
-Apr 01, 2026 & 3.2 & Updated M18 interface specification to match \texttt{whisper\_lora\_trainer.py} \\
+Apr 01, 2026 & 3.2 & Updated M17 interface specification to match \texttt{whisper\_lora\_trainer.py} \\
 Apr 05, 2026 & 3.3 & Addressed final TA feedback\\
 
 \bottomrule
@@ -1355,9 +1355,9 @@ Implements audio acquisition requirements (FR1). Provides a self-contained, call
 \end{itemize}
 
 
-\label{MIS:M17}
+\label{MIS:M16}
 
-\section{(M17) MIS of PromptingModule} \label{M17}
+\section{(M16) MIS of PromptingModule} \label{M16}
 
 \textbf{Module:} PromptingModule
 
@@ -1397,9 +1397,9 @@ Ensures consistent phrasing across confirmations, errors, and system messages.
 \item \textbf{transition:} Builds a polite, accessible error message.
 \end{itemize}
 
-\label{MIS:M18}
+\label{MIS:M17}
 
-\section{(M18) MIS of ModelTuner} \label{M18}
+\section{(M17) MIS of ModelTuner} \label{M17}
 
 \textbf{Module:} ModelTuner (\texttt{whisper\_lora\_trainer.py} — \texttt{WhisperLoRATrainer})
 
@@ -1564,9 +1564,9 @@ prevent catastrophic forgetting as new audio data accumulates over time.
 \end{itemize}
 
 
-\label{MIS:M19}
+\label{MIS:M18}
 
-\section{(M19) MIS of ShortcutManager} \label{M19}
+\section{(M18) MIS of ShortcutManager} \label{M18}
 
 \textbf{Module:} ShortcutManager
 
